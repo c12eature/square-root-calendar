@@ -3,6 +3,17 @@
 Free FDNY firehouse tour-tracking calendar. Single self-contained page, works fully offline,
 stores everything in the browser (`localStorage`, `sqrt:*` keys). Target URL: **calendar.nyfirestudyapp.com**.
 
+> ## ⏸️ Where we left off (2026-07-17)
+> The app is **feature-complete** and the PWA is **built + verified** (manifest, offline service worker,
+> icons all working). Code is fully pushed here. **Next steps, in order:**
+> 1. **YOU:** Vercel → import this repo (preset **Other**, static, no build) → Deploy.
+> 2. **YOU:** add domain `calendar.nyfirestudyapp.com` in Vercel + the CNAME in Porkbun DNS.
+> 3. **THEN:** generate the downloadable **Android .apk** via PWABuilder (see "downloadable APK" below),
+>    paste its SHA-256 into `.well-known/assetlinks.json`, bump `sw.js` `CACHE`, push.
+> 4. **THEN:** add the 🗓️ download link to the study app's Free Tools (`src/freeTools.js`, snippet at bottom).
+>
+> Live prototype (pre-domain): https://claude.ai/code/artifact/788a7bc1-9003-4845-9d75-626f75725df9
+
 ## Files
 | File | What it is |
 |---|---|
