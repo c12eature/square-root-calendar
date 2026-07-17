@@ -4,7 +4,7 @@
     "target": {
       "namespace": "android_app",
       "package_name": "com.nyfirestudyapp.calendar",
-      "sha256_cert_fingerprints": ["REPLACE_WITH_APK_SIGNING_SHA256_FINGERPRINT"]
+      "sha256_cert_fingerprints": ["0F:C3:27:46:72:D2:B9:C4:9E:F7:DF:00:03:BC:AC:32:A3:CA:9F:04:01:B6:49:5B:09:99:EF:B4:84:8F:65:4F"]
     }
   }
 ]
