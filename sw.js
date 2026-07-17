@@ -1,5 +1,5 @@
-// Square Root Calendar — offline service worker. Bump CACHE on each deploy.
-var CACHE = 'sqrtcal-v1';
+// Square Root Calendar — service worker. Bump CACHE whenever assets change.
+var CACHE = 'sqrtcal-v2';
 var ASSETS = [
   '/', '/index.html', '/manifest.webmanifest',
   '/icons/icon-192.png', '/icons/icon-512.png', '/icons/apple-touch-icon.png', '/icons/favicon-32.png'
@@ -13,17 +13,27 @@ self.addEventListener('activate', function(e){
   }).then(function(){ return self.clients.claim(); }));
 });
 self.addEventListener('fetch', function(e){
-  if(e.request.method !== 'GET') return;
+  var req = e.request;
+  if(req.method !== 'GET') return;
+  var isDoc = req.mode === 'navigate' || req.destination === 'document';
+  if(isDoc){
+    // network-first for the page → always the latest when online, cached shell when offline
+    e.respondWith(
+      fetch(req).then(function(res){
+        if(res && res.status === 200){ var cl = res.clone(); caches.open(CACHE).then(function(c){ c.put('/', cl); }); }
+        return res;
+      }).catch(function(){ return caches.match(req).then(function(c){ return c || caches.match('/'); }); })
+    );
+    return;
+  }
+  // static assets (icons, manifest) → cache-first, refresh in the background
   e.respondWith(
-    caches.match(e.request).then(function(cached){
-      var net = fetch(e.request).then(function(res){
-        if(res && res.status === 200 && res.type === 'basic'){
-          var clone = res.clone();
-          caches.open(CACHE).then(function(c){ c.put(e.request, clone); });
-        }
+    caches.match(req).then(function(cached){
+      var net = fetch(req).then(function(res){
+        if(res && res.status === 200 && res.type === 'basic'){ var cl = res.clone(); caches.open(CACHE).then(function(c){ c.put(req, cl); }); }
         return res;
       }).catch(function(){ return cached; });
-      return cached || net;   // serve cache first (offline-ready), refresh in the background
+      return cached || net;
     })
   );
 });
