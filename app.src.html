@@ -33,13 +33,14 @@
     --pay:#3ecf8e; --wknd:#191510; --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 34px rgba(0,0,0,.4); --sheet:rgba(0,0,0,.55); color-scheme:dark;
   }
   *{box-sizing:border-box;}
-  body{margin:0; color:var(--ink);}   /* sheets live outside #app — without this their untinted text (h3 titles) falls back to black */
+  html{height:100%; overflow:hidden; overscroll-behavior:none;}   /* kill pull-to-refresh + overscroll bounce */
+  body{margin:0; color:var(--ink); height:100%; overflow:hidden; overscroll-behavior:none;}   /* sheets live outside #app — without this their untinted text (h3 titles) falls back to black */
   :root{color-scheme:light dark;}
   #app{
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    background:var(--bg); color:var(--ink); min-height:100vh; min-height:100dvh;
+    background:var(--bg); color:var(--ink); height:100vh; height:100dvh; overflow:hidden;   /* pinned to the viewport — the calendar fits, never scrolls */
     display:flex; flex-direction:column;
-    max-width:520px; margin:0 auto; padding:16px 9px calc(30px + env(safe-area-inset-bottom,0px)); box-sizing:border-box;
+    max-width:520px; margin:0 auto; padding:16px 9px calc(14px + env(safe-area-inset-bottom,0px)); box-sizing:border-box;
     -webkit-font-smoothing:antialiased; font-variant-numeric:tabular-nums;
   }
   /* header */
@@ -61,10 +62,10 @@
   .mbar .title{flex:1; text-align:center; font-size:17px; font-weight:800; letter-spacing:-.02em;}
   .mbar .title span{color:var(--mut); font-weight:700;}
   /* calendar */
-  .cal{background:var(--panel); border:1px solid var(--line); border-radius:16px; overflow:hidden; box-shadow:var(--shadow); display:flex; flex-direction:column; flex:1 0 auto;}
+  .cal{background:var(--panel); border:1px solid var(--line); border-radius:16px; overflow:hidden; box-shadow:var(--shadow); display:flex; flex-direction:column; flex:1 1 0; min-height:0;}
   .dow{display:grid; grid-template-columns:repeat(7,1fr); background:var(--panel2); border-bottom:1px solid var(--line); flex:none;}
   .dow div{text-align:center; padding:10px 0; font-size:12px; font-weight:800; color:var(--mut); text-transform:uppercase; letter-spacing:.04em;}
-  .grid{display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); grid-template-rows:repeat(6,minmax(88px,1fr)); flex:1 0 auto;}
+  .grid{display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); grid-template-rows:repeat(6,minmax(0,1fr)); flex:1 1 0; min-height:0;}
   .cell{min-height:104px; min-width:0; overflow:hidden; border-right:1px solid var(--line2); border-bottom:1px solid var(--line2);
     padding:5px 4px 6px; display:flex; flex-direction:column; gap:3px; cursor:pointer; position:relative;}   /* floor sized so both halves still fit a full pill + a row of detail dots even on a short screen */
   .cell:nth-child(7n){border-right-color:transparent;}   /* keep the 1px so every column is the exact same width; just hide the line */
@@ -1046,7 +1047,7 @@
     var prevDim=new Date(view.y,view.m,0).getDate();
     var tY=now.getFullYear(),tM=now.getMonth(),tD=now.getDate();
     var weeks=Math.max(5,Math.ceil((start+dim)/7));                      // always ≥5 rows, ≤6 — render the 6th only when a day would otherwise be cut off
-    grid.style.gridTemplateRows="repeat("+weeks+",minmax(104px,1fr))";
+    grid.style.gridTemplateRows="repeat("+weeks+",minmax(0,1fr))";   // rows fill + shrink to fit the viewport (no page scroll); dots get max room on tall screens
     var cells=weeks*7;
     for(var i=0;i<cells;i++){
       var oth=false,y=view.y,m=view.m,d=i-start+1;
