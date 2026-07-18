@@ -1,6 +1,6 @@
 # Square Root Calendar — installable PWA (iPhone + Android)
 
-Free FDNY firehouse tour-tracking calendar. Single self-contained page, works fully offline,
+Free firehouse tour-tracking calendar. Single self-contained page, works fully offline,
 stores everything in the browser (`localStorage`, `sqrt:*` keys). Target URL: **calendar.nyfirestudyapp.com**.
 
 > ## ✅ LIVE at calendar.nyfirestudyapp.com

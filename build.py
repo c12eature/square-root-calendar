@@ -9,7 +9,7 @@ head_app, body_app = src.split('</style>', 1)   # head_app = <title>…<style>�
 
 PWA_HEAD = '''<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Free FDNY firehouse tour-tracking calendar — tours, mutual swaps, overtime, RSOT, time off, and company events. Works fully offline. From NYFireStudyApp.com.">
+<meta name="description" content="Free firehouse tour-tracking calendar — tours, mutual swaps, overtime, RSOT, time off, and company events. Works fully offline. From NYFireStudyApp.com.">
 <meta name="theme-color" content="#f4f1ea">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/icons/favicon.ico" sizes="any">
@@ -20,7 +20,7 @@ PWA_HEAD = '''<meta charset="utf-8">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Sq Root Cal">
 <meta property="og:title" content="Square Root Calendar">
-<meta property="og:description" content="Free FDNY tour-tracking calendar — swaps, mutuals, overtime, time off. Works offline.">
+<meta property="og:description" content="Free firehouse tour-tracking calendar — swaps, mutuals, overtime, time off. Works offline.">
 <meta property="og:type" content="website">
 <meta name="robots" content="index,follow">
 '''

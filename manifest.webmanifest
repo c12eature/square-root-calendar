@@ -1,7 +1,7 @@
 {
   "name": "Square Root Calendar",
   "short_name": "Sq Root Cal",
-  "description": "FDNY firehouse tour-tracking calendar — tours, mutual swaps, overtime, RSOT, time off, company events. Works offline.",
+  "description": "Firehouse tour-tracking calendar — tours, mutual swaps, overtime, RSOT, time off, company events. Works offline.",
   "id": "/",
   "start_url": "/?src=pwa",
   "scope": "/",
