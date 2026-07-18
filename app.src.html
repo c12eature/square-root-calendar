@@ -189,13 +189,20 @@
   .stptot{margin-left:auto;font-size:14px;font-weight:900;color:var(--pay);white-space:nowrap;font-variant-numeric:tabular-nums;}
   .stpdays{display:none;flex-direction:column;border-top:1px solid var(--line);}
   .stp.open .stpdays{display:flex;}
-  .stview{display:flex;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:4px;margin-bottom:12px;}
-  .stview button{flex:1;padding:9px;border:none;border-radius:8px;background:transparent;color:var(--ink2);font-size:12.5px;font-weight:800;cursor:pointer;font-family:inherit;}
-  .stview button.on{background:var(--pay);color:#fff;}
-  .stday{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:9px 12px;border-bottom:1px solid var(--line2);}
+  .stmonth{border:1px solid var(--line);border-radius:11px;background:var(--panel);overflow:hidden;}
+  .stmhd{width:100%;display:flex;align-items:center;gap:10px;padding:11px 12px;border:none;background:transparent;cursor:pointer;font-family:inherit;text-align:left;}
+  .stmname{font-size:14px;font-weight:900;color:var(--ink);}
+  .stmtot{margin-left:auto;font-size:13.5px;font-weight:900;color:var(--pay);white-space:nowrap;font-variant-numeric:tabular-nums;}
+  .stmhd .stychev{margin-left:8px;}
+  .stmonth.open .stmhd .stychev{transform:rotate(180deg);}
+  .stmbody{display:none;padding:0 8px 9px;flex-direction:column;gap:7px;}
+  .stmonth.open .stmbody{display:flex;}
+  .stday{width:100%;display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:10px 12px;border:none;border-bottom:1px solid var(--line2);background:transparent;cursor:pointer;font-family:inherit;text-align:left;}
   .stday:last-child{border-bottom:none;}
+  .stday:active{background:var(--line);}
   .stdd{font-size:12px;font-weight:800;color:var(--ink2);white-space:nowrap;}
   .stdv{font-size:11.5px;font-weight:600;color:var(--ink2);text-align:right;}
+  .stdgo{color:var(--accent);font-weight:900;margin-left:2px;}
   .mxnet{border:1px solid var(--line);border-radius:14px;background:color-mix(in srgb,var(--amber) 8%,var(--panel2));padding:15px 16px;margin-bottom:14px;}
   .mxnetbig{font-size:16px;font-weight:800;color:var(--ink);}
   .mxnetbig .pos{color:var(--pay);} .mxnetbig .neg{color:var(--red);}
@@ -777,7 +784,7 @@
   <div class="setsec">
     <div class="setlbl">Track &amp; Review</div>
     <div class="setlist">
-      <button class="setrow" id="openStats"><span class="setico">📊</span><span class="settx"><span class="settl">Overtime Statistics</span><span class="setsub">Totals by pay period</span></span><span class="setchev">›</span></button>
+      <button class="setrow" id="openStats"><span class="setico">📊</span><span class="settx"><span class="settl">Overtime Statistics</span><span class="setsub">By year · month · pay period</span></span><span class="setchev">›</span></button>
       <button class="setrow" id="openMx"><span class="setico">🤝</span><span class="settx"><span class="settl">Mutuals Ledger</span><span class="setsub">Who owes who</span></span><span class="setchev">›</span></button>
     </div>
   </div>
@@ -981,9 +988,8 @@
 <div class="sheet set" id="statsSheet">
   <div class="grip"></div>
   <h3>Overtime Statistics</h3>
-  <p class="rsub">Everything you're owed, added up — broken down by <b>month</b> or by <b>2-week pay period</b>. Tap a year, then a month or period, to see the days.</p>
+  <p class="rsub">Everything you're owed, added up. Tap a <b>year</b> → <b>month</b> → <b>pay period</b> to drill in, then tap any day to jump to it on the calendar.</p>
   <div class="sttot" id="stTot"></div>
-  <div class="stview" id="stView"><button data-v="month" class="on">By month</button><button data-v="period">By pay period</button></div>
   <div class="rlist" id="stList"></div>
   <button class="done" id="stDone">Done</button>
 </div>
@@ -2446,37 +2452,27 @@
   function paydayDate(k){return new Date(PAY+14*(k+1)*864e5);}             // the Friday this pay period pays out
   function stCell(lab,val){return '<div class="stcell"><span class="stcl">'+lab+'</span><span class="stcv">'+val+'</span></div>';}
   function brkParts(r){var p=[];if(r.ms)p.push('MSOT '+r.ms+'h');if(r.rs)p.push('RSOT '+r.rs+'h');if(r.oo)p.push('Other OT '+r.oo+'h'+(r.ool?' ('+esc(r.ool)+')':''));if(r.ar)p.push('AR '+fmtHM(r.ar));if(r.p2p)p.push('P2P '+fmtHM(r.p2p));if(r.wu)p.push('Washup '+fmtHM(r.wu));if(r.oth)p.push(esc(r.otl||'Other')+' '+fmtHM(r.oth));return p.join(' · ');}
-  var stMode="month";   // "month" | "period"
   function stDays(tours){return tours.slice().sort(function(a,b){return Date.UTC(a.y,a.m,a.d)-Date.UTC(b.y,b.m,b.d)||b.t-a.t;}).map(function(x){
-    return '<div class="stday"><span class="stdd">'+MON[x.m].slice(0,3)+' '+x.d+' · '+(x.t===9?"9× Day":"6× Night")+'</span><span class="stdv">'+brkParts(x)+'</span></div>';}).join("");}
+    return '<button class="stday" type="button" data-nav="'+x.y+'-'+x.m+'-'+x.d+'"><span class="stdd">'+MON[x.m].slice(0,3)+' '+x.d+' · '+(x.t===9?"9× Day":"6× Night")+'</span><span class="stdv">'+brkParts(x)+' <span class="stdgo">›</span></span></button>';}).join("");}
+  function goToDate(y,m,d){statsSheet.classList.remove("show");view.y=y;view.m=m;render();openDay(y,m,d);}   // jump from the stats list to that day on the calendar
   function sumBucket(list){var t={ms:0,rs:0,oo:0,ar:0,p2p:0,wu:0,oth:0};list.forEach(function(r){t.ms+=r.ms;t.rs+=r.rs;t.oo+=r.oo;t.ar+=r.ar;t.p2p+=r.p2p;t.wu+=r.wu;t.oth+=r.oth;});return t;}
   function yearSumTxt(t,n,unit){var oth=t.ms+t.rs+t.oo,ext=t.ar+t.p2p+t.wu+t.oth;return oth+'h OT'+(ext?' · '+fmtHM(ext):'')+' · '+n+' '+unit;}
   function yearShell(yr,open,sumTxt,body){return '<div class="styear'+(open?' open':'')+'"><button class="styhd"><span class="styr">'+yr+'</span><span class="stysum">'+sumTxt+'</span><span class="stychev">&#9662;</span></button><div class="stybody">'+body+'</div></div>';}
-  function monthBuckets(byK){var bm={};Object.keys(byK).forEach(function(pk){byK[pk].tours.forEach(function(x){
-    var mk=x.y+"-"+x.m,r=bm[mk]||(bm[mk]={y:x.y,m:x.m,ms:0,rs:0,oo:0,ar:0,p2p:0,wu:0,oth:0,tours:[]});
-    r.ms+=x.ms;r.rs+=x.rs;r.oo+=x.oo;r.ar+=x.ar;r.p2p+=x.p2p;r.wu+=x.wu;r.oth+=x.oth;r.tours.push(x);});});return bm;}
-  function renderByPeriod(byK,ks){
-    var byYear={};ks.forEach(function(k){(byYear[paydayDate(k).getUTCFullYear()]=byYear[paydayDate(k).getUTCFullYear()]||[]).push(k);});
-    var years=Object.keys(byYear).map(Number).sort(function(a,b){return b-a;});
-    var curK=payKeyOf(now.getFullYear(),now.getMonth(),now.getDate(),9);
-    return years.map(function(yr,yi){
-      var yks=byYear[yr].sort(function(a,b){return b-a;});
-      var periods=yks.map(function(k){var r=byK[k],cur=(k===curK),pd=paydayDate(k);
-        return '<div class="stp'+(cur?' cur':'')+'"><button class="stphd"><span class="stpmain"><span class="stprange">'+payRangeLabel(k)+(cur?' <span class="curbadge">now</span>':'')+'</span><span class="stppay">💵 paid Fri '+MON[pd.getUTCMonth()].slice(0,3)+' '+pd.getUTCDate()+'</span></span><span class="stptot">'+fmtHM(periodMin(r))+'</span></button><div class="stpdays">'+stDays(r.tours)+'</div></div>';}).join("");
-      return yearShell(yr,yi===0,yearSumTxt(sumBucket(yks.map(function(k){return byK[k];})),yks.length,'pd'),periods);
-    }).join("");
-  }
-  function renderByMonth(byK){
-    var bm=monthBuckets(byK),byYear={};
-    Object.keys(bm).forEach(function(mk){var r=bm[mk];(byYear[r.y]=byYear[r.y]||[]).push(r);});
-    var years=Object.keys(byYear).map(Number).sort(function(a,b){return b-a;});
-    var curYM=now.getFullYear()+"-"+now.getMonth();
-    return years.map(function(yr,yi){
-      var mos=byYear[yr].sort(function(a,b){return b.m-a.m;});
-      var months=mos.map(function(r){var cur=(r.y+"-"+r.m===curYM);
-        return '<div class="stp'+(cur?' cur':'')+'"><button class="stphd"><span class="stpmain"><span class="stprange">'+MON[r.m]+' '+r.y+(cur?' <span class="curbadge">now</span>':'')+'</span><span class="stppay">'+brkParts(r)+'</span></span><span class="stptot">'+fmtHM(periodMin(r))+'</span></button><div class="stpdays">'+stDays(r.tours)+'</div></div>';}).join("");
-      return yearShell(yr,yi===0,yearSumTxt(sumBucket(mos),mos.length,'mo'),months);
-    }).join("");
+  function renderYMP(byK){   // year → month → pay period → days, all collapsible; grouped by payday
+    var ks=Object.keys(byK).map(Number), tree={};
+    ks.forEach(function(k){var pd=paydayDate(k),Y=pd.getUTCFullYear(),M=pd.getUTCMonth();(tree[Y]=tree[Y]||{});(tree[Y][M]=tree[Y][M]||[]).push(k);});
+    var curK=payKeyOf(now.getFullYear(),now.getMonth(),now.getDate(),9),curPd=paydayDate(curK),curY=curPd.getUTCFullYear(),curM=curPd.getUTCMonth();
+    var years=Object.keys(tree).map(Number).sort(function(a,b){return b-a;});
+    return years.map(function(Y,yi){
+      var yOpen=(yi===0),months=Object.keys(tree[Y]).map(Number).sort(function(a,b){return b-a;}),yRecs=[];
+      var monthsHTML=months.map(function(M,mi){
+        var mOpen=(yOpen&&mi===0),mks=tree[Y][M].sort(function(a,b){return b-a;}),mRecs=mks.map(function(k){return byK[k];});
+        yRecs=yRecs.concat(mRecs);
+        var periodsHTML=mks.map(function(k,pi){var r=byK[k],cur=(k===curK),pd=paydayDate(k),pOpen=(mOpen&&pi===0);
+          return '<div class="stp'+(pOpen?' open':'')+(cur?' cur':'')+'"><button class="stphd" type="button"><span class="stpmain"><span class="stprange">'+payRangeLabel(k)+(cur?' <span class="curbadge">now</span>':'')+'</span><span class="stppay">💵 paid Fri '+MON[pd.getUTCMonth()].slice(0,3)+' '+pd.getUTCDate()+'</span></span><span class="stptot">'+fmtHM(periodMin(r))+'</span></button><div class="stpdays">'+stDays(r.tours)+'</div></div>';}).join("");
+        var mCur=(Y===curY&&M===curM);
+        return '<div class="stmonth'+(mOpen?' open':'')+'"><button class="stmhd" type="button"><span class="stmname">'+MON[M]+(mCur?' <span class="curbadge">now</span>':'')+'</span><span class="stmtot">'+fmtHM(periodMin(sumBucket(mRecs)))+'</span><span class="stychev">&#9662;</span></button><div class="stmbody">'+periodsHTML+'</div></div>';}).join("");
+      return '<div class="styear'+(yOpen?' open':'')+'"><button class="styhd" type="button"><span class="styr">'+Y+'</span><span class="stysum">'+yearSumTxt(sumBucket(yRecs),months.length,months.length===1?'mo':'mos')+'</span><span class="stychev">&#9662;</span></button><div class="stybody">'+monthsHTML+'</div></div>';}).join("");
   }
   function renderStats(){
     var byK=otStats(),ks=Object.keys(byK).map(Number);
@@ -2485,16 +2481,14 @@
     document.getElementById("stTot").innerHTML='<div class="stbig">'+(totM?fmtHM(totM):"0h")+'</div>'+
       '<div class="stsub">'+otH+'h overtime · '+fmtHM(extM)+' relief / detail / washup / other · '+ks.length+' pay period'+(ks.length!==1?'s':'')+'</div>'+
       '<div class="stgrid">'+stCell("MSOT",tot.ms+"h")+stCell("RSOT",tot.rs+"h")+stCell("Other OT",tot.oo+"h")+stCell("AR",fmtHM(tot.ar))+stCell("P2P",fmtHM(tot.p2p))+stCell("Washup",fmtHM(tot.wu))+(tot.oth?stCell("Other",fmtHM(tot.oth)):"")+'</div>';
-    Array.prototype.forEach.call(document.querySelectorAll("#stView button"),function(b){b.classList.toggle("on",b.getAttribute("data-v")===stMode);});
     var list=document.getElementById("stList");
     if(!ks.length){list.innerHTML='<div class="rempty">No overtime or extras recorded yet — add MSOT/RSOT/Other OT, AR, P2P or a washup on a worked tour and it lands here.</div>';return;}
-    list.innerHTML=(stMode==="period")?renderByPeriod(byK,ks):renderByMonth(byK);
-    Array.prototype.forEach.call(list.querySelectorAll(".styhd"),function(b){b.onclick=function(){b.parentNode.classList.toggle("open");};});
-    Array.prototype.forEach.call(list.querySelectorAll(".stphd"),function(b){b.onclick=function(){b.parentNode.classList.toggle("open");};});
+    list.innerHTML=renderYMP(byK);
+    Array.prototype.forEach.call(list.querySelectorAll(".styhd, .stmhd, .stphd"),function(b){b.onclick=function(){b.parentNode.classList.toggle("open");};});   // year / month / pay-period headers collapse
+    Array.prototype.forEach.call(list.querySelectorAll(".stday"),function(b){b.onclick=function(){var p=b.getAttribute("data-nav").split("-");goToDate(+p[0],+p[1],+p[2]);};});   // tap a day → jump to it on the calendar
   }
   document.getElementById("openStats").onclick=function(){setSheet.classList.remove("show");renderStats();openSheet(statsSheet);};
   document.getElementById("stDone").onclick=closeSheets;
-  Array.prototype.forEach.call(document.querySelectorAll("#stView button"),function(b){b.onclick=function(){stMode=b.getAttribute("data-v");renderStats();};});
 
   var FH=[["Engine 4/Ladder 15","42 South Street","M","10005",40.703694,-74.007717,"212-570-4204"],
 ["Engine 6","49 Beekman Street","M","10038",40.709971,-74.005395,"212-570-4206"],
