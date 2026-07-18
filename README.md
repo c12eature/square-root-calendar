@@ -3,16 +3,16 @@
 Free FDNY firehouse tour-tracking calendar. Single self-contained page, works fully offline,
 stores everything in the browser (`localStorage`, `sqrt:*` keys). Target URL: **calendar.nyfirestudyapp.com**.
 
-> ## ⏸️ Where we left off (2026-07-17)
-> The app is **feature-complete** and the PWA is **built + verified** (manifest, offline service worker,
-> icons all working). Code is fully pushed here. **Next steps, in order:**
-> 1. **YOU:** Vercel → import this repo (preset **Other**, static, no build) → Deploy.
-> 2. **YOU:** add domain `calendar.nyfirestudyapp.com` in Vercel + the CNAME in Porkbun DNS.
-> 3. **THEN:** generate the downloadable **Android .apk** via PWABuilder (see "downloadable APK" below),
->    paste its SHA-256 into `.well-known/assetlinks.json`, bump `sw.js` `CACHE`, push.
-> 4. **THEN:** add the 🗓️ download link to the study app's Free Tools (`src/freeTools.js`, snippet at bottom).
+> ## ✅ LIVE at calendar.nyfirestudyapp.com
+> Deployed on Vercel + Porkbun; PWA installs on iPhone & Android; branded `.apk` hosted; wired into the study
+> app's Free Tools. **Newest feature (2026-07-18): first-run onboarding + install nudges + bulletproof data
+> durability (persistent storage + IndexedDB mirror + encrypted cloud backup).**
 >
-> Live prototype (pre-domain): https://claude.ai/code/artifact/788a7bc1-9003-4845-9d75-626f75725df9
+> **⚠️ ONE-TIME SETUP for cloud backup — see "Cloud backup" below.** The client + `/api/sync` endpoint ship
+> ready; cloud auto-backup only turns on once an **Upstash Redis** DB is connected to the Vercel project and its
+> env vars are set. Until then `/api/sync` returns 501 and the app degrades gracefully (data stays safe on-device;
+> the app tells the user cloud "isn't set up yet"). Everything else (onboarding, install, persist, IDB mirror,
+> local code/file backup) works with no backend.
 
 ## Files
 | File | What it is |
@@ -25,6 +25,7 @@ stores everything in the browser (`localStorage`, `sqrt:*` keys). Target URL: **
 | `icons/` | App icons (192/512 + maskable, apple-touch, favicons). |
 | `.well-known/assetlinks.json` | Android TWA verification (needs your APK signing fingerprint — see below). |
 | `vercel.json` | Static headers (keeps `sw.js` fresh, correct content-types). |
+| `api/sync.js` | **Serverless** endpoint for encrypted cloud backup (Vercel auto-detects `/api/*`). Stores only opaque ciphertext keyed by a hash. Needs Upstash env vars (see below); returns 501 without them. |
 
 ### To change the app
 1. Edit `app.src.html`.
@@ -42,6 +43,35 @@ stores everything in the browser (`localStorage`, `sqrt:*` keys). Target URL: **
 ## How people install it
 - **iPhone (Safari):** Share → **Add to Home Screen**. Launches full-screen, no browser bars, works offline.
 - **Android (Chrome):** the **Install app** prompt appears automatically (or ⋮ menu → *Install app / Add to Home screen*). Installs as a real standalone app — no Play Store, no APK needed.
+- The app also shows a **first-run install nudge** (platform-aware) and an **Add to Home Screen** row in Settings → Get the App.
+
+## Data durability — how a user's calendar is protected
+Three layers, strongest last:
+1. **Persistent storage** — the app calls `navigator.storage.persist()` so the browser won't auto-evict the data under pressure (this is the fix for "my phone forgot everything"). Installed PWAs usually get this automatically.
+2. **IndexedDB mirror** — every change is also written to an IndexedDB snapshot. If `localStorage` is cleared but IndexedDB survives (or vice-versa), the app repopulates the empty store on next launch. It only ever *adds* to an empty store — it never overwrites live data.
+3. **Encrypted cloud backup** (opt-in, below) — survives a fully lost/wiped/replaced phone.
+
+Plus the always-available **local backup** (Settings → Backup & Restore): copy a backup code or download a `.json`.
+
+## Cloud backup (encrypted, account-less) — ⚙️ one-time Upstash setup
+The app encrypts the whole backup **on the device** (AES-GCM, key derived from the user's recovery code via
+PBKDF2) and uploads only the ciphertext. The server key is `SHA-256(code)` — a hash that never reveals the code —
+so **the server can't read the data or reconstruct the code** (zero-knowledge). Recovery is: enter your code on a
+new phone → it pulls + decrypts → done. There are **no accounts** — the recovery code *is* the identity + the key.
+
+**Endpoint:** `api/sync.js` — `POST {id, ts, blob}` to store, `GET ?id=<64-hex>` to fetch. TTL 400 days
+(refreshed on every push), 1.5 MB size cap, keeps one previous copy as server-side insurance.
+
+**To turn cloud backup on, connect an Upstash Redis DB to this Vercel project (free tier is plenty):**
+1. Vercel → this project → **Storage** → **Create Database** → **Upstash for Redis** (Marketplace) → Create & Connect.
+   - This auto-adds env vars. The endpoint accepts either naming: `KV_REST_API_URL`/`KV_REST_API_TOKEN`
+     **or** `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN`.
+2. **Redeploy** (Vercel → Deployments → ⋯ → Redeploy, or push a commit) so the function picks up the env vars.
+3. Verify: `curl "https://calendar.nyfirestudyapp.com/api/sync?id=abc"` should return **400 `bad-id`** (not 501).
+   A 501 `cloud-not-configured` means the env vars aren't set yet.
+
+No secrets live in this repo. Data stored server-side is opaque ciphertext only — good for privacy **and** for the
+pending legal/privacy-policy posture.
 
 ## Optional: a downloadable Android **.apk** (Play Store or sideload)
 The PWA above already installs on Android. You only need an actual `.apk` for the **Google Play Store** or for

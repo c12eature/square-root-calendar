@@ -1,5 +1,5 @@
 // Square Root Calendar — service worker. Bump CACHE whenever assets change.
-var CACHE = 'sqrtcal-v6';
+var CACHE = 'sqrtcal-v7';
 var ASSETS = [
   '/', '/index.html', '/manifest.webmanifest',
   '/icons/icon-192.png', '/icons/icon-512.png', '/icons/apple-touch-icon.png', '/icons/favicon-32.png'
@@ -15,6 +15,8 @@ self.addEventListener('activate', function(e){
 self.addEventListener('fetch', function(e){
   var req = e.request;
   if(req.method !== 'GET') return;
+  // cloud-backup API is always live network — never cache it
+  if(req.url.indexOf('/api/') !== -1) return;
   var isDoc = req.mode === 'navigate' || req.destination === 'document';
   if(isDoc){
     // network-first for the page → always the latest when online, cached shell when offline
