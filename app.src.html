@@ -619,6 +619,13 @@
   .tc.open .tcbody{display:block;}
   .tcfull{font-size:12.5px; line-height:1.55; color:var(--ink2);}
   .tcsubs{margin-top:9px; display:flex; flex-direction:column; gap:6px;}
+  .boxlist .boxrow{display:flex; align-items:center; gap:11px; padding:11px 12px; border:1px solid var(--line); border-radius:11px; background:var(--panel2); text-decoration:none; color:inherit;}
+  .boxrow:active{background:var(--line);}
+  .boxnum{flex:none; min-width:52px; font-weight:900; font-size:15px; color:var(--red); font-variant-numeric:tabular-nums;}
+  .boxmid{flex:1; min-width:0; display:flex; flex-direction:column; gap:2px;}
+  .boxloc{font-size:13.5px; font-weight:700; color:var(--ink); line-height:1.3;}
+  .boxboro{font-size:11px; font-weight:700; color:var(--mut);}
+  .boxgo{flex:none; font-size:17px; opacity:.85;}
   .tcsub{font-size:12px; line-height:1.5; color:var(--ink2); padding:7px 10px; background:var(--panel2); border:1px solid var(--line); border-radius:9px;}
   .tcsub b{color:var(--red); font-weight:800;}
   /* ---- ABCD chart ---- */
@@ -703,6 +710,7 @@
     </div>
     <div class="hbtns">
       <button class="gear" id="openTen" aria-label="Radio 10-codes">🔟</button>
+      <button class="gear" id="openBox" aria-label="FDNY box numbers">📦</button>
       <button class="gear" id="openRef" aria-label="Union &amp; Fire Department Directory">📇</button>
       <button class="gear" id="openDir" aria-label="Firehouses">🏢</button>
       <button class="gear" id="gear" aria-label="Settings">⚙</button>
@@ -1058,6 +1066,15 @@
   <button class="done" id="tenDone">Done</button>
 </div>
 
+<div class="sheet set dir" id="boxSheet">
+  <div class="grip"></div>
+  <h3>Box Numbers <span class="dcount" id="boxCount"></span></h3>
+  <input class="dsearch" id="boxSearch" type="text" inputmode="search" autocomplete="off" placeholder="Search a box number or a street — 1001, myrtle ave, bk 512…">
+  <p class="tennote">Tap a box to open its cross-streets in Maps. Unofficial reference — box → location from <b>NYC OpenData</b> (FDNY dispatch data); verify against your current run cards.</p>
+  <div class="dlist boxlist" id="boxList"></div>
+  <button class="done" id="boxDone">Done</button>
+</div>
+
 <div class="sheet set dir" id="refSheet">
   <div class="grip"></div>
   <h3>Union &amp; Fire Department Directory <span class="dcount" id="refCount"></span></h3>
@@ -1195,6 +1212,7 @@
   </div>
 </div>
 
+<script src="boxdata.js"></script>
 <script>
 (function(){
   // ---- schedule engine (reverse-engineered from the current app) ----
@@ -1658,7 +1676,7 @@
   }
 
   // ---- day detail sheet ----
-  var scrim=document.getElementById("scrim"),sheet=document.getElementById("sheet"),setSheet=document.getElementById("setSheet"),rsotSheet=document.getElementById("rsotSheet"),statSheet=document.getElementById("statSheet"),mxSheet=document.getElementById("mxSheet"),dirSheet=document.getElementById("dirSheet"),statsSheet=document.getElementById("statsSheet"),refSheet=document.getElementById("refSheet"),bakSheet=document.getElementById("bakSheet"),evSheet=document.getElementById("evSheet"),cevSheet=document.getElementById("cevSheet"),legendPop=document.getElementById("legendPop"),instSheet=document.getElementById("instSheet"),groupSheet=document.getElementById("groupSheet"),tenSheet=document.getElementById("tenSheet"),abcdSheet=document.getElementById("abcdSheet"),cfrSheet=document.getElementById("cfrSheet");
+  var scrim=document.getElementById("scrim"),sheet=document.getElementById("sheet"),setSheet=document.getElementById("setSheet"),rsotSheet=document.getElementById("rsotSheet"),statSheet=document.getElementById("statSheet"),mxSheet=document.getElementById("mxSheet"),dirSheet=document.getElementById("dirSheet"),statsSheet=document.getElementById("statsSheet"),refSheet=document.getElementById("refSheet"),bakSheet=document.getElementById("bakSheet"),evSheet=document.getElementById("evSheet"),cevSheet=document.getElementById("cevSheet"),legendPop=document.getElementById("legendPop"),instSheet=document.getElementById("instSheet"),groupSheet=document.getElementById("groupSheet"),tenSheet=document.getElementById("tenSheet"),abcdSheet=document.getElementById("abcdSheet"),cfrSheet=document.getElementById("cfrSheet"),boxSheet=document.getElementById("boxSheet");
   var navStack=[];   // sheets in the open path — so the phone/browser Back (swipe-back) closes the current sheet, not the app
   function openSheet(s){
     if(navStack.length&&navStack[navStack.length-1]===s){scrim.classList.add("show");s.classList.add("show");return;}   // re-render of the same sheet — no new history entry
@@ -1667,7 +1685,7 @@
     try{history.pushState({sqSheet:navStack.length},"");}catch(e){}
   }
   function closeSheets(){var n=navStack.length;navStack=[];
-    [sheet,setSheet,rsotSheet,statSheet,mxSheet,dirSheet,statsSheet,refSheet,bakSheet,evSheet,cevSheet,legendPop,instSheet,groupSheet,tenSheet,abcdSheet,cfrSheet].forEach(function(x){x.classList.remove("show");});
+    [sheet,setSheet,rsotSheet,statSheet,mxSheet,dirSheet,statsSheet,refSheet,bakSheet,evSheet,cevSheet,legendPop,instSheet,groupSheet,tenSheet,abcdSheet,cfrSheet,boxSheet].forEach(function(x){x.classList.remove("show");});
     scrim.classList.remove("show");
     if(n>0){try{history.go(-n);}catch(e){}}   // unwind the states we pushed
   }
@@ -1715,7 +1733,7 @@
     sheet.addEventListener("touchend",end,{passive:true});
     sheet.addEventListener("touchcancel",end,{passive:true});
   }
-  [sheet,setSheet,rsotSheet,statSheet,mxSheet,dirSheet,statsSheet,refSheet,bakSheet,evSheet,cevSheet,instSheet,groupSheet,tenSheet,abcdSheet,cfrSheet].forEach(initSheetDrag);
+  [sheet,setSheet,rsotSheet,statSheet,mxSheet,dirSheet,statsSheet,refSheet,bakSheet,evSheet,cevSheet,instSheet,groupSheet,tenSheet,abcdSheet,cfrSheet,boxSheet].forEach(initSheetDrag);
   // ---- in-app confirm/prompt (the artifact sandbox blocks window.confirm/prompt/alert) ----
   var cmodal=document.getElementById("cmodal"),cmsg=document.getElementById("cmsg"),cfield=document.getElementById("cfield"),cinput=document.getElementById("cinput"),cyes=document.getElementById("cyes"),cno=document.getElementById("cno"),cCB=null;
   function appHideModal(){cmodal.classList.remove("show");cCB=null;}
@@ -3010,6 +3028,31 @@ var TEN_CODES=[
   document.getElementById("openTen").onclick=function(){renderTen();openSheet(tenSheet);};
   document.getElementById("tenDone").onclick=closeSheets;
   document.getElementById("tenSearch").oninput=function(){tq=this.value.trim().toLowerCase();renderTen();};
+
+  // ---- FDNY box-number lookup (box → cross-streets → Maps). Data = NYC OpenData dispatch boxes, bundled in boxdata.js. ----
+  var BOXES=null, BORONAME={M:"Manhattan",BX:"Bronx",BK:"Brooklyn",Q:"Queens",SI:"Staten Island"}, bq="";
+  function parseBoxes(){if(BOXES)return;BOXES=[];var s=(window.BOX_DATA||""),lines=s?s.split("\n"):[];
+    for(var i=0;i<lines.length;i++){var p=lines[i].split("|");if(p.length<3)continue;BOXES.push({b:p[0],n:p[1],l:p.slice(2).join("|")});}}
+  function boxMapUrl(x){return "https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(x.l+", "+BORONAME[x.b]+", NY");}
+  function renderBox(){parseBoxes();
+    var list=document.getElementById("boxList"),cnt=document.getElementById("boxCount");
+    if(!bq){cnt.textContent=String(BOXES.length);list.innerHTML='<div class="dempty">Search '+BOXES.length+' FDNY dispatch boxes by number or street — e.g. “1001”, “myrtle ave”, or “bk 512”. Tap a result to open it in Maps.</div>';return;}
+    var toks=bq.split(/\s+/),numTok=null;toks.forEach(function(t){if(/^\d+$/.test(t))numTok=t;});
+    var res=[];
+    for(var i=0;i<BOXES.length;i++){var x=BOXES[i],hay=(x.n+" "+x.b+" "+BORONAME[x.b]+" "+x.l).toLowerCase();
+      if(!toks.every(function(t){return !t||hay.indexOf(t)>=0;}))continue;
+      var rk=numTok?(x.n===numTok?0:(x.n.indexOf(numTok)===0?1:2)):0;
+      res.push([rk,x]);}
+    res.sort(function(a,b){return a[0]-b[0]||a[1].b.localeCompare(b[1].b)||(+a[1].n)-(+b[1].n);});
+    var total=res.length,shown=res.slice(0,300);
+    cnt.textContent=total>300?("300 of "+total):String(total);
+    if(!total){list.innerHTML='<div class="dempty">No box matches your search.</div>';return;}
+    list.innerHTML=shown.map(function(pr){var x=pr[1];
+      return '<a class="boxrow" href="'+escA(boxMapUrl(x))+'" target="_blank" rel="noopener"><span class="boxnum">'+esc(x.n)+'</span><span class="boxmid"><span class="boxloc">'+esc(x.l)+'</span><span class="boxboro">'+BORONAME[x.b]+'</span></span><span class="boxgo">🗺️</span></a>';}).join("")
+      +(total>300?'<div class="dempty">Showing the first 300 — keep typing to narrow it down.</div>':'');}
+  document.getElementById("openBox").onclick=function(){renderBox();openSheet(boxSheet);};
+  document.getElementById("boxDone").onclick=closeSheets;
+  document.getElementById("boxSearch").oninput=function(){bq=this.value.trim().toLowerCase();renderBox();};
 
   document.getElementById("openRef").onclick=function(){renderRef();openSheet(refSheet);};
   document.getElementById("refDone").onclick=closeSheets;
