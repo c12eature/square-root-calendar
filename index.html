@@ -1141,7 +1141,15 @@
     if(navStack.length)navStack[navStack.length-1].classList.add("show");
     else scrim.classList.remove("show");
   });
-  scrim.addEventListener("click",closeSheets);
+  // tapping the dim area: if the keyboard is up, just dismiss it (keep the sheet); tap again to close
+  var kbOpen=false;
+  function isField(el){return !!(el&&(el.tagName==="INPUT"||el.tagName==="TEXTAREA"||el.isContentEditable));}
+  document.addEventListener("focusin",function(e){if(isField(e.target))kbOpen=true;},true);
+  document.addEventListener("focusout",function(){setTimeout(function(){kbOpen=isField(document.activeElement);},300);},true);
+  scrim.addEventListener("click",function(){
+    if(kbOpen){var a=document.activeElement;if(a&&a.blur)a.blur();kbOpen=false;return;}   // first tap → drop the keyboard, keep the sheet open
+    closeSheets();
+  });
   // ---- swipe the sheet DOWN to dismiss it (grab-and-toss, like a native bottom sheet) ----
   function initSheetDrag(sheet){
     var y0=0, dy=0, drag=false, on=false;
