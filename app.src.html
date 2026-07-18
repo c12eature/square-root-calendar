@@ -674,6 +674,11 @@
   .cfrses{margin-top:11px;padding:11px;border-radius:11px;background:color-mix(in srgb,#2563eb 9%,var(--panel2));border:1px solid color-mix(in srgb,#2563eb 30%,var(--line));}
   .cfrbtns{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;} .cfrbtns .raddbtn{flex:1;}
   #cfrTour{gap:6px;} #cfrTour button{padding:9px 6px;}
+  .cfr5{display:flex;flex-direction:column;gap:7px;margin:6px 0 4px;}
+  .cfr5f{display:flex;align-items:center;gap:10px;font-size:12.5px;font-weight:800;color:var(--ink2);}
+  .cfr5f>span{flex:0 0 96px;}
+  .cfr5f input[type=date]{flex:1;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);color:var(--ink);font-family:inherit;font-size:13px;}
+  .cfr5f.test>span{color:#2563eb;} .cfr5f.test input[type=date]{border-color:color-mix(in srgb,#f59e0b 55%,var(--line));background:color-mix(in srgb,#f59e0b 9%,var(--panel2));}
   @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important; animation-duration:.01ms!important; animation-iteration-count:1!important; scroll-behavior:auto!important;}}
 </style>
 
@@ -905,11 +910,17 @@
     <div class="perr" id="cfrErr"></div>
   </div>
   <div class="cfrsec">
-    <div class="setlbl">Schedule an upcoming refresher</div>
-    <p class="ldsub" style="margin-top:2px">Puts the once-a-week class on your calendar while you take it — you stay full duty on the chart. The last class is your test day.</p>
-    <div class="ldrow"><div class="vfield"><label>First class</label><input type="date" id="cfrSesStart" aria-label="First class date"></div><div class="vfield"><label>Time</label><input type="time" id="cfrSesTime" value="09:00"></div></div>
-    <div class="ldrow"><div class="vfield"><label>Which tour</label><div class="ldmode" id="cfrTour"><button type="button" data-tr="day" class="on">☀️ Day</button><button type="button" data-tr="night">🌙 Night</button></div></div><div class="vfield" style="max-width:110px"><label>Weeks</label><input type="number" id="cfrWeeks" min="1" max="52" value="5" class="ldoth" style="width:100%"></div></div>
-    <button class="raddbtn" id="cfrSchedule" type="button" style="width:100%;margin-top:6px">📘 Put classes on my calendar</button>
+    <div class="setlbl" id="cfrSchedLbl">Schedule your CFR refresher</div>
+    <p class="ldsub" style="margin-top:2px">Pick the <b>5 class days</b> — the 5th is the <b>test-out day</b> (your new expiration). You stay full duty; each class shows on the tour &amp; time you pick. Edit anytime.</p>
+    <div class="cfr5">
+      <label class="cfr5f"><span>Day 1 · Start</span><input type="date" id="cfrD1" aria-label="CFR day 1"></label>
+      <label class="cfr5f"><span>Day 2</span><input type="date" id="cfrD2" aria-label="CFR day 2"></label>
+      <label class="cfr5f"><span>Day 3</span><input type="date" id="cfrD3" aria-label="CFR day 3"></label>
+      <label class="cfr5f"><span>Day 4</span><input type="date" id="cfrD4" aria-label="CFR day 4"></label>
+      <label class="cfr5f test"><span>Day 5 · Test out</span><input type="date" id="cfrD5" aria-label="CFR day 5 (test out)"></label>
+    </div>
+    <div class="ldrow"><div class="vfield"><label>Which tour</label><div class="ldmode" id="cfrTour"><button type="button" data-tr="day" class="on">☀️ Day</button><button type="button" data-tr="night">🌙 Night</button></div></div><div class="vfield" style="max-width:130px"><label>Time</label><input type="time" id="cfrSesTime" value="09:00"></div></div>
+    <button class="raddbtn" id="cfrSchedule" type="button" style="width:100%;margin-top:6px">📘 Save refresher</button>
     <div id="cfrSesInfo"></div>
   </div>
   <button class="done" id="cfrDone">Done</button>
@@ -1271,25 +1282,28 @@
         }
         return v;});})();
   var now=new Date(), view={y:now.getFullYear(),m:now.getMonth()};
-  // ---- CFR refresher: a competency you renew every ~3 years. cfr.exp = current expiration date; cfr.ses = a scheduled
-  // weekly refresher (you stay full-duty on the chart while taking it). The LAST class is the TEST day → new expiration = test + 3 years.
+  // ---- CFR refresher: a competency you renew every ~3 years. cfr.exp = current expiration date; cfr.ses = the refresher
+  // you're taking (you stay full-duty). cfr.ses.days = the 5 class dates (day 1 start … day 5 = TEST-OUT day). The LAST
+  // (day 5) is the test day → new expiration = test + 3 years.
   var CFR_YEARS=3;
   var cfr=(function(){var c=load("cfr",{});if(!c||typeof c!=="object")c={};
     if(!isRealDate(c.exp))c.exp="";
-    if(c.ses&&typeof c.ses==="object"&&isRealDate(c.ses.s)){var w=Math.round(+c.ses.wk||0);
-      c.ses={s:c.ses.s,tour:(c.ses.tour==="night"?"night":"day"),t:(typeof c.ses.t==="string"&&c.ses.t?c.ses.t:"09:00"),wk:(w>=1&&w<=52?w:5)};}
-    else c.ses=null;
+    if(c.ses&&typeof c.ses==="object"){
+      var days=Array.isArray(c.ses.days)?c.ses.days.filter(isRealDate):[];
+      if(!days.length&&isRealDate(c.ses.s)){var w=Math.round(+c.ses.wk||5),bp=c.ses.s.split("-"),base=Date.UTC(+bp[0],+bp[1]-1,+bp[2]);for(var i=0;i<w;i++)days.push(isoUTC(base+i*7*864e5));}   // migrate the old weekly shape
+      if(days.length)c.ses={days:days,tour:(c.ses.tour==="night"?"night":"day"),t:(typeof c.ses.t==="string"&&c.ses.t?c.ses.t:"09:00")};
+      else c.ses=null;
+    } else c.ses=null;
     return c;})();
   function saveCfr(){save("cfr",cfr);}
   function addYears(iso,n){var p=String(iso).split("-"),Y=+p[0]+n,M=+p[1]-1,D=+p[2],dt=new Date(Date.UTC(Y,M,D));
     if(dt.getUTCMonth()!==M)dt=new Date(Date.UTC(Y,M+1,0));   // Feb 29 + n yrs → clamp to Feb 28, don't roll into March
     return isoUTC(dt.getTime());}
-  function cfrClassDates(){var s=cfr.ses;if(!s)return [];var bp=s.s.split("-"),base=Date.UTC(+bp[0],+bp[1]-1,+bp[2]),out=[];for(var i=0;i<s.wk;i++)out.push(isoUTC(base+i*7*864e5));return out;}
-  function cfrTestDate(){var d=cfrClassDates();return d.length?d[d.length-1]:"";}
-  function cfrClassOn(y,m,d,tour){var s=cfr.ses;if(!s)return null;var want=(s.tour==="night")?6:9;if(tour!==want)return null;
-    var t=Date.UTC(y,m,d),bp=s.s.split("-"),base=Date.UTC(+bp[0],+bp[1]-1,+bp[2]);if(isNaN(base))return null;
-    var diff=Math.round((t-base)/864e5);if(diff<0||diff%7!==0)return null;var idx=diff/7;if(idx>=s.wk)return null;
-    return {test:(idx===s.wk-1),time:s.t||"",idx:idx,weeks:s.wk};}
+  function cfrClassDates(){return (cfr.ses&&cfr.ses.days)?cfr.ses.days.slice():[];}
+  function cfrTestDate(){var d=cfrClassDates();return d.length?d[d.length-1]:"";}   // day 5 = test-out day
+  function cfrClassOn(y,m,d,tour){var s=cfr.ses;if(!s||!s.days||!s.days.length)return null;var want=(s.tour==="night")?6:9;if(tour!==want)return null;
+    var iso=isoUTC(Date.UTC(y,m,d)),idx=s.days.indexOf(iso);if(idx<0)return null;
+    return {test:(iso===s.days[s.days.length-1]),time:s.t||"",idx:idx,days:s.days.length};}
   function cfrExpInfo(){if(!cfr.exp)return {state:"none"};var em=vacMs(cfr.exp);if(isNaN(em))return {state:"none"};
     var today=Date.UTC(now.getFullYear(),now.getMonth(),now.getDate()),days=Math.round((em-today)/864e5);
     return {state:(days<0?"overdue":days<=183?"soon":"current"),exp:cfr.exp,days:days,months:Math.round(days/30.44)};}
@@ -1771,7 +1785,7 @@
     var pb=[];if(eE)pb.push("ECC/LCC");if(eC)pb.push("CFR");if(arm)pb.push("AR "+fmtMin(arm));if(p2pWy)pb.push("P2P "+p2pWy+"-way ("+fmtMin(p2pTot)+")");if(ao.aq)pb.push("Washup "+ao.aq);if(othm)pb.push((othl||"Other")+" "+fmtMin(othm));
     var payOpen=pb.length>0, trig=payOpen?esc(pb.join(" · ")):"＋ Add pay &amp; details";
     var payWrap=w?('<div class="paywrap'+(payOpen?' open':'')+'"><button class="paytrig" data-tour="'+tour+'"><span class="paylbl">'+trig+'</span><span class="paychev">▾</span></button><div class="paybody">'+chkRow+arRow+p2pRow+wuRow+othRow+'</div></div>'):'';
-    var cc=cfrClassOn(y,m,d,tour), cfrRow=cc?('<div class="cfrrow'+(cc.test?' test':'')+'">📘 <b>CFR refresher '+(cc.test?"TEST":"class")+'</b> · week '+(cc.idx+1)+' of '+cc.weeks+(cc.time?' · '+fmtT(cc.time):'')+(cc.test?' — this is your new expiration date':'')+'</div>'):'';
+    var cc=cfrClassOn(y,m,d,tour), cfrRow=cc?('<div class="cfrrow'+(cc.test?' test':'')+'">📘 <b>CFR refresher '+(cc.test?"TEST-OUT":"class")+'</b> · day '+(cc.idx+1)+' of '+cc.days+(cc.time?' · '+fmtT(cc.time):'')+(cc.test?' — sets your new expiration date':'')+'</div>'):'';
     var noteRow='<div class="noterow"><textarea class="notein" data-tour="'+tour+'" rows="1" placeholder="📝 Notes for this tour — anything you want to remember…">'+esc(noteOf(y,m,d,tour))+'</textarea></div>';
     var sbv=sbOf(y,m,d,tour), sbd=sbv?sbv.d:"", sbn=sbv?sbv.n:"";   // standby: picked up someone's / got yours covered (+ name, no ledger)
     var sbRow='<div class="wurow"><div class="wutop"><span class="lab">🧍 Standby</span><div class="arseg sbseg" data-tour="'+tour+'">'+
@@ -3150,24 +3164,31 @@ var TEN_CODES=[
     else{var lbl=inf.state==="overdue"?"⛔ Overdue":inf.state==="soon"?"⚠ Due soon":"✓ Current";
       var sub=inf.state==="overdue"?("Expired "+fmtVD(inf.exp)+" — "+Math.abs(inf.months)+" months ago"):("Expires "+fmtVD(inf.exp)+" · in "+inf.months+" months");
       sc.innerHTML='<div class="cfrstat '+inf.state+'"><div class="cfrbig">'+lbl+'</div><div class="cfrsm">'+sub+'</div></div>';}
-    var info=document.getElementById("cfrSesInfo");
-    if(cfr.ses){var dates=cfrClassDates(),test=cfrTestDate();
-      info.innerHTML='<div class="cfrses"><div class="cfrsm"><b>'+cfr.ses.wk+' classes</b> · every '+DOWF[new Date(vacMs(cfr.ses.s)).getUTCDay()]+' on the '+(cfr.ses.tour==="night"?"6× night":"9× day")+(cfr.ses.t?' at '+fmtT(cfr.ses.t):'')+'<br>📘 Test day: <b>'+fmtVD(test)+'</b> → new expiration <b>'+fmtVD(addYears(test,CFR_YEARS))+'</b></div>'+
-        '<div class="cfrbtns"><button class="raddbtn" id="cfrComplete" type="button">✓ Mark complete → set expiration</button><button class="ldbtn" id="cfrClear" type="button">Clear</button></div></div>';
+    var info=document.getElementById("cfrSesInfo"), sl=document.getElementById("cfrSchedLbl"), sBtn=document.getElementById("cfrSchedule");
+    var ids=["cfrD1","cfrD2","cfrD3","cfrD4","cfrD5"];
+    if(cfr.ses){var days=cfrClassDates(),test=cfrTestDate();
+      ids.forEach(function(id,i){var el=document.getElementById(id);if(el)el.value=days[i]||"";});   // reflect the saved 5 days into the pickers (editable)
+      if(sl)sl.textContent="Your CFR refresher — edit any day"; if(sBtn)sBtn.textContent="📘 Update refresher";
+      info.innerHTML='<div class="cfrses"><div class="cfrsm"><b>'+days.length+' class days</b> on the '+(cfr.ses.tour==="night"?"6× night":"9× day")+(cfr.ses.t?' at '+fmtT(cfr.ses.t):'')+':<br>'+days.map(function(d,i){return (i===days.length-1?'<b>📘 '+fmtVD(d)+' (test out)</b>':fmtVD(d));}).join(" · ")+'<br>New expiration on completion: <b>'+fmtVD(addYears(test,CFR_YEARS))+'</b></div>'+
+        '<div class="cfrbtns"><button class="raddbtn" id="cfrComplete" type="button">✓ Passed the test → set expiration</button><button class="ldbtn" id="cfrClear" type="button">Delete</button></div></div>';
       document.getElementById("cfrComplete").onclick=function(){var t=cfrTestDate();if(t){cfr.exp=addYears(t,CFR_YEARS);}cfr.ses=null;saveCfr();render();renderCfr();};
-      document.getElementById("cfrClear").onclick=function(){cfr.ses=null;saveCfr();render();renderCfr();};
-    } else info.innerHTML="";
+      document.getElementById("cfrClear").onclick=function(){appConfirm("Delete this CFR refresher schedule? Your expiration date stays.","Delete",function(){cfr.ses=null;saveCfr();render();renderCfr();});};
+    } else { if(sl)sl.textContent="Schedule your CFR refresher"; if(sBtn)sBtn.textContent="📘 Save refresher"; info.innerHTML=""; }
     Array.prototype.forEach.call(document.querySelectorAll("#cfrTour button"),function(b){b.classList.toggle("on",b.getAttribute("data-tr")===cfrTourSel);});
   }
-  document.getElementById("openCfr").onclick=function(){setSheet.classList.remove("show");cfrErr("");document.getElementById("cfrTest").value="";document.getElementById("cfrExpIn").value=cfr.exp||"";renderCfr();openSheet(cfrSheet);};
+  document.getElementById("openCfr").onclick=function(){setSheet.classList.remove("show");cfrErr("");document.getElementById("cfrTest").value="";document.getElementById("cfrExpIn").value=cfr.exp||"";
+    cfrTourSel=(cfr.ses&&cfr.ses.tour)||"day"; document.getElementById("cfrSesTime").value=(cfr.ses&&cfr.ses.t)||"09:00";
+    if(!cfr.ses)["cfrD1","cfrD2","cfrD3","cfrD4","cfrD5"].forEach(function(id){var el=document.getElementById(id);if(el)el.value="";});
+    renderCfr();openSheet(cfrSheet);};
   document.getElementById("cfrDone").onclick=closeSheets;
   document.getElementById("cfrSaveTest").onclick=function(){var v=document.getElementById("cfrTest").value;if(!isRealDate(v)){cfrErr("Pick the test day (the last class).");return;}cfr.exp=addYears(v,CFR_YEARS);saveCfr();cfrErr("");document.getElementById("cfrTest").value="";document.getElementById("cfrExpIn").value=cfr.exp;render();renderCfr();};
   document.getElementById("cfrSaveExp").onclick=function(){var v=document.getElementById("cfrExpIn").value;if(!isRealDate(v)){cfrErr("Pick a valid expiration date.");return;}cfr.exp=v;saveCfr();cfrErr("");render();renderCfr();};
-  Array.prototype.forEach.call(document.querySelectorAll("#cfrTour button"),function(b){b.onclick=function(){cfrTourSel=b.getAttribute("data-tr");renderCfr();};});
-  document.getElementById("cfrSchedule").onclick=function(){var s=document.getElementById("cfrSesStart").value,t=document.getElementById("cfrSesTime").value||"09:00",wk=Math.round(+document.getElementById("cfrWeeks").value||0);
-    if(!isRealDate(s)){cfrErr("Pick the first class date.");return;}
-    if(!(wk>=1&&wk<=52)){cfrErr("Enter the number of weeks (1–52).");return;}
-    cfr.ses={s:s,tour:cfrTourSel,t:t,wk:wk};saveCfr();cfrErr("");render();renderCfr();};
+  Array.prototype.forEach.call(document.querySelectorAll("#cfrTour button"),function(b){b.onclick=function(){cfrTourSel=b.getAttribute("data-tr");Array.prototype.forEach.call(document.querySelectorAll("#cfrTour button"),function(x){x.classList.toggle("on",x===b);});};});
+  document.getElementById("cfrSchedule").onclick=function(){
+    var ds=["cfrD1","cfrD2","cfrD3","cfrD4","cfrD5"].map(function(id){return document.getElementById(id).value;});
+    if(!ds.every(function(d){return isRealDate(d);})){cfrErr("Fill in all 5 class days (the 5th is the test-out day).");return;}
+    var t=document.getElementById("cfrSesTime").value||"09:00";
+    cfr.ses={days:ds,tour:cfrTourSel,t:t};saveCfr();cfrErr("");render();renderCfr();};
   // ---- Education days & company medicals (one-day, 9× only) ----
   var evType="edu";
   function evErr(msg){var el=document.getElementById("evErr");if(el)el.textContent=msg||"";}
