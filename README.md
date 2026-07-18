@@ -1,5 +1,19 @@
 # Square Root Calendar — installable PWA (iPhone + Android)
 
+> ## ⛔ CURRENTLY DISABLED (kill switch active — 2026-07-18)
+> The live site is intentionally showing a **"Temporarily unavailable"** page while paid pricing is evaluated.
+> `index.html` (the built page) and `sw.js` were replaced with a kill switch that unregisters the old service
+> worker and clears its offline caches, so previously-installed PWAs/APKs stop running the app the next time
+> they open online. **User data (`localStorage`) is NOT touched** — a relaunch restores everyone's tours.
+> The real app source is untouched: **`app.src.html`** is still the full app.
+>
+> ### To bring the app back
+> 1. `python3 build.py`  → regenerates the real `index.html` from `app.src.html`.
+> 2. Restore the real caching service worker and bump its version:
+>    `git show HEAD~1:sw.js > sw.js` (grab the pre-kill v8), then bump `CACHE` to `sqrtcal-v9` in `sw.js`.
+>    *(Adjust `HEAD~1` if other commits landed since the kill switch — it's the last commit whose `sw.js` starts with `var CACHE =`.)*
+> 3. Commit + push → Vercel redeploys the real app. Returning users re-register the fresh SW on next online visit.
+
 Free firehouse tour-tracking calendar. Single self-contained page, works fully offline,
 stores everything in the browser (`localStorage`, `sqrt:*` keys). Target URL: **calendar.nyfirestudyapp.com**.
 
