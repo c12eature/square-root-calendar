@@ -449,8 +449,11 @@
   .fhname{font-size:14.5px; font-weight:800; color:var(--ink); letter-spacing:-.01em;}
   .fhaddr{font-size:12px; color:var(--ink2); font-weight:600; margin-top:2px;}
   .fhaddr .bz{color:var(--mut);}
-  .fhchips{display:flex; gap:6px; margin-top:7px; flex-wrap:wrap;}
-  .fhchip{font-size:10.5px; font-weight:800; padding:2px 7px; border-radius:6px; background:var(--line2); color:var(--ink2);}
+  .fhchips{display:flex; gap:6px; padding:0 12px 11px; flex-wrap:wrap;}
+  .fhchip{font-size:10.5px; font-weight:800; padding:3px 8px; border-radius:6px; background:var(--line2); color:var(--ink2); font-family:inherit; display:inline-flex; align-items:center; line-height:1.5;}
+  a.fhchip{text-decoration:none;}
+  a.fhchip.tel:active, button.fhchip.xp:active{filter:brightness(.9);}
+  button.fhchip{border:0; cursor:pointer;}
   .fhchip.key{background:color-mix(in srgb,#0e7490 15%,var(--panel2)); color:var(--cyan);}
   .fhchip.tel{background:color-mix(in srgb,var(--pay) 15%,var(--panel2)); color:var(--pay);}
   .fhedit{flex:none; width:48px; border:none; border-left:1px solid var(--line); background:transparent; color:var(--mut); font-size:16px; cursor:pointer;}
@@ -566,6 +569,38 @@
   .bakact.bakdanger{color:var(--red); border-color:color-mix(in srgb,var(--red) 40%,var(--line));}
   #bakCloudRestoreBox{margin-top:8px;}
   #bakCloudRestoreBox .bakcodein{margin-bottom:8px;}
+  /* ---- group change sheet ---- */
+  .gcadd{background:var(--panel2); border:1px solid var(--line); border-radius:14px; padding:15px; margin:4px 0 16px;}
+  .gcf{margin-bottom:13px;}
+  .gcf label{display:block; font-size:12px; font-weight:800; color:var(--ink2); margin-bottom:7px;}
+  .gcadd input[type=date]{width:100%; padding:11px 12px; border:1px solid var(--line); border-radius:11px; background:var(--panel); color:var(--ink); font:inherit; box-sizing:border-box;}
+  .gcadd .stepper.big{margin:0 auto 2px;} .gcadd .onbrange{text-align:center;}
+  .gcadd .onbptseg{margin:2px 0 12px;}
+  .raddbtn#gcAdd{width:100%; margin-top:2px;}
+  .gcerr{color:var(--red); font-size:12.5px; font-weight:700; margin-top:9px; min-height:15px;}
+  .gclbl.gclbl{margin:0 0 9px;}
+  .gclist{display:flex; flex-direction:column; gap:8px; margin-bottom:14px;}
+  .gcitem{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:11px 13px; border:1px solid var(--line); border-radius:12px; background:var(--panel2);}
+  .gcwhen{font-size:11.5px; font-weight:800; color:var(--mut); text-transform:uppercase; letter-spacing:.03em;}
+  .gcbase{font-weight:700; text-transform:none; letter-spacing:0;}
+  .gcgrp{font-size:14px; font-weight:800; color:var(--ink); margin-top:3px;}
+  .gcgrp .gcpt{color:var(--amber-soft-ink);} .gcgrp .gcmy{color:var(--red);}
+  .gcrm{width:32px; height:32px; border-radius:9px; border:1px solid var(--line); background:var(--panel); color:var(--red); font-size:13px; cursor:pointer; flex:none;}
+  .gcrm:active{background:var(--line);}
+  /* ---- radio 10-codes ---- */
+  .tennote{margin:2px 0 8px; font-size:11.5px; line-height:1.4; color:var(--mut);}
+  .tenlist .tc{border-bottom:1px solid var(--line2);}
+  .tchd{width:100%; display:flex; align-items:center; gap:10px; padding:11px 3px; background:none; border:0; cursor:pointer; font-family:inherit; text-align:left; color:inherit;}
+  .tccode{flex:none; min-width:54px; font-weight:800; font-size:13.5px; color:var(--red); font-variant-numeric:tabular-nums;}
+  .tcshort{flex:1; min-width:0; font-size:13px; font-weight:600; color:var(--ink); line-height:1.35;}
+  .tcchev{flex:none; color:var(--mut); font-size:10px; transition:transform .18s;}
+  .tc.open .tcchev{transform:rotate(180deg);}
+  .tcbody{display:none; padding:0 3px 13px 64px;}
+  .tc.open .tcbody{display:block;}
+  .tcfull{font-size:12.5px; line-height:1.55; color:var(--ink2);}
+  .tcsubs{margin-top:9px; display:flex; flex-direction:column; gap:6px;}
+  .tcsub{font-size:12px; line-height:1.5; color:var(--ink2); padding:7px 10px; background:var(--panel2); border:1px solid var(--line); border-radius:9px;}
+  .tcsub b{color:var(--red); font-weight:800;}
   @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important; animation-duration:.01ms!important; animation-iteration-count:1!important; scroll-behavior:auto!important;}}
 </style>
 
@@ -577,8 +612,9 @@
       <p>Firehouse Tour Calendar</p>
     </div>
     <div class="hbtns">
+      <button class="gear" id="openTen" aria-label="Radio 10-codes">🔟</button>
       <button class="gear" id="openRef" aria-label="Union &amp; Fire Department Directory">📇</button>
-      <button class="gear" id="openDir" aria-label="Union & Fire Department Directory">🏢</button>
+      <button class="gear" id="openDir" aria-label="Firehouses">🏢</button>
       <button class="gear" id="gear" aria-label="Settings">⚙</button>
     </div>
   </div>
@@ -634,6 +670,7 @@
         <button class="ptclear" id="ptClear" type="button">✕ No partner</button>
       </div>
     </div>
+    <button class="setrow gcrow" id="openGroups"><span class="setico">🔄</span><span class="settx"><span class="settl">Group change</span><span class="setsub">Reassigned? Set the start date &amp; your new groups</span></span><span class="setchev">›</span></button>
   </div>
   <div class="setsec">
     <div class="setlbl">Mark On Every Tour</div>
@@ -861,6 +898,15 @@
   <button class="done" id="mxDone">Done</button>
 </div>
 
+<div class="sheet set dir" id="tenSheet">
+  <div class="grip"></div>
+  <h3>Radio 10-Codes <span class="dcount" id="tenCount"></span></h3>
+  <input class="dsearch" id="tenSearch" type="text" inputmode="search" autocomplete="off" placeholder="Search a code or meaning — 10-75, working fire, hazmat…">
+  <p class="tennote">Tap a code for the full meaning and sub-codes. Unofficial quick reference — verify against your current Communications Manual.</p>
+  <div class="dlist tenlist" id="tenList"></div>
+  <button class="done" id="tenDone">Done</button>
+</div>
+
 <div class="sheet set dir" id="refSheet">
   <div class="grip"></div>
   <h3>Union &amp; Fire Department Directory <span class="dcount" id="refCount"></span></h3>
@@ -883,6 +929,29 @@
   </div>
   <div class="dlist" id="dList"></div>
   <button class="done" id="dDone">Done</button>
+</div>
+
+<div class="sheet set" id="groupSheet">
+  <div class="grip"></div>
+  <h3>Group Changes</h3>
+  <p class="rsub">Reassigned to new groups (and maybe a new partner)? Add the date it takes effect. <b>Your old tours and everything you logged stay exactly as they were</b> — only dates on/after the change use the new groups.</p>
+  <div class="gcadd">
+    <div class="gcf"><label>Start date</label><input type="date" id="gcDate"></div>
+    <div class="gcf"><label>New group <span class="gc gred">(red)</span></label>
+      <div class="stepper big" id="gcMyStep"><button data-d="-1" type="button">−</button><div class="v"><span id="gcMy">7</span></div><button data-d="1" type="button">+</button></div>
+      <div class="onbrange" id="gcMyRange"></div>
+    </div>
+    <div class="onbptseg" id="gcPtSeg"><button type="button" data-p="no" class="on">No partner</button><button type="button" data-p="yes">New partner</button></div>
+    <div id="gcPtWrap" hidden>
+      <div class="stepper big" id="gcPtStep"><button data-d="-1" type="button">−</button><div class="v"><span id="gcPt">19</span></div><button data-d="1" type="button">+</button></div>
+      <div class="onbrange" id="gcPtRange"></div>
+    </div>
+    <button class="raddbtn" id="gcAdd" type="button">＋ Add group change</button>
+    <div class="gcerr" id="gcErr"></div>
+  </div>
+  <div class="setlbl gclbl">Your group history</div>
+  <div class="gclist" id="gcList"></div>
+  <button class="done" id="gcDone">Done</button>
 </div>
 
 <div class="sheet set" id="instSheet">
@@ -994,6 +1063,24 @@
   function warnNoSave(){if(saveWarned)return;saveWarned=true;try{var b=document.createElement("div");b.setAttribute("role","alert");b.style.cssText="position:fixed;left:8px;right:8px;bottom:8px;z-index:9999;background:#7f1d1d;color:#fff;padding:11px 13px;border-radius:11px;font:600 12.5px/1.45 -apple-system,BlinkMacSystemFont,system-ui,sans-serif;box-shadow:0 8px 26px rgba(0,0,0,.45)";b.textContent="⚠︎ Changes aren’t being saved — storage is full or you’re in Private Browsing. Entries will be lost when you close the app. (Tap to dismiss.)";b.onclick=function(){b.remove();};document.body.appendChild(b);}catch(e){}}
   function save(k,v){try{LS.setItem("sqrt:"+k,JSON.stringify(v));afterWrite(k);return true;}catch(e){warnNoSave();return false;}}
   var my=load("my",7), pt=load("pt",19), spot=load("spot",false), ov=load("ov",{}), ot=load("ot",{}), ar=load("ar",{}), mx=load("mx",{}), add=load("add",{}), note=load("note",{}), events=load("ev",[]), cev=load("cev",[]);
+  // ---- group assignments over time (reassignment = new groups + maybe a new partner) ----
+  // Each epoch = {s:"YYYY-MM-DD", my:group, pt:partner|0}. Any date uses the epoch whose start is the
+  // latest one on/before it — so PAST tours keep your OLD groups and every logged input stays put;
+  // only dates on/after a change switch. `my`/`pt` mirror the CURRENT (today's) epoch for the UI.
+  function isoToNum(iso){var p=String(iso||"").split("-");return (+p[0]||0)*10000+(+p[1]||0)*100+(+p[2]||0);}
+  function ymdNum(y,m,d){return y*10000+(m+1)*100+d;}
+  var _rawG=load("groups",null);
+  var groups=(function(){var g=(Array.isArray(_rawG)&&_rawG.length)?_rawG:[{s:"1970-01-01",my:my,pt:pt}];   // migrate a single my/pt into a base epoch
+    g=g.filter(function(e){return e&&typeof e==="object"&&typeof e.my==="number";})
+       .map(function(e){return {s:(typeof e.s==="string"&&/^\d{4}-\d\d?-\d\d?$/.test(e.s))?e.s:"1970-01-01",my:mod(e.my-1,G)+1,pt:(typeof e.pt==="number"&&e.pt>=1&&e.pt<=G)?e.pt:0};});
+    if(!g.length)g=[{s:"1970-01-01",my:7,pt:19}];
+    g.sort(function(a,b){return isoToNum(a.s)-isoToNum(b.s);}); return g;})();
+  if(!Array.isArray(_rawG)||!_rawG.length)save("groups",groups);   // persist only on first migration (avoid a save every load)
+  function effGroups(y,m,d){var n=ymdNum(y,m,d),g=groups[0];for(var i=0;i<groups.length;i++){if(isoToNum(groups[i].s)<=n)g=groups[i];else break;}return g;}
+  function curEpoch(){var t=new Date();return effGroups(t.getFullYear(),t.getMonth(),t.getDate());}
+  function syncCurGroups(){var c=curEpoch();my=c.my;pt=c.pt;}
+  syncCurGroups();
+  function setCurGroups(nMy,nPt){var c=curEpoch();c.my=nMy;c.pt=nPt||0;my=c.my;pt=c.pt;save("groups",groups);save("my",my);save("pt",pt);}   // edit today's epoch (Settings steppers / partner toggle)
   var sb=load("sb",{});   // per-tour standby marker: {d:"in"(picked up someone's) | "out"(yours covered), n:name} — no ledger, just stays on the tour
   var defEcc=load("defecc",false), defCfr=load("defcfr",false);   // "mark on every worked tour" defaults — ECC/LCC = driving · CFR = certified first responder (medical); toggle off per tour
   var mxnames=load("mxnames",[]);   // remembered mutual-partner names → autocomplete on the name field
@@ -1014,11 +1101,11 @@
   var MON=["January","February","March","April","May","June","July","August","September","October","November","December"];
   var DOWF=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 
-  function status(s){return has(s,my)?"mine":has(s,pt)?"partner":"off";}
+  function status(y,m,d,s){var g=effGroups(y,m,d);return has(s,g.my)?"mine":(g.pt&&has(s,g.pt))?"partner":"off";}   // uses the groups effective on THAT date
 
   // ---- per-tour state: base rotation + mutual swaps (MX) + overtime (MSOT) ----
   function startOf(y,m,d,tour){return tour===9?dayStart(y,m,d):nightStart(y,m,d);}
-  function baseOf(y,m,d,tour){return status(startOf(y,m,d,tour));}      // "mine" | "partner" | "off"
+  function baseOf(y,m,d,tour){return status(y,m,d,startOf(y,m,d,tour));}      // "mine" | "partner" | "off"
   function K(y,m,d,tour){return y+"-"+m+"-"+d+"|"+tour;}
   // one state per tour (all mutually exclusive): base | mxin/mxout (partner mutual) |
   //   smxin/smxout (self mutual — no partner, chief-approved) | comp (comp time off) |
@@ -1070,6 +1157,8 @@
     for(i=0;i<4;i++)if(!baseWork(set[i][0],set[i][1],set[i][2],set[i][3]))return null;
     var af=stepTour(set[3][0],set[3][1],set[3][2],set[3][3],1);
     if(baseWork(af[0],af[1],af[2],af[3]))return null;                  // a clean set is exactly 4 tours long
+    var e0=effGroups(set[0][0],set[0][1],set[0][2]);                   // a partner set must sit fully in ONE group-config
+    for(i=0;i<4;i++){var ei=effGroups(set[i][0],set[i][1],set[i][2]);if(!ei.pt||ei.s!==e0.s)return null;}   // period WITH a partner — never straddle a group/partner change
     return set;
   }
   var SPLITS={"1h":[1,1,0,0],"2h":[0,0,1,1],"in":[0,1,1,0],"out":[1,0,0,1]};   // which of T1..T4 YOU work
@@ -1238,7 +1327,7 @@
   }
 
   // ---- day detail sheet ----
-  var scrim=document.getElementById("scrim"),sheet=document.getElementById("sheet"),setSheet=document.getElementById("setSheet"),rsotSheet=document.getElementById("rsotSheet"),statSheet=document.getElementById("statSheet"),mxSheet=document.getElementById("mxSheet"),dirSheet=document.getElementById("dirSheet"),statsSheet=document.getElementById("statsSheet"),refSheet=document.getElementById("refSheet"),bakSheet=document.getElementById("bakSheet"),evSheet=document.getElementById("evSheet"),cevSheet=document.getElementById("cevSheet"),legendPop=document.getElementById("legendPop"),instSheet=document.getElementById("instSheet");
+  var scrim=document.getElementById("scrim"),sheet=document.getElementById("sheet"),setSheet=document.getElementById("setSheet"),rsotSheet=document.getElementById("rsotSheet"),statSheet=document.getElementById("statSheet"),mxSheet=document.getElementById("mxSheet"),dirSheet=document.getElementById("dirSheet"),statsSheet=document.getElementById("statsSheet"),refSheet=document.getElementById("refSheet"),bakSheet=document.getElementById("bakSheet"),evSheet=document.getElementById("evSheet"),cevSheet=document.getElementById("cevSheet"),legendPop=document.getElementById("legendPop"),instSheet=document.getElementById("instSheet"),groupSheet=document.getElementById("groupSheet"),tenSheet=document.getElementById("tenSheet");
   var navStack=[];   // sheets in the open path — so the phone/browser Back (swipe-back) closes the current sheet, not the app
   function openSheet(s){
     if(navStack.length&&navStack[navStack.length-1]===s){scrim.classList.add("show");s.classList.add("show");return;}   // re-render of the same sheet — no new history entry
@@ -1247,7 +1336,7 @@
     try{history.pushState({sqSheet:navStack.length},"");}catch(e){}
   }
   function closeSheets(){var n=navStack.length;navStack=[];
-    [sheet,setSheet,rsotSheet,statSheet,mxSheet,dirSheet,statsSheet,refSheet,bakSheet,evSheet,cevSheet,legendPop,instSheet].forEach(function(x){x.classList.remove("show");});
+    [sheet,setSheet,rsotSheet,statSheet,mxSheet,dirSheet,statsSheet,refSheet,bakSheet,evSheet,cevSheet,legendPop,instSheet,groupSheet,tenSheet].forEach(function(x){x.classList.remove("show");});
     scrim.classList.remove("show");
     if(n>0){try{history.go(-n);}catch(e){}}   // unwind the states we pushed
   }
@@ -1295,7 +1384,7 @@
     sheet.addEventListener("touchend",end,{passive:true});
     sheet.addEventListener("touchcancel",end,{passive:true});
   }
-  [sheet,setSheet,rsotSheet,statSheet,mxSheet,dirSheet,statsSheet,refSheet,bakSheet,evSheet,cevSheet,instSheet].forEach(initSheetDrag);
+  [sheet,setSheet,rsotSheet,statSheet,mxSheet,dirSheet,statsSheet,refSheet,bakSheet,evSheet,cevSheet,instSheet,groupSheet,tenSheet].forEach(initSheetDrag);
   // ---- in-app confirm/prompt (the artifact sandbox blocks window.confirm/prompt/alert) ----
   var cmodal=document.getElementById("cmodal"),cmsg=document.getElementById("cmsg"),cfield=document.getElementById("cfield"),cinput=document.getElementById("cinput"),cyes=document.getElementById("cyes"),cno=document.getElementById("cno"),cCB=null;
   function appHideModal(){cmodal.classList.remove("show");cCB=null;}
@@ -1306,17 +1395,17 @@
   cyes.onclick=function(){var cb=cCB,isP=cfield.classList.contains("show"),v=isP?cinput.value:true;appHideModal();if(cb)cb(v);};
   cinput.onkeydown=function(e){if(e.key==="Enter")cyes.onclick();};
 
-  function grpHTML(s){
+  function grpHTML(y,m,d,s){var eg=effGroups(y,m,d);
     return groupsOf(s).map(function(g,i){
       var star=i<3?'<sup class="sb">*</sup>':'';   // first 3 = standbys
-      if(g===my)return '<span class="hit">'+g+star+'</span>';
-      if(g===pt)return '<span class="hitp">'+g+star+'</span>';
+      if(g===eg.my)return '<span class="hit">'+g+star+'</span>';
+      if(eg.pt&&g===eg.pt)return '<span class="hitp">'+g+star+'</span>';
       return g+star;
     }).join(", ");
   }
   function inSharedSet(y,m,d,tour){var s=findSet(y,m,d);if(!s)return false;for(var i=0;i<s.length;i++)if(s[i][0]===y&&s[i][1]===m&&s[i][2]===d&&s[i][3]===tour)return true;return false;}   // this tour is part of an interlocking set you share with your partner
   function tourCard(y,m,d,tour){
-    var s=startOf(y,m,d,tour), name=tour===9?"9× Day tour":"6× Night tour", time=tour===9?"09:00":"18:00";
+    var s=startOf(y,m,d,tour), name=tour===9?"9× Day tour":"6× Night tour", time=tour===9?"09:00":"18:00", eg=effGroups(y,m,d);
     var b=baseOf(y,m,d,tour), st=curState(y,m,d,tour), w=worked(y,m,d,tour), so=dutyStatus(y,m,d,tour), nm=mxName(y,m,d,tour), tag="", statusTxt;
     if(so){statusTxt=dutyEmoji(so)+" "+dutyLabel(so)+(so==="ld"?" — light-duty assignment":" — you’re off your tours"); tag='<span class="mxtag '+so+'">'+dutyTag(so)+'</span>';}
     else if(st==="rsot"){statusTxt="Scheduled OT (RSOT) — report "+time+" · +"+otHours(tour)+"h · from your yearly list"; tag='<span class="mxtag rsot">RSOT +'+otHours(tour)+'h</span>';}
@@ -1334,8 +1423,8 @@
     else {statusTxt="You’re off this tour";}
     var pl="↔ Mutual Partner";   // one-tap even swap with your regular partner (ledger-neutral) — only on sets you two share
     var opts;
-    if(b==="mine"){opts=[["base","Working"]];if(pt&&(inSharedSet(y,m,d,tour)||st==="pmxout"))opts.push(["pmxout",pl]);opts.push(["mxout","Mutual out"],["smxout","Self MX out"],["comp","Comp time"],["ot","MSOT"],["rsot","RSOT"],["oot","Other OT"]);}   // even swap only on a shared set (or if this tour already is one)
-    else if(b==="partner"){opts=[["base","Off"]];if(pt&&(inSharedSet(y,m,d,tour)||st==="pmxin"))opts.push(["pmxin",pl]);opts.push(["mxin","Mutual in"],["smxin","Self MX in"],["ot","MSOT"],["rsot","RSOT"],["oot","Other OT"]);}
+    if(b==="mine"){opts=[["base","Working"]];if((eg.pt&&inSharedSet(y,m,d,tour))||st==="pmxout")opts.push(["pmxout",pl]);opts.push(["mxout","Mutual out"],["smxout","Self MX out"],["comp","Comp time"],["ot","MSOT"],["rsot","RSOT"],["oot","Other OT"]);}   // even swap only on a shared set (or if this tour already is one)
+    else if(b==="partner"){opts=[["base","Off"]];if((eg.pt&&inSharedSet(y,m,d,tour))||st==="pmxin")opts.push(["pmxin",pl]);opts.push(["mxin","Mutual in"],["smxin","Self MX in"],["ot","MSOT"],["rsot","RSOT"],["oot","Other OT"]);}
     else opts=[["base","Off"],["mxin","Mutual in"],["smxin","Self MX in"],["ot","MSOT"],["rsot","RSOT"],["oot","Other OT"]];   // off tour → not your partner's set, no ↔ partner option
     var seg=opts.map(function(o){var cap=(o[0]==="ot")?'<div class="segcap">Pick up as overtime</div>':'';return cap+'<button data-st="'+o[0]+'"'+(st===o[0]?' class="on"':'')+'>'+o[1]+'</button>';}).join("");
     var isNamedMx=(st==="mxin"||st==="mxout");   // only regular (counting) mutuals get a name — partner swaps don't
@@ -1387,7 +1476,7 @@
     return '<div class="tour '+(so?so:st==="ot"?"ot":st==="rsot"?"rsot":st==="oot"?"oot":st==="comp"?"comp":(st==="pmxin"||st==="pmxout")?"pmx":w?"mine":"")+'">'+
       '<div class="th"><span class="tt">'+name+tag+'</span><span class="tm">groups '+label(s)+'</span></div>'+
       '<div class="status">'+statusTxt+'</div>'+
-      '<div class="grps">Working: '+grpHTML(s)+'</div>'+
+      '<div class="grps">Working: '+grpHTML(y,m,d,s)+'</div>'+
       '<div class="seg" data-tour="'+tour+'">'+seg+'</div>'+nmRow+sbRow+ootRow+payWrap+noteRow+'</div>';
   }
   function openDay(y,m,d){
@@ -1527,7 +1616,7 @@
 
   // ---- settings ----
   function syncPt(){document.getElementById("vPt").textContent=pt?pt:"None";var b=document.getElementById("ptClear");if(b)b.textContent=pt?"✕ No partner":"＋ Add partner";}
-  document.getElementById("gear").onclick=function(){document.getElementById("vMy").textContent=my;syncPt();syncDefSw();openSheet(setSheet);};
+  document.getElementById("gear").onclick=function(){syncCurGroups();document.getElementById("vMy").textContent=my;syncPt();syncDefSw();openSheet(setSheet);};
   function syncDefSw(){var a=document.getElementById("defCfrSw"),b=document.getElementById("defEccSw");
     if(a){a.classList.toggle("on",defCfr);a.setAttribute("aria-checked",defCfr?"true":"false");}
     if(b){b.classList.toggle("on",defEcc);b.setAttribute("aria-checked",defEcc?"true":"false");}}
@@ -1538,8 +1627,57 @@
   document.getElementById("openLegend").onclick=function(){openSheet(legendPop);};
   document.getElementById("legendX").onclick=closeSheets;
   document.getElementById("ptClear").onclick=function(){   // toggle: clear the mutual partner / restore a default
-    if(pt){for(var k in ov){if(ov[k]==="pin"||ov[k]==="pout")delete ov[k];}save("ov",ov);pt=0;}else{pt=19;}   // clearing → drop partner-only even-swaps so no phantom worked tour lingers
-    save("pt",pt);syncPt();render();};
+    syncCurGroups();   // fresh values first (guard against a midnight epoch rollover while open)
+    setCurGroups(my, pt?0:19);   // toggle today's partner; past even-swaps stay recorded (data preserved)
+    syncPt();render();};
+
+  // ---- Group changes (reassignment → new groups + maybe a new partner, from a start date) ----
+  var gcMyVal=my, gcPtVal=(pt||19), gcHasPt=false;
+  function updGcMy(){document.getElementById("gcMy").textContent=gcMyVal;document.getElementById("gcMyRange").textContent="Groups "+label(gcMyVal);}
+  function updGcPt(){document.getElementById("gcPt").textContent=gcPtVal;document.getElementById("gcPtRange").textContent="Groups "+label(gcPtVal);}
+  function fmtEpochWhen(s){var p=String(s).split("-");return "From "+(MON[(+p[1]||1)-1]||"?").slice(0,3)+" "+(+p[2]||1)+", "+(p[0]||"");}
+  function renderGroups(){
+    var list=document.getElementById("gcList");
+    list.innerHTML=groups.map(function(g,i){
+      var base=(i===0), when=base?'From the start <span class="gcbase">(original)</span>':esc(fmtEpochWhen(g.s));
+      var grp='<span class="gcmy">Group '+g.my+'</span>'+(g.pt?(' · <span class="gcpt">partner '+g.pt+'</span>'):' · no partner');
+      return '<div class="gcitem"><div><div class="gcwhen">'+when+'</div><div class="gcgrp">'+grp+'</div></div>'+(base?'':'<button class="gcrm" data-i="'+i+'" type="button" aria-label="Remove change">&#10005;</button>')+'</div>';
+    }).join("");
+    Array.prototype.forEach.call(list.querySelectorAll(".gcrm"),function(b){b.onclick=function(){
+      var i=+b.getAttribute("data-i"); if(i<=0)return;
+      appConfirm("Remove this group change? Dates after it fall back to your previous groups. Nothing you logged is deleted.","Remove",function(){
+        groups.splice(i,1); groups.sort(function(a,b){return isoToNum(a.s)-isoToNum(b.s);}); save("groups",groups);
+        syncCurGroups(); document.getElementById("vMy").textContent=my; syncPt(); renderGroups(); render();
+      });
+    };});
+  }
+  Array.prototype.forEach.call(document.querySelectorAll("#gcMyStep button"),function(b){b.onclick=function(){gcMyVal=mod(gcMyVal-1+(+b.getAttribute("data-d")),G)+1;updGcMy();};});
+  Array.prototype.forEach.call(document.querySelectorAll("#gcPtStep button"),function(b){b.onclick=function(){gcPtVal=mod(gcPtVal-1+(+b.getAttribute("data-d")),G)+1;updGcPt();};});
+  Array.prototype.forEach.call(document.querySelectorAll("#gcPtSeg button"),function(b){b.onclick=function(){gcHasPt=(b.getAttribute("data-p")==="yes");Array.prototype.forEach.call(document.querySelectorAll("#gcPtSeg button"),function(x){x.classList.toggle("on",x===b);});document.getElementById("gcPtWrap").hidden=!gcHasPt;};});
+  document.getElementById("openGroups").onclick=function(){
+    setSheet.classList.remove("show");
+    var t=new Date();
+    document.getElementById("gcDate").value=t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0");
+    gcMyVal=my; gcPtVal=(pt||19); gcHasPt=false; updGcMy(); updGcPt();
+    document.getElementById("gcPtWrap").hidden=true;
+    Array.prototype.forEach.call(document.querySelectorAll("#gcPtSeg button"),function(x){x.classList.toggle("on",x.getAttribute("data-p")==="no");});
+    document.getElementById("gcErr").textContent="";
+    renderGroups(); openSheet(groupSheet);
+  };
+  document.getElementById("gcAdd").onclick=function(){
+    var dv=document.getElementById("gcDate").value, err=document.getElementById("gcErr"); err.textContent="";
+    if(!/^\d{4}-\d\d-\d\d$/.test(dv||"")){err.textContent="Pick a start date for the change.";return;}
+    var _p=dv.split("-"),_yy=+_p[0],_mm=+_p[1],_dd=+_p[2],_ck=new Date(_yy,_mm-1,_dd);
+    if(_ck.getFullYear()!==_yy||_ck.getMonth()!==_mm-1||_ck.getDate()!==_dd){err.textContent="That's not a real date.";return;}   // reject impossible dates (e.g. 02-30)
+    if(isoToNum(dv)<=isoToNum("1970-01-02")){err.textContent="Pick a real start date.";return;}
+    if(gcHasPt&&gcPtVal===gcMyVal){err.textContent="Your partner can't be your own group.";return;}
+    if(groups.some(function(g){return g.s===dv;})){err.textContent="You already have a change on that date — remove it first to redo it.";return;}
+    groups.push({s:dv,my:gcMyVal,pt:gcHasPt?gcPtVal:0});
+    groups.sort(function(a,b){return isoToNum(a.s)-isoToNum(b.s);}); save("groups",groups);
+    syncCurGroups(); document.getElementById("vMy").textContent=my; syncPt();
+    renderGroups(); render(); err.textContent="";
+  };
+  document.getElementById("gcDone").onclick=closeSheets;
   document.getElementById("setDone").onclick=closeSheets;
   Array.prototype.forEach.call(document.querySelectorAll("#thmSeg button"),function(b){
     b.onclick=function(){theme=b.getAttribute("data-th");save("theme",theme);applyTheme(theme);syncThmSeg();};
@@ -1626,7 +1764,7 @@
     var tx=db.transaction(IDB_STORE,"readonly"),rq=tx.objectStore(IDB_STORE).get(IDB_KEY);
     rq.onsuccess=function(){res(rq.result||null);};rq.onerror=function(){rej(rq.error);};});});}
   function idbMirror(){try{idbPut({v:1,ts:Date.now(),data:collectData()})["catch"](function(){});}catch(e){}}
-  var SYSKEYS={theme:1,seen:1,instdone:1,instsnooze:1,cloud:1,rcode:1,cloudts:1,defecc:1,defcfr:1,spot:1,my:1,pt:1,mxnames:1};
+  var SYSKEYS={theme:1,seen:1,instdone:1,instsnooze:1,cloud:1,rcode:1,cloudts:1,cbase:1,cdirty:1,cconf:1,defecc:1,defcfr:1,spot:1,my:1,pt:1,groups:1,mxnames:1};
   function blobHasData(b){ for(var k in b){ if(SYSKEYS[k])continue; var v=b[k]; if(v&&v!=="{}"&&v!=="[]"&&v!=="null"&&v!=="false")return true; } return false; }
   function lsHasData(){return blobHasData(collectData());}
   // on boot: if the primary store lost its data but the IDB snapshot still has some, write it back (only ever ADDS to an empty primary)
@@ -1770,7 +1908,8 @@
     document.getElementById("onbPtWrap").hidden=!onbHasPt;
     showOnbStep(1); var o=document.getElementById("onb");o.classList.add("show");o.setAttribute("aria-hidden","false"); }
   function closeOnboarding(){ var o=document.getElementById("onb");o.classList.remove("show");o.setAttribute("aria-hidden","true"); }
-  function commitGroups(){ my=onbMyVal;save("my",my); pt=onbHasPt?onbPtVal:0;save("pt",pt); save("seen",1);
+  function commitGroups(){ my=onbMyVal; pt=onbHasPt?onbPtVal:0;
+    groups=[{s:"1970-01-01",my:my,pt:pt}]; save("groups",groups); save("my",my); save("pt",pt); save("seen",1);   // fresh user → one base epoch
     var vMy=document.getElementById("vMy");if(vMy)vMy.textContent=my; syncPt();render(); }
   function finishOnboarding(){ closeOnboarding(); if(!isStandalone()&&!load("instdone",false)&&!instSnoozed())setTimeout(function(){save("instsnooze",isoNow());openInstall();},350); }
   (function wireOnb(){
@@ -2141,8 +2280,8 @@
     var f=FH[i],d=fhData(i),url=mapsUrl(f[4],f[5]),official=f[6]||"",eff=(d.p||official),xp=d.xp||[];
     var chips="";
     if(d.c)chips+='<span class="fhchip key">&#128273; '+esc(d.c)+'</span>';
-    if(eff)chips+='<span class="fhchip tel">&#128222; '+esc(eff)+'</span>';
-    if(xp.length)chips+='<span class="fhchip xp">&#128222; +'+xp.length+'</span>';
+    if(eff)chips+='<a class="fhchip tel" href="'+escA(telHref(eff))+'">&#128222; '+esc(eff)+'</a>';   // tap to call
+    if(xp.length)chips+='<button class="fhchip xp" type="button">&#128222; +'+xp.length+'</button>';   // tap to reveal the other numbers
     var chipsHTML=chips?'<div class="fhchips">'+chips+'</div>':'';
     var call=eff?'<a class="call" href="'+escA(telHref(eff))+'">&#128222; Call</a>':'<a class="call off">&#128222; Call</a>';
     var xpItems=xp.map(function(x,j){return '<div class="fhxpi"><span class="fhxptxt">'+(x.l?'<b>'+esc(x.l)+'</b> ':'')+esc(x.p)+'</span><a class="fhxpcall" href="'+escA(telHref(x.p))+'" aria-label="Call">&#128222;</a><button class="fhxprm" data-i="'+i+'" data-j="'+j+'" aria-label="Remove number">&#10005;</button></div>';}).join("");
@@ -2153,10 +2292,10 @@
         '<a class="fhmain" href="'+escA(url)+'" target="_blank" rel="noopener">'+
           '<div class="fhname">'+esc(f[0])+'</div>'+
           '<div class="fhaddr">'+esc(f[1])+' <span class="bz">&middot; '+BORO[f[2]]+' &middot; '+f[3]+'</span></div>'+
-          chipsHTML+
         '</a>'+
         '<button class="fhedit" data-i="'+i+'" aria-label="Add phone or door code">&#9998;</button>'+
       '</div>'+
+      chipsHTML+
       '<div class="fhbody">'+
         '<div class="fhrow"><label>&#128222; Phone</label><input class="fhp" data-i="'+i+'" type="tel" inputmode="tel" autocomplete="off" placeholder="'+(official?escA(official+" (Union) · tap to change"):"add phone number…")+'" value="'+escA(d.p||"")+'"></div>'+
         '<div class="fhrow"><label>&#128273; Door code</label><input class="fhc" data-i="'+i+'" type="text" autocomplete="off" placeholder="add door code…" value="'+escA(d.c||"")+'"></div>'+
@@ -2177,11 +2316,11 @@
     var list=document.getElementById("dList");
     if(!ids.length){list.innerHTML='<div class="dempty">No firehouse matches your search.</div>';return;}
     list.innerHTML=ids.map(fhRow).join("");
-    function fhChips(card,i){var d=fhData(i),eff=(d.p||FH[i][6]||""),m=card.querySelector(".fhmain"),c=m.querySelector(".fhchips"),html="";
+    function fhChips(card,i){var d=fhData(i),eff=(d.p||FH[i][6]||""),c=card.querySelector(".fhchips"),html="";
       if(d.c)html+='<span class="fhchip key">&#128273; '+esc(d.c)+'</span>';
-      if(eff)html+='<span class="fhchip tel">&#128222; '+esc(eff)+'</span>';
-      if(d.xp&&d.xp.length)html+='<span class="fhchip xp">&#128222; +'+d.xp.length+'</span>';
-      if(html){if(!c){c=document.createElement("div");c.className="fhchips";m.appendChild(c);}c.innerHTML=html;}
+      if(eff)html+='<a class="fhchip tel" href="'+escA(telHref(eff))+'">&#128222; '+esc(eff)+'</a>';
+      if(d.xp&&d.xp.length)html+='<button class="fhchip xp" type="button">&#128222; +'+d.xp.length+'</button>';
+      if(html){if(!c){c=document.createElement("div");c.className="fhchips";var hd=card.querySelector(".fhhd");hd.parentNode.insertBefore(c,hd.nextSibling);}c.innerHTML=html;}
       else if(c){c.parentNode.removeChild(c);}
     }
     function reopenFh(i){var card=document.querySelector('#dList .fh[data-i="'+i+'"]');if(card){card.classList.add("open");card.scrollIntoView({block:"nearest"});}}
@@ -2206,6 +2345,10 @@
     };});
   }
   document.getElementById("openDir").onclick=function(){renderDir();openSheet(dirSheet);};
+  document.getElementById("dList").addEventListener("click",function(e){   // delegated (survives re-renders): tap the "+N" chip to reveal the other numbers
+    var xp=e.target.closest&&e.target.closest(".fhchip.xp"); if(!xp)return;
+    var card=xp.closest(".fh"); if(card)card.classList.add("open");
+  });
   document.getElementById("dDone").onclick=closeSheets;
 
   var REF=[{c:"⚡ Quick & emergency",e:[["Fire Department General Info","718-999-2000"],["Fire Operations Center (24 hr)","718-999-7900"],["Teleprinter — job-wide message","718-999-2068"],["Poison Control","212-764-7667"],["Burn Center (NY-Presbyterian)","212-746-0328"],["City non-emergency (311)","311"]]},
@@ -2237,6 +2380,188 @@
       b.onclick=function(){var grp=b.parentNode,i=+grp.getAttribute("data-i"),willOpen=!grp.classList.contains("open");grp.classList.toggle("open",willOpen);refOpen[i]=willOpen;};
     });
   }
+  // ---- Radio 10-codes (reference — Communications Manual, Ch. 8) ----
+var TEN_CODES=[
+  {code:"10-1",  short:"Call quarters/unit by phone",               full:"A unit is to call its quarters or other unit by telephone."},
+  {code:"10-2",  short:"Return to quarters",                        full:"A unit is to return to quarters."},
+  {code:"10-3",  short:"Telephone the dispatcher",                  full:"A unit is to telephone the dispatcher."},
+  {code:"10-4",  short:"Acknowledgment",                            full:"Acknowledgment."},
+  {code:"10-5",  short:"Repeat message",                            full:"Repeat Message."},
+  {code:"10-6",  short:"Stand by",                                  full:"Stand by."},
+  {code:"10-7",  short:"Verify address",                            full:"Verify address."},
+  {code:"10-8",  short:"In-service by radio",                       full:"In-Service by radio.",
+    subCodes:[
+      {label:"Code 1", meaning:"In-service by radio when leaving quarters other than its own, to which its alarms had been routed."},
+      {label:"Code 2", meaning:"On the air outside its response area — notify dispatcher again when returning to response area."},
+    ]},
+  {code:"10-9",  short:"Off the air",                               full:"Off the air."},
+  {code:"10-10", short:"Current location",                          full:"Current location."},
+  {code:"10-11", short:"Radio test count",                          full:"Radio test count."},
+  {code:"10-12", short:"Preliminary report requested",              full:"Preliminary report requested."},
+  {code:"10-18", short:"Return all — keep 1 engine AND 1 ladder",  full:"Return all units except 1 engine AND 1 ladder."},
+  {code:"10-19", short:"Return all — keep 1 engine OR 1 ladder",   full:"Return all units except 1 engine OR 1 ladder."},
+  {code:"10-20", short:"Proceed to box at reduced speed",           full:"Proceed to box at reduced speed."},
+  {code:"10-21", short:"Brush fire",                                full:"Brush fire."},
+  {code:"10-22", short:"Outside rubbish",                           full:"Outside rubbish."},
+  {code:"10-23", short:"Abandoned derelict vehicle fire",           full:"Abandoned derelict vehicle fire."},
+  {code:"10-24", short:"Auto fire",                                 full:"Auto fire."},
+  {code:"10-25", short:"Manhole or transformer fire or emergency",  full:"Manhole or Transformer Fire or Emergency — any type of manhole or transformer fire or emergency.",
+    subCodes:[
+      {label:"No Code", meaning:"Situation other than as described in Codes 1–4."},
+      {label:"Code 1", meaning:"Fire has extended from a manhole, conduit, or transformer into a building."},
+      {label:"Code 2", meaning:"Fire has blown one or more manhole covers, or smoke is issuing from a manhole under pressure."},
+      {label:"Code 3", meaning:"Smoke is seeping from a manhole."},
+      {label:"Code 4", meaning:"Fire or smoke condition from a transformer at any location (pole, vault, room, etc.)."},
+    ]},
+  {code:"10-26", short:"Food on stove",                             full:"Food on stove."},
+  {code:"10-27", short:"Compactor/incinerator fire — no extension", full:"Compactor or Incinerator Fire — fire has NOT extended from compactor or shaft."},
+  {code:"10-28", short:"Subway/railroad fire, emergency, or smoke", full:"Subway or railroad fire, emergency, or smoke condition.",
+    subCodes:[
+      {label:"Code 1", meaning:"Structural fire."},
+      {label:"Code 2", meaning:"Non-structural fire (e.g., train fire, rubbish on the tracks)."},
+      {label:"Code 3", meaning:"Non-medical emergency."},
+    ]},
+  {code:"10-29", short:"Elevator emergency",                        full:"Elevator Emergency.",
+    subCodes:[
+      {label:"Code 1", meaning:"Occupied."},
+      {label:"Code 2", meaning:"Unoccupied."},
+    ]},
+  {code:"10-31", short:"Assist civilian",                           full:"Assist Civilian — all calls for assistance other than medical assignments: diverting or blocking traffic at a highway incident, good intention calls, calls handled by other agencies, any type of investigation, searches and complaints, and lock-outs. NOTE: shall NOT be used for any incident involving evaluation of structural stability, any rescue or mitigation effort, or any hazardous condition."},
+  {code:"10-32", short:"Defective oil burner",                      full:"Defective oil burner."},
+  {code:"10-33", short:"Odor condition",                            full:"Odor condition.",
+    subCodes:[
+      {label:"Code 1", meaning:"Caused by nearby working fire, BBQs, salamanders, etc."},
+      {label:"Code 2", meaning:"Any other type of odor."},
+    ]},
+  {code:"10-34", short:"Sprinkler system emergency",                full:"Sprinkler system emergency.",
+    subCodes:[
+      {label:"Code 1", meaning:"Defective sprinkler device or system (defective alarm valve, broken pipe, etc.)."},
+      {label:"Code 2", meaning:"Unwarranted sprinkler alarm — not defective (surge in pressure, people working on system)."},
+      {label:"Code 3", meaning:"Sprinkler activated by heat source not associated with an accidental fire."},
+    ]},
+  {code:"10-35", short:"Unwarranted/unnecessary alarm activation",  full:"Unwarranted or Unnecessary Alarm System Activation.",
+    subCodes:[
+      {label:"No Code", meaning:"Unwarranted alarm — defective condition of alarm device, equipment, or system (low battery, alarm activated with no known cause)."},
+      {label:"Code 1",  meaning:"Unnecessary alarm caused by alarm system testing or servicing."},
+      {label:"Code 2",  meaning:"Unnecessary alarm caused by construction activities."},
+      {label:"Code 3",  meaning:"Unnecessary alarm caused by ordinary household activities (toast, steam, aerosol spray)."},
+      {label:"Code 4",  meaning:"Unnecessary alarm caused by other known cause (smoking in unauthorized area)."},
+    ]},
+  {code:"10-36", short:"Vehicle accident or emergency",             full:"Vehicle Accident or Emergency.",
+    subCodes:[
+      {label:"Code 1",  meaning:"Vehicle accident or emergency requiring washdown."},
+      {label:"Code 2",  meaning:"Vehicle accident, no injuries and no washdown."},
+      {label:"Code 3",  meaning:"Vehicle accident with injuries."},
+      {label:"Code 4",  meaning:"Vehicle accident, with or without injuries, with a trapped victim requiring extrication."},
+      {label:"No Code", meaning:"Vehicle emergency other than described above."},
+    ]},
+  {code:"10-37", short:"Medical — not fire-related",           full:"Medical Assignment Not Associated with Fire Operations. A disposition code for incidents where operations were limited to providing medical care. NOTE: Signal 10-45 (with appropriate sub-code) shall be transmitted in lieu of 10-37 for thermal burn injuries from the heat of a flame, OR any injury from carbon monoxide exposure or electrocution/electrical emergencies — and the officer transmitting the 10-45 shall request a Battalion Chief to the scene.",
+    subCodes:[
+      {label:"Code 1", meaning:"Victim deceased."},
+      {label:"Code 2", meaning:"Victim/Patient is NOT breathing — requires resuscitation or may have a serious, apparently life-threatening injury or illness."},
+      {label:"Code 3", meaning:"Victim/Patient IS breathing — not apparently life-threatening."},
+      {label:"Code 4", meaning:"Medical assignment where unit is 10-84, has no patient contact, and EMS is on-scene."},
+    ]},
+  {code:"10-38", short:"Carbon monoxide response",                  full:"Carbon monoxide response.",
+    subCodes:[
+      {label:"Code 1", meaning:"Detector activation — defective, low-battery, or unwarranted."},
+      {label:"Code 2", meaning:"Detector activation — CO incident — readings 1–9 PPM."},
+      {label:"Code 3", meaning:"Detector activation — CO emergency — readings greater than 9 PPM."},
+      {label:"Code 4", meaning:"No detector activation during incident or emergency (no detector present or did not activate)."},
+    ]},
+  {code:"10-39", short:"Standing by at interagency incident",       full:"FD units standing by at interagency incident (e.g., suspicious package)."},
+  {code:"10-40", short:"Utility emergency",                         full:"Utility emergency.",
+    subCodes:[
+      {label:"Code 1", meaning:"Gas."},
+      {label:"Code 2", meaning:"Electric."},
+      {label:"Code 3", meaning:"Water condition."},
+      {label:"Code 4", meaning:"Steam leak."},
+    ]},
+  {code:"10-41", short:"Fire Marshal investigation required",       full:"Fire Marshal Investigation Required.",
+    subCodes:[
+      {label:"Code 1", meaning:"Occupied structure or vehicle."},
+      {label:"Code 2", meaning:"Unoccupied structure."},
+      {label:"Code 3", meaning:"Unoccupied vehicle."},
+      {label:"Code 4", meaning:"Vacant structure or structure not intended for dwelling purposes."},
+    ]},
+  {code:"10-42", short:"Down tree incidents/emergencies",           full:"Any down tree incidents or emergencies."},
+  {code:"10-43", short:"Technical rescue responses",                full:"Technical Rescue Responses. NOTE: These are disposition codes; the appropriate 10-60 code(s) shall be transmitted when necessary.",
+    subCodes:[
+      {label:"No Code", meaning:"All other technical rescues (impalements, person vs. machine, etc.)."},
+      {label:"Code 1", meaning:"Train Rescue — person(s) extricated from under a train (not for person(s) assisted/removed from the tracks — use 10-37 with a Code)."},
+      {label:"Code 2", meaning:"Excavation / Trench Collapse."},
+      {label:"Code 3", meaning:"Collapse Minor (bricks/façade, scaffold, parapet, etc.)."},
+      {label:"Code 4", meaning:"High Angle / Rope Rescue or Confined Space Rescue (non-fire related)."},
+    ]},
+  {code:"10-44", short:"Request public ambulance",                  full:"Request for public ambulance."},
+  {code:"10-45", short:"Civilian DOA or serious injury (fire-related)", full:"Civilian DOA or Serious Injury — Fire related ONLY. Transmitted upon discovery of any fatality or injured civilian as a result of fire operations.",
+    subCodes:[
+      {label:"Code 1", meaning:"Black tag — Deceased."},
+      {label:"Code 2", meaning:"Red tag — Life-Threatening Injury."},
+      {label:"Code 3", meaning:"Orange/Yellow tag — Non-Life-Threatening Injury."},
+      {label:"Code 4", meaning:"Green tag — Non-serious Injury / Ambulatory."},
+    ]},
+  {code:"10-46", short:"Maritime fire or emergency",                full:"Maritime Fire or Emergency.",
+    subCodes:[
+      {label:"Code 1", meaning:"A minor fire in a maritime environment (vessel, dock, pier)."},
+      {label:"Code 2", meaning:"Emergency in a maritime environment (accident, vessel in distress, person(s) in the water removed by FD personnel, hazard to navigation, hazardous materials incident)."},
+      {label:"Code 3", meaning:"Surface Water/Ice Rescue — Department Swimmers deployed for person(s) in the water or ice."},
+      {label:"Code 4", meaning:"Subsurface Water Rescue — Department Divers deployed for person(s) in the water."},
+    ]},
+  {code:"10-47", short:"Request police",                            full:"Request police."},
+  {code:"10-48", short:"Request police forthwith — harassment",    full:"Request police forthwith for harassment."},
+  {code:"10-51", short:"Suspension of outside activities",          full:"Suspension of outside activities."},
+  {code:"10-60", short:"Major emergency response",                  full:"Major Emergency Response — a major emergency incident (e.g., collapse of a private dwelling, derailment of a subway car, trench or excavation cave-in). 5 engines, 4 ladders (3rd = FAST), 4 BCs (1 Resources Unit Leader, 1 Safety Officer), 1 Deputy Chief, 1 Collapse Rescue Task Force (1 Rescue, 1 Collapse Rescue, 1 Squad w/ 2nd piece, 1 Haz-Tac Officer, 1 Rescue Paramedic Unit), 1 additional Rescue Co., 1 Rescue Battalion, 1 Safety Battalion, 1 Tactical Support Unit, SOC Logistics, SOC Compressor, ConEd Vacuum Truck, HazMat Btn, HazMat Co. 1, HazMat Tech Engine, Comm Unit, Field Comm Unit, RAC Unit, PIO.",
+    subCodes:[
+      {label:"Code 1", meaning:"Large-scale Major Emergency — Enhanced 2nd Alarm. Additional technical rescue resources. Dispatcher transmits 2nd alarm if not prior. 10-60 assignment PLUS: 5 additional engines, 3 additional ladders, 2 additional BCs (1 Staging Area Manager), 1 additional Deputy Chief, 1 additional RTF, Air Recon Chief, Satellite Unit, SOC Dewatering Unit, Mobile Command Center."},
+    ]},
+  {code:"10-66", short:"Missing/lost/trapped/injured member — resources required", full:"Missing, Lost, Trapped or Seriously Injured Member(s) and Additional Resources are Required (as a result of a fire or emergency operation). Auto-response: 1 add'l Engine, 1 add'l Ladder, 1 add'l Rescue, 1 add'l Squad, 1 add'l FAST Unit, 1 CFR Engine (additional, if one was previously assigned), 1 Battalion Chief, and the PIO. Plus EMS: EMS Division Chief, EMS Deputy Chief, Haz-Tac Conditions Officer, Rescue Paramedic Unit, ALS Unit, BLS Unit, OMA Response Physician. NOTE: if transmitted before a 2nd alarm, the dispatcher transmits a full 2nd alarm with all associated resources. For members missing/lost/trapped due to COLLAPSE, transmit 10-66 Code 1 (10-60 shall NOT be transmitted for collapse incidents involving members).",
+    subCodes:[
+      {label:"Code 1", meaning:"Member(s) requiring EXTRICATION as the result of a collapse. Causes: the next higher full alarm and all associated resources, 1 additional Deputy Chief, 2 additional BCs (1st = FAST Group Supervisor, 2nd = Firefighter Locator Officer), 1 Collapse Rescue Task Force (Rescue w/ Collapse Rescue + Squad w/ 2nd piece + Haz-Tac Officer + Rescue Paramedic Unit), 1 additional FAST Unit, 1 CFR Engine, Communications Unit, SOC Compressor/Logistics/Dewatering Units, Con Edison Vacuum Truck, Haz-Mat Co. 1 / Tech Engine / Battalion, SOC Canine Unit, PIO, plus a full EMS package. (A 10-66 Code 1 following a 10-66 fills the balance of resources and includes the next higher alarm.)"},
+    ]},
+  {code:"10-70", short:"Water supply required",                     full:"Water supply required — first arriving engine has no positive water source."},
+  {code:"10-75", short:"Notification of a fire or emergency",       full:"Notification of a Fire or Emergency. Total response: 4 Engine companies, 3 Ladder companies (3rd Ladder assigned as the FAST Unit), 2 Battalion Chiefs, 1 Deputy Chief, 1 Rescue company, 1 Squad company, 1 RAC Unit. NOTE: when transmitted for incidents below grade in facilities other than buildings (subway, tunnels, terminals, etc.), it also includes a Rescue Battalion, Rebreather Unit 1, and a Communications Unit."},
+  {code:"10-76", short:"Fire in high-rise building (commercial)",   full:"Fire in High-Rise Building (75+ feet). 4 engines, 5 ladders (3rd = FAST), 4 BCs, 1 Deputy Chief, 1 Rescue Co., 1 Squad Co., 1 CFR-D Engine, 1 RAC, 1 Comm Unit, 1 Field Comm Unit, 1 Lobby/Systems Control Unit, 1 Mask Service Unit, 1 Safety Operating Btn, 1 Rescue Operations Btn, 1 Safety Officer (5th due BC), 1 High Rise Support Unit, 1 Tactical Support Unit, 1 PIO.",
+    subCodes:[
+      {label:"2nd Alarm", meaning:"4 additional engines, 2 additional ladders, 3 additional BCs (3rd = Resource Unit Leader), 1 Deputy Chief, 1 Rescue Co., 1 Satellite Unit. Additional EMS: 1 Deputy Chief, 1 Division Captain, 1 Conditions Officer, MERV, 3 BLS ambulances, 1 ALS ambulance, 1 Haz-Tac Officer, 1 Logistical Support Unit, Mobile Respiratory Treatment Unit."},
+    ]},
+  {code:"10-77", short:"Fire in high-rise multiple dwelling",       full:"Fire in High-Rise Multiple Dwelling (75+ feet). 4 engines, 4 ladders, 3 BCs, 1 Deputy Chief, 1 Rescue Co., 1 Squad Co., HRN Engine (if no initial engine has HRN), 1 FAST unit, 1 CFR-D Engine, 1 Ventilation Support Unit, Field Comm Unit, Safety Operating Btn, Rescue Operations Btn, Safety Officer (4th due BC).",
+    subCodes:[
+      {label:"2nd Alarm", meaning:"4 additional engines, 2 additional ladders, 2 additional BCs (1st = Resource Unit Leader), 1 Comm Unit, Mask Service Unit, RAC Unit, High Rise Unit, Satellite Unit, Tactical Support Unit, Photo Unit."},
+    ]},
+  {code:"10-80", short:"Hazardous material incident",               full:"Hazardous Material Incident — an incident that can be controlled by the on-scene unit(s) and requires no additional resources. The Haz-Mat Battalion and/or Haz-Mat Co. 1 may be contacted for technical information if necessary.",
+    subCodes:[
+      {label:"Code 1", meaning:"Incident that requires a Haz-Mat response (e.g., fuel spill, major gas emergency, lithium-ion battery fire, asbestos, mercury spill, unknown substance). The IC determines the units needed. A Haz-Mat response consists of: Haz-Mat Battalion (HB01), Haz-Mat Company 1 (HM01), and a Haz-Mat Technician Unit (HMTU). A Haz-Tac Ambulance is dispatched if victims are reported."},
+      {label:"Code 2", meaning:"Large-scale event requiring numerous Haz-Mat resources (e.g., large industrial ammonia/chlorine release, fuel-tanker rollover with fire, multiple contaminated patients). Units: 1 Deputy Chief, HB01, HM01, 2 HMTUs, Safety Battalion 1 (SB01), Rescue Battalion, a total response of 4 Engine companies / 2 Ladder companies / 2 Battalion Chiefs, 1 Rescue Company, Field Communications Unit, and a Command Tactical Unit, plus a full EMS Haz-Tac package."},
+    ]},
+  {code:"10-84", short:"Announce arrival at box",                   full:"Announce arrival at box."},
+  {code:"10-85", short:"Fire Marshal needs emergency police",       full:"Fire Marshal requires emergency police assistance."},
+  {code:"10-86", short:"Foam response (Low-Ex or Hi-Ex)",           full:"Request for a Foam Response (Low-Ex or Hi-Ex).",
+    subCodes:[
+      {label:"Code 1", meaning:"Transformer fire. Response: 2 Purple K Units with associated engine companies, Hazardous Materials Co. 1, Hazardous Materials Battalion, and a Hazardous Materials Technician Unit (must be an Engine company — Squad companies do not carry the required F-500)."},
+      {label:"Code 2", meaning:"Fire or emergency requiring foam concentrate beyond the on-scene units' capability (e.g., tanker-truck fire, junkyard fire) OR a High-Expansion Foam operation. Response: 1 Foam tanker w/ engine, 1 Foam Coordinator (BC), 1 Foam Manager, 1 Satellite Unit w/ engine, 2 Purple K Units w/ engines, Haz-Mat Co. 1, Haz-Mat Battalion, Haz-Mat Technician Unit."},
+      {label:"Code 3", meaning:"Major fire or emergency requiring foam concentrate beyond the on-scene units' capability (e.g., tank-farm fire, airplane crash). Response: 3 Foam tankers w/ engines, 2 Foam Coordinators (BCs), 1 Foam Manager, 1 Satellite Unit w/ engine, 2 Purple K Units w/ engines, Super Pumper 1 w/ engine, Haz-Mat Co. 1, Haz-Mat Battalion, Haz-Mat Technician Unit."},
+    ]},
+  {code:"10-91", short:"Medical — fire unit not required",     full:"Medical Emergency EMS — Fire unit not required. Fire unit canceled enroute (EMS on scene) or EMS downgraded the incident. For medical emergency incidents only."},
+  {code:"10-92", short:"Malicious false alarm",                     full:"Malicious false alarm."},
+  {code:"10-99", short:"Operating over 30 minutes",                 full:"Units will operate over 30 minutes."},
+];
+  var tq="";
+  function renderTen(){
+    var list=document.getElementById("tenList");
+    var rows=tq?TEN_CODES.filter(function(c){var hay=(c.code+" "+c.short+" "+c.full+" "+(c.subCodes||[]).map(function(s){return s.label+" "+s.meaning;}).join(" ")).toLowerCase();return tq.split(/\s+/).every(function(t){return !t||hay.indexOf(t)>=0;});}):TEN_CODES;
+    document.getElementById("tenCount").textContent=tq?(rows.length+" of "+TEN_CODES.length):String(TEN_CODES.length);
+    if(!rows.length){list.innerHTML='<div class="dempty">No 10-code matches your search.</div>';return;}
+    list.innerHTML=rows.map(function(c){
+      var sub=(c.subCodes||[]).map(function(s){return '<div class="tcsub"><b>'+esc(s.label)+'</b> '+esc(s.meaning)+'</div>';}).join("");
+      return '<div class="tc"><button class="tchd" type="button"><span class="tccode">'+esc(c.code)+'</span><span class="tcshort">'+esc(c.short)+'</span><span class="tcchev">&#9662;</span></button><div class="tcbody"><div class="tcfull">'+esc(c.full)+'</div>'+(sub?'<div class="tcsubs">'+sub+'</div>':'')+'</div></div>';
+    }).join("");
+    Array.prototype.forEach.call(list.querySelectorAll(".tchd"),function(b){b.onclick=function(){b.parentNode.classList.toggle("open");};});
+  }
+  document.getElementById("openTen").onclick=function(){renderTen();openSheet(tenSheet);};
+  document.getElementById("tenDone").onclick=closeSheets;
+  document.getElementById("tenSearch").oninput=function(){tq=this.value.trim().toLowerCase();renderTen();};
+
   document.getElementById("openRef").onclick=function(){renderRef();openSheet(refSheet);};
   document.getElementById("refDone").onclick=closeSheets;
   document.getElementById("rSearch").oninput=function(){rq=this.value.trim().toLowerCase();renderRef();};
@@ -2419,8 +2744,9 @@
     Array.prototype.forEach.call(st.querySelectorAll("button"),function(b){
       b.onclick=function(){
         var delta=parseInt(b.getAttribute("data-d"),10);
-        if(k==="my"){my=mod(my-1+delta,G)+1;save("my",my);document.getElementById("vMy").textContent=my;}
-        else{pt=(pt===0)?(delta>0?1:G):mod(pt-1+delta,G)+1;save("pt",pt);syncPt();}   // from "None", +/- re-enables a partner
+        syncCurGroups();   // edit today's epoch off FRESH values (in case the app crossed midnight into a new epoch)
+        if(k==="my"){setCurGroups(mod(my-1+delta,G)+1,pt);document.getElementById("vMy").textContent=my;}
+        else{setCurGroups(my,(pt===0)?(delta>0?1:G):mod(pt-1+delta,G)+1);syncPt();}   // from "None", +/- re-enables a partner
         render();
       };
     });
@@ -2440,7 +2766,10 @@
     else { maybeInstallLater(); }
     if(cloudOn&&rcode&&cloudDirty&&!cloudConflict)schedulePush();   // only push UNSYNCED local changes on boot — never clobber the cloud with a clean/stale device
     var flush=function(){flushPush();flushMirror();};
-    window.addEventListener("visibilitychange",function(){if(document.visibilityState==="hidden")flush();});
+    window.addEventListener("visibilitychange",function(){
+      if(document.visibilityState==="hidden"){flush();return;}
+      var pm=my,pp=pt; syncCurGroups(); if(my!==pm||pt!==pp){var v=document.getElementById("vMy");if(v)v.textContent=my;syncPt();render();}   // returned to a new day/epoch → refresh scalars + calendar
+    });
     window.addEventListener("pagehide",flush);
   }
   idbRecover().then(function(restored){
