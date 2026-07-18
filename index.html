@@ -111,6 +111,7 @@
   .dot.pay{background:#6d4ae0;}     /* extra pay (AR/P2P/washup/other) */
   .dot.ecc{background:#475569;}     /* ECC/LCC */
   .dot.cfr{background:#0369a1;}     /* CFR */
+  .dot.sb{background:#eab308;}      /* standby (picked up / covered) */
   .dot.note{background:var(--mut);} /* note */
   .dot.edu{background:#7c3aed;}     /* Education Day */
   .dot.med{background:#0891b2;}     /* Company Medical */
@@ -281,6 +282,8 @@
   .wunote .wuplus{color:var(--pay);font-weight:800;}
   .othseg button.on{background:var(--ink);color:var(--panel);border-color:var(--ink);}
   .othl{width:100%;box-sizing:border-box;margin-top:9px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);font-size:14px;font-family:inherit;}
+  .sbname{width:100%;box-sizing:border-box;margin-top:9px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);font-size:14px;font-family:inherit;}
+  .sbname:focus{outline:none;border-color:var(--amber);}
   .othl:focus{outline:none;border-color:var(--red-ring);}
   .chip.vac{background:#9b2fb5;color:#fff;box-shadow:0 1px 4px rgba(155,47,181,.32);}
   .chip.ml{background:#0f766e;color:#fff;box-shadow:0 1px 4px rgba(15,118,110,.32);}
@@ -482,6 +485,20 @@
   .fhact .maps{background:var(--red-fill); color:#fff;}
   .fhact .call{background:color-mix(in srgb,var(--pay) 16%,var(--panel2)); color:var(--pay); border:1px solid color-mix(in srgb,var(--pay) 42%,transparent);}
   .fhact .call.off{opacity:.4; pointer-events:none;}
+  .fhchip.xp{background:color-mix(in srgb,var(--pay) 15%,var(--panel2)); color:var(--pay);}
+  .fhxp{margin-top:13px;}
+  .fhxp>label{font-size:11.5px; font-weight:800; color:var(--ink2); display:block; margin-bottom:8px;}
+  .fhxpi{display:flex; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--line); border-radius:10px; background:var(--panel); margin-bottom:7px;}
+  .fhxptxt{flex:1; min-width:0; font-size:13.5px; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .fhxpcall{flex:none; text-decoration:none; width:34px; height:34px; display:grid; place-items:center; border-radius:9px; background:color-mix(in srgb,var(--pay) 16%,var(--panel2)); color:var(--pay); font-size:15px;}
+  .fhxprm{flex:none; width:30px; height:34px; border:none; background:transparent; color:var(--mut); font-size:13px; cursor:pointer; border-radius:8px;}
+  .fhxprm:active{background:var(--line);}
+  .fhxpadd{display:flex; gap:7px; align-items:center;}
+  .fhxpadd input{min-width:0; padding:9px 10px; border:1px solid var(--line); border-radius:10px; background:var(--panel); color:var(--ink); font-size:13.5px; font-family:inherit;}
+  .fhxpadd .fhxpl{flex:1 1 42%;} .fhxpadd .fhxpp{flex:1 1 42%;}
+  .fhxpadd input:focus{outline:none; border-color:var(--red-ring);}
+  .fhxpaddb{flex:none; padding:9px 13px; border:1px solid var(--line); border-radius:10px; background:var(--panel2); color:var(--ink2); font-size:13px; font-weight:800; cursor:pointer; font-family:inherit;}
+  .fhxpaddb:active{background:var(--line);}
   /* Union / Fire Department reference directory */
   .refgrp{flex:none; border:1px solid var(--line); border-radius:13px; background:var(--panel2); overflow:hidden;}   /* flex:none so the scrolling .dlist keeps each section's full height (don't shrink-to-fit) */
   .refhd{width:100%; display:flex; align-items:center; gap:10px; padding:13px; border:none; background:transparent; cursor:pointer; font-family:inherit; text-align:left;}
@@ -652,6 +669,7 @@
       <div class="lgrow"><i class="dot pay"></i>Extra pay (AR · P2P · washup · other)</div>
       <div class="lgrow"><i class="dot ecc"></i>ECC / LCC (driving)</div>
       <div class="lgrow"><i class="dot cfr"></i>CFR (first responder)</div>
+      <div class="lgrow"><i class="dot sb"></i>Standby (picked up / covered)</div>
       <div class="lgrow"><i class="dot note"></i>Note on this tour</div>
       <div class="lgrow"><i class="dot edu"></i>Education Day</div>
       <div class="lgrow"><i class="dot med"></i>Company Medical</div>
@@ -860,6 +878,7 @@
   function warnNoSave(){if(saveWarned)return;saveWarned=true;try{var b=document.createElement("div");b.setAttribute("role","alert");b.style.cssText="position:fixed;left:8px;right:8px;bottom:8px;z-index:9999;background:#7f1d1d;color:#fff;padding:11px 13px;border-radius:11px;font:600 12.5px/1.45 -apple-system,BlinkMacSystemFont,system-ui,sans-serif;box-shadow:0 8px 26px rgba(0,0,0,.45)";b.textContent="⚠︎ Changes aren’t being saved — storage is full or you’re in Private Browsing. Entries will be lost when you close the app. (Tap to dismiss.)";b.onclick=function(){b.remove();};document.body.appendChild(b);}catch(e){}}
   function save(k,v){try{LS.setItem("sqrt:"+k,JSON.stringify(v));return true;}catch(e){warnNoSave();return false;}}
   var my=load("my",7), pt=load("pt",19), spot=load("spot",false), ov=load("ov",{}), ot=load("ot",{}), ar=load("ar",{}), mx=load("mx",{}), add=load("add",{}), note=load("note",{}), events=load("ev",[]), cev=load("cev",[]);
+  var sb=load("sb",{});   // per-tour standby marker: {d:"in"(picked up someone's) | "out"(yours covered), n:name} — no ledger, just stays on the tour
   var defEcc=load("defecc",false), defCfr=load("defcfr",false);   // "mark on every worked tour" defaults — ECC/LCC = driving · CFR = certified first responder (medical); toggle off per tour
   var mxnames=load("mxnames",[]);   // remembered mutual-partner names → autocomplete on the name field
   for(var _mk in add){var _mo=add[_mk];if(_mo&&typeof _mo==="object"&&_mo.p2p&&!_mo.p2pw){_mo.p2pw=(_mo.p2p===90?2:1);_mo.p2pm=(_mo.p2p===90?45:_mo.p2p);delete _mo.p2p;}}  // migrate legacy P2P total → ways × per-drive (object-guarded so a bad restore can't white-screen)
@@ -1003,6 +1022,10 @@
   function cevC(c){return /^#[0-9a-fA-F]{3,8}$/.test(c||"")?c:"#e0930f";}   // only allow a hex color into inline styles
   function noteOf(y,m,d,tour){return note[K(y,m,d,tour)]||"";}
   function setNoteNr(y,m,d,tour,v){var k=K(y,m,d,tour);if(v&&v.replace(/\s/g,""))note[k]=v;else delete note[k];save("note",note);}   // persist only — no rebuild (keeps focus)
+  function sbOf(y,m,d,tour){return sb[K(y,m,d,tour)]||null;}   // standby marker on a tour
+  function setSb(y,m,d,tour,dir){var k=K(y,m,d,tour);if(dir){var cur=sb[k]||{};sb[k]={d:dir,n:cur.n||""};}else delete sb[k];save("sb",sb);render();openDay(y,m,d);}
+  function setSbNameNr(y,m,d,tour,name){var k=K(y,m,d,tour);if(sb[k]){sb[k].n=(name||"").trim();save("sb",sb);}}   // persist only — no rebuild (keeps focus)
+  function sbLabel(e){return e.d==="in"?("Picked up a standby"+(e.n?" for "+e.n:"")):("Standby covered"+(e.n?" by "+e.n:""));}
   function p2pMin(y,m,d,tour){var a=addOf(y,m,d,tour);if(a.p2pw)return a.p2pw*(a.p2pm||45);return a.p2p||0;}  // total = ways × per-drive
   function p2pWays(y,m,d,tour){return addOf(y,m,d,tour).p2pw||0;}
   function p2pDrive(y,m,d,tour){var a=addOf(y,m,d,tour);return a.p2pw?(a.p2pm||45):0;}
@@ -1038,8 +1061,9 @@
     // details shown as small COLORED SQUARES under the pill (text labels jumbled the layout) — full detail is in the day sheet
     var nt=noteOf(y,m,d,tour)?'<i class="dot note" title="Note"></i>':'';
     var ev=(tour===9)?eventOf(y,m,d):null, evb=ev?'<i class="dot '+ev+'" title="'+evLabel(ev)+'"></i>':'';
+    var sbv=sbOf(y,m,d,tour), sbt=sbv?'<i class="dot sb" title="'+escA(sbLabel(sbv))+'"></i>':'';
     var so=dutyStatus(y,m,d,tour);
-    if(so)return '<div class="chip '+so+'">'+label(s)+'<span class="rgt"><span class="vacs">'+dutyTag(so)+'</span></span></div>'+((nt||evb)?'<div class="cbadges">'+evb+nt+'</div>':'');
+    if(so)return '<div class="chip '+so+'">'+label(s)+'<span class="rgt"><span class="vacs">'+dutyTag(so)+'</span></span></div>'+((nt||evb||sbt)?'<div class="cbadges">'+evb+sbt+nt+'</div>':'');
     var st=curState(y,m,d,tour),tag="";
     if(st==="ot")tag='<i class="dot ot" title="MSOT"></i>';else if(st==="rsot")tag='<i class="dot rs" title="RSOT"></i>';
     else if(st==="oot")tag='<i class="dot oot" title="Other OT"></i>';
@@ -1050,7 +1074,7 @@
     var wk=worked(y,m,d,tour), ao=wk?addOf(y,m,d,tour):{};
     var xm=wk?(endExtra(y,m,d,tour)+p2pMin(y,m,d,tour)+othMin(y,m,d,tour)):0, arT=xm?'<i class="dot pay" title="Extra pay (AR/P2P/washup/other)"></i>':'';
     var badges=(flagOn(y,m,d,tour,"ecc")?'<i class="dot ecc" title="ECC/LCC"></i>':'')+(flagOn(y,m,d,tour,"cfr")?'<i class="dot cfr" title="CFR"></i>':'');
-    var bd=(tag||badges||arT||nt||evb)?'<div class="cbadges">'+evb+arT+tag+badges+nt+'</div>':'';
+    var bd=(tag||badges||arT||nt||evb||sbt)?'<div class="cbadges">'+evb+arT+tag+badges+sbt+nt+'</div>':'';
     return '<div class="chip '+chipCls(y,m,d,tour)+'">'+label(s)+'</div>'+bd;   // no standby '*' on the calendar pill (kept in the day sheet's Working: line)
   }
 
@@ -1230,11 +1254,17 @@
     var payOpen=pb.length>0, trig=payOpen?esc(pb.join(" · ")):"＋ Add pay &amp; details";
     var payWrap=w?('<div class="paywrap'+(payOpen?' open':'')+'"><button class="paytrig" data-tour="'+tour+'"><span class="paylbl">'+trig+'</span><span class="paychev">▾</span></button><div class="paybody">'+chkRow+arRow+p2pRow+wuRow+othRow+'</div></div>'):'';
     var noteRow='<div class="noterow"><textarea class="notein" data-tour="'+tour+'" rows="1" placeholder="📝 Notes for this tour — anything you want to remember…">'+esc(noteOf(y,m,d,tour))+'</textarea></div>';
+    var sbv=sbOf(y,m,d,tour), sbd=sbv?sbv.d:"", sbn=sbv?sbv.n:"";   // standby: picked up someone's / got yours covered (+ name, no ledger)
+    var sbRow='<div class="wurow"><div class="wutop"><span class="lab">🧍 Standby</span><div class="arseg sbseg" data-tour="'+tour+'">'+
+      '<button data-sb=""'+(sbd?'':' class="on"')+'>—</button>'+
+      '<button data-sb="in"'+(sbd==="in"?' class="on"':'')+'>Picked up</button>'+
+      '<button data-sb="out"'+(sbd==="out"?' class="on"':'')+'>Covered</button>'+
+      '</div></div>'+(sbd?'<input class="sbname" type="text" list="mxNames" autocomplete="off" data-tour="'+tour+'" placeholder="'+(sbd==="in"?"whose standby did you pick up? (name)":"who covered your standby? (name)")+'" value="'+escA(sbn)+'">':'')+'</div>';
     return '<div class="tour '+(so?so:st==="ot"?"ot":st==="rsot"?"rsot":st==="oot"?"oot":st==="comp"?"comp":(st==="pmxin"||st==="pmxout")?"pmx":w?"mine":"")+'">'+
       '<div class="th"><span class="tt">'+name+tag+'</span><span class="tm">groups '+label(s)+'</span></div>'+
       '<div class="status">'+statusTxt+'</div>'+
       '<div class="grps">Working: '+grpHTML(s)+'</div>'+
-      '<div class="seg" data-tour="'+tour+'">'+seg+'</div>'+nmRow+ootRow+payWrap+noteRow+'</div>';
+      '<div class="seg" data-tour="'+tour+'">'+seg+'</div>'+nmRow+sbRow+ootRow+payWrap+noteRow+'</div>';
   }
   function openDay(y,m,d){
     document.getElementById("shDate").textContent=DOWF[new Date(y,m,d).getDay()]+" · "+MON[m]+" "+d+", "+y;
@@ -1313,6 +1343,16 @@
     Array.prototype.forEach.call(document.querySelectorAll("#shTours .ootl"),function(inp){
       var tour=parseInt(inp.getAttribute("data-tour"),10);
       inp.oninput=function(){setAddFnr(y,m,d,tour,"oonote",inp.value);};   // save-as-you-type, no rebuild (keeps focus)
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("#shTours .sbseg"),function(seg){
+      var tour=parseInt(seg.getAttribute("data-tour"),10);
+      Array.prototype.forEach.call(seg.querySelectorAll("button"),function(bn){bn.onclick=function(){setSb(y,m,d,tour,bn.getAttribute("data-sb"));};});
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("#shTours .sbname"),function(inp){
+      var tour=parseInt(inp.getAttribute("data-tour"),10);
+      inp.oninput=function(){setSbNameNr(y,m,d,tour,inp.value);};   // save-as-you-type, no rebuild (keeps focus)
+      inp.onchange=function(){rememberMxName(inp.value);};          // remember the name for next time's autocomplete
+      inp.onclick=function(e){e.stopPropagation();};
     });
     Array.prototype.forEach.call(document.querySelectorAll("#shTours .aqin"),function(inp){
       var tour=parseInt(inp.getAttribute("data-tour"),10);
@@ -1416,7 +1456,7 @@
   document.getElementById("bakPaste").onclick=function(){doRestore(document.getElementById("bakIn").value);};
   document.getElementById("bakFileIn").onchange=function(){var f=this.files&&this.files[0];if(!f){return;}var r=new FileReader();r.onload=function(){doRestore(String(r.result));};r.onerror=function(){bakSay("Couldn't read that file.",true);};r.readAsText(f);this.value="";};
   // gentle reminder banner — shows when there's real data that hasn't been backed up in a while (snooze 7d)
-  function hasData(){if((periods&&periods.length)||(events&&events.length)||(cev&&cev.length))return true;var m=[ov,ot,ar,mx,add,fh,note],j,kk;for(j=0;j<m.length;j++){for(kk in m[j])return true;}return false;}
+  function hasData(){if((periods&&periods.length)||(events&&events.length)||(cev&&cev.length))return true;var m=[ov,ot,ar,mx,add,fh,note,sb],j,kk;for(j=0;j<m.length;j++){for(kk in m[j])return true;}return false;}
   function bakAgeDays(){var t=load("bakts",null);if(!t)return 1e9;return (Date.now()-new Date(t).getTime())/864e5;}
   function bakSnoozed(){var s=load("baksnooze",null);if(!s)return false;return (Date.now()-new Date(s).getTime())<7*864e5;}
   function renderBakRem(){var el=document.getElementById("bakRem");if(!el)return;var never=(load("bakts",null)==null),show=hasData()&&bakAgeDays()>21&&!bakSnoozed();if(!show){el.style.display="none";el.innerHTML="";return;}el.style.display="";el.innerHTML='<span class="bakremtxt">⚠︎ '+(never?"Your data isn’t backed up yet":"Your backup is out of date")+' — save it so a new phone or cleared browser can’t wipe it.</span><span class="bakremact"><button type="button" id="bakRemGo">Back up</button><button type="button" id="bakRemX" aria-label="Dismiss for a week">✕</button></span>';document.getElementById("bakRemGo").onclick=function(){setSheet.classList.remove("show");document.getElementById("bakMsg").className="bakmsg";document.getElementById("bakIn").value="";bakUpdate();openSheet(bakSheet);};document.getElementById("bakRemX").onclick=function(){save("baksnooze",isoNow());renderBakRem();};}
@@ -1749,16 +1789,25 @@
   function mapsUrl(la,lo){return "https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(la+","+lo);}
   function telHref(p){return "tel:"+String(p).replace(/[^0-9+]/g,"");}
   function fhData(i){return fh[FH[i][0]]||{};}
+  function fhAlive(o){return !!(o&&(o.p||o.c||(o.xp&&o.xp.length)));}
   function fhSet(i,field,val){var k=FH[i][0],o=fh[k]||{};val=(val||"").trim();
     if(val)o[field]=val;else delete o[field];
-    if(o.p||o.c)fh[k]=o;else delete fh[k];save("fh",fh);}
+    if(fhAlive(o))fh[k]=o;else delete fh[k];save("fh",fh);}
+  function fhAddXp(i,label,num){var k=FH[i][0],o=fh[k]||{};num=(num||"").trim();if(!num)return false;   // add another number to a house (house cell, etc.)
+    o.xp=o.xp||[];o.xp.push({l:(label||"").trim(),p:num});fh[k]=o;save("fh",fh);return true;}
+  function fhRmXp(i,j){var k=FH[i][0],o=fh[k];if(!o||!o.xp)return;o.xp.splice(j,1);if(!o.xp.length)delete o.xp;
+    if(fhAlive(o))fh[k]=o;else delete fh[k];save("fh",fh);}
   function fhRow(i){
-    var f=FH[i],d=fhData(i),url=mapsUrl(f[4],f[5]),official=f[6]||"",eff=(d.p||official);
+    var f=FH[i],d=fhData(i),url=mapsUrl(f[4],f[5]),official=f[6]||"",eff=(d.p||official),xp=d.xp||[];
     var chips="";
     if(d.c)chips+='<span class="fhchip key">&#128273; '+esc(d.c)+'</span>';
     if(eff)chips+='<span class="fhchip tel">&#128222; '+esc(eff)+'</span>';
+    if(xp.length)chips+='<span class="fhchip xp">&#128222; +'+xp.length+'</span>';
     var chipsHTML=chips?'<div class="fhchips">'+chips+'</div>':'';
     var call=eff?'<a class="call" href="'+escA(telHref(eff))+'">&#128222; Call</a>':'<a class="call off">&#128222; Call</a>';
+    var xpItems=xp.map(function(x,j){return '<div class="fhxpi"><span class="fhxptxt">'+(x.l?'<b>'+esc(x.l)+'</b> ':'')+esc(x.p)+'</span><a class="fhxpcall" href="'+escA(telHref(x.p))+'" aria-label="Call">&#128222;</a><button class="fhxprm" data-i="'+i+'" data-j="'+j+'" aria-label="Remove number">&#10005;</button></div>';}).join("");
+    var xpBlock='<div class="fhxp"><label>&#128222; Other numbers</label>'+xpItems+
+      '<div class="fhxpadd"><input class="fhxpl" data-i="'+i+'" type="text" autocomplete="off" placeholder="label (House cell…)"><input class="fhxpp" data-i="'+i+'" type="tel" inputmode="tel" autocomplete="off" placeholder="number"><button class="fhxpaddb" data-i="'+i+'" type="button">&#65291; Add</button></div></div>';
     return '<div class="fh" data-i="'+i+'">'+
       '<div class="fhhd">'+
         '<a class="fhmain" href="'+escA(url)+'" target="_blank" rel="noopener">'+
@@ -1771,6 +1820,7 @@
       '<div class="fhbody">'+
         '<div class="fhrow"><label>&#128222; Phone</label><input class="fhp" data-i="'+i+'" type="tel" inputmode="tel" autocomplete="off" placeholder="'+(official?escA(official+" (Union) · tap to change"):"add phone number…")+'" value="'+escA(d.p||"")+'"></div>'+
         '<div class="fhrow"><label>&#128273; Door code</label><input class="fhc" data-i="'+i+'" type="text" autocomplete="off" placeholder="add door code…" value="'+escA(d.c||"")+'"></div>'+
+        xpBlock+
         '<div class="fhact"><a class="maps" href="'+escA(url)+'" target="_blank" rel="noopener">&#128205; Open in Maps</a>'+call+'</div>'+
       '</div>'+
     '</div>';
@@ -1790,10 +1840,19 @@
     function fhChips(card,i){var d=fhData(i),eff=(d.p||FH[i][6]||""),m=card.querySelector(".fhmain"),c=m.querySelector(".fhchips"),html="";
       if(d.c)html+='<span class="fhchip key">&#128273; '+esc(d.c)+'</span>';
       if(eff)html+='<span class="fhchip tel">&#128222; '+esc(eff)+'</span>';
+      if(d.xp&&d.xp.length)html+='<span class="fhchip xp">&#128222; +'+d.xp.length+'</span>';
       if(html){if(!c){c=document.createElement("div");c.className="fhchips";m.appendChild(c);}c.innerHTML=html;}
       else if(c){c.parentNode.removeChild(c);}
     }
+    function reopenFh(i){var card=document.querySelector('#dList .fh[data-i="'+i+'"]');if(card){card.classList.add("open");card.scrollIntoView({block:"nearest"});}}
     Array.prototype.forEach.call(list.querySelectorAll(".fhedit"),function(b){b.onclick=function(){b.parentNode.parentNode.classList.toggle("open");};});
+    Array.prototype.forEach.call(list.querySelectorAll(".fhxpaddb"),function(b){b.onclick=function(){
+      var idx=+b.getAttribute("data-i"),wrap=b.parentNode,ln=wrap.querySelector(".fhxpl"),pn=wrap.querySelector(".fhxpp");
+      if(fhAddXp(idx,ln.value,pn.value)){renderDir();reopenFh(idx);}else{pn.focus();}
+    };});
+    Array.prototype.forEach.call(list.querySelectorAll(".fhxprm"),function(b){b.onclick=function(){
+      fhRmXp(+b.getAttribute("data-i"),+b.getAttribute("data-j"));renderDir();reopenFh(+b.getAttribute("data-i"));
+    };});
     Array.prototype.forEach.call(list.querySelectorAll(".fhp"),function(inp){inp.oninput=function(){
       var idx=+inp.getAttribute("data-i");fhSet(idx,"p",inp.value);
       var card=inp.parentNode.parentNode.parentNode, call=card.querySelector(".call"), eff=inp.value.trim()||FH[idx][6]||"";

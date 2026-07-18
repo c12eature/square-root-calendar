@@ -1,5 +1,5 @@
 // Square Root Calendar — service worker. Bump CACHE whenever assets change.
-var CACHE = 'sqrtcal-v4';
+var CACHE = 'sqrtcal-v5';
 var ASSETS = [
   '/', '/index.html', '/manifest.webmanifest',
   '/icons/icon-192.png', '/icons/icon-512.png', '/icons/apple-touch-icon.png', '/icons/favicon-32.png'
