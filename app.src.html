@@ -604,7 +604,12 @@
   /* ---- ABCD chart ---- */
   .abletseg button{flex:1; font-size:16px; font-weight:900;}
   .abopt{font-weight:600; color:var(--mut); font-size:10.5px;}
-  .chip.abcd{font-weight:900; letter-spacing:.04em;}   /* the letter chip on an ABCD day */
+  .dnum .dltr{display:inline-block; margin-left:1px; padding:0 4px; border-radius:6px; font-weight:900; font-size:11px; line-height:15px;
+    background:color-mix(in srgb, var(--accent) 15%, var(--panel)); color:var(--accent); border:1px solid color-mix(in srgb, var(--accent) 34%, var(--line)); vertical-align:1px;}   /* the ABCD letter that sits next to the calendar day number */
+  .tour.abday{border-color:color-mix(in srgb, var(--accent) 40%, var(--line));}   /* the whole-day ABCD work-state card */
+  .tour.abday .tt{font-weight:900;}
+  .abseg{margin-top:2px;}
+  .tour.abmini{background:color-mix(in srgb, var(--panel) 92%, transparent);}   /* the per-tour marks/notes cards under an ABCD day */
   @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important; animation-duration:.01ms!important; animation-iteration-count:1!important; scroll-behavior:auto!important;}}
 </style>
 
@@ -1167,6 +1172,13 @@
   // persist only — the name shows in the day-sheet status text + ledger (both recomputed on next open),
   // never on a calendar chip, so we must NOT rebuild the sheet here (that would drop the user's next tap / focus).
   function setMxName(y,m,d,tour,name){var k=K(y,m,d,tour);name=(name||"").trim();if(name)mx[k]=name;else delete mx[k];save("mx",mx);}
+  // ABCD whole-day work-state: set the same state on BOTH the 9× and 6× at once (a mutual/OT/comp covers the whole day).
+  function setBothState(y,m,d,st){[9,6].forEach(function(tour){var k=K(y,m,d,tour);delete ov[k];delete ot[k];
+    if(st==="mxin")ov[k]="in";else if(st==="mxout")ov[k]="out";else if(st==="comp")ov[k]="comp";
+    else if(st==="ot")ot[k]="m";
+    if(st!=="mxin"&&st!=="mxout")delete mx[k];});
+    save("ov",ov);save("ot",ot);save("mx",mx);render();openDay(y,m,d);}
+  function setBothMxName(y,m,d,name){name=(name||"").trim();[9,6].forEach(function(tour){var k=K(y,m,d,tour);if(name)mx[k]=name;else delete mx[k];});save("mx",mx);}   // whole-day mutual name on both tours; no rebuild (keeps focus)
   function renderMxDatalist(){var dl=document.getElementById("mxNames");if(!dl)return;dl.innerHTML=mxnames.map(function(n){return '<option value="'+escA(n)+'"></option>';}).join("");}   // fill the autocomplete
   function rememberMxName(name){name=(name||"").trim();if(!name)return;var low=name.toLowerCase();if(mxnames.some(function(n){return n.toLowerCase()===low;}))return;mxnames.push(name);if(mxnames.length>80)mxnames=mxnames.slice(-80);save("mxnames",mxnames);renderMxDatalist();}
   (function(){var seen={},ch=false;mxnames.forEach(function(n){seen[(n||"").toLowerCase()]=1;});for(var k in mx){var nm=(mx[k]||"").trim();if(nm&&!seen[nm.toLowerCase()]){mxnames.push(nm);seen[nm.toLowerCase()]=1;ch=true;}}if(ch)save("mxnames",mxnames);renderMxDatalist();})();   // seed history from names already in use
@@ -1297,13 +1309,13 @@
     if(st==="comp")return "comp";
     var b=baseOf(y,m,d,tour);return b==="mine"?"dropped":b;           // gave-away vs partner/off
   }
-  function chipHTML(y,m,d,tour){var s=startOf(y,m,d,tour), aw=abcdOf(y,m,d), lab=aw?abcdLetter(y,m,d):label(s);   // ABCD day → show your letter instead of the group range (top=9× day, bottom=6× night)
+  function chipHTML(y,m,d,tour){var s=startOf(y,m,d,tour), aw=abcdOf(y,m,d), lab=aw?(tour===9?"9×":"6×"):label(s);   // ABCD day → the pill says 9×/6× (the letter sits by the day number); square-root → the group range
     // details shown as small COLORED SQUARES under the pill (text labels jumbled the layout) — full detail is in the day sheet
     var nt=noteOf(y,m,d,tour)?'<i class="dot note" title="Note"></i>':'';
     var ev=(tour===9)?eventOf(y,m,d):null, evb=ev?'<i class="dot '+ev+'" title="'+evLabel(ev)+'"></i>':'';
     var sbv=sbOf(y,m,d,tour), sbt=sbv?'<i class="dot sb" title="'+escA(sbLabel(sbv))+'"></i>':'';
     var so=dutyStatus(y,m,d,tour);
-    if(so)return '<div class="chip '+so+(aw?" abcd":"")+'">'+lab+'<span class="rgt"><span class="vacs">'+dutyTag(so)+'</span></span></div>'+((nt||evb||sbt)?'<div class="cbadges">'+evb+sbt+nt+'</div>':'');
+    if(so)return '<div class="chip '+so+'">'+lab+'<span class="rgt"><span class="vacs">'+dutyTag(so)+'</span></span></div>'+((nt||evb||sbt)?'<div class="cbadges">'+evb+sbt+nt+'</div>':'');
     var st=curState(y,m,d,tour),tag="";
     if(st==="ot")tag='<i class="dot ot" title="MSOT"></i>';else if(st==="rsot")tag='<i class="dot rs" title="RSOT"></i>';
     else if(st==="oot")tag='<i class="dot oot" title="Other OT"></i>';
@@ -1315,7 +1327,7 @@
     var xm=wk?(endExtra(y,m,d,tour)+p2pMin(y,m,d,tour)+othMin(y,m,d,tour)):0, arT=xm?'<i class="dot pay" title="Extra pay (AR/P2P/washup/other)"></i>':'';
     var badges=(flagOn(y,m,d,tour,"ecc")?'<i class="dot ecc" title="ECC/LCC"></i>':'')+(flagOn(y,m,d,tour,"cfr")?'<i class="dot cfr" title="CFR"></i>':'');
     var bd=(tag||badges||arT||nt||evb||sbt)?'<div class="cbadges">'+evb+arT+tag+badges+sbt+nt+'</div>':'';
-    return '<div class="chip '+chipCls(y,m,d,tour)+(aw?" abcd":"")+'">'+lab+'</div>'+bd;   // no standby '*' on the calendar pill (kept in the day sheet's Working: line)
+    return '<div class="chip '+chipCls(y,m,d,tour)+'">'+lab+'</div>'+bd;   // no standby '*' on the calendar pill (kept in the day sheet's Working: line)
   }
 
   // ---- render calendar ----
@@ -1347,8 +1359,9 @@
         cell.title=ces.map(function(e){return e.n;}).join(" · ");
       } else if(hol)cell.title=hol;
       var pd=payday(y,m,d);
+      var aw=abcdOf(y,m,d);   // ABCD → show the letter next to the day number; pills become 9×/6×
       cell.innerHTML=
-        '<div class="dnum">'+d+(pd?' <span class="pay">$</span>':'')+'</div>'+
+        '<div class="dnum">'+d+(aw?' <span class="dltr">'+abcdLetter(y,m,d)+'</span>':'')+(pd?' <span class="pay">$</span>':'')+'</div>'+
         '<div class="chalf c9">'+chipHTML(y,m,d,9)+'</div>'+     // 9× day tour — top half (ABCD: your letter's day = mine)
         '<div class="chalf c6">'+chipHTML(y,m,d,6)+'</div>';     // 6× night tour — bottom half
       cell.setAttribute("role","button");cell.setAttribute("tabindex","0");   // keyboard/AT reachable — the day cell is the app's core control
@@ -1508,11 +1521,31 @@
       '<button data-sb="in"'+(sbd==="in"?' class="on"':'')+'>Picked up</button>'+
       '<button data-sb="out"'+(sbd==="out"?' class="on"':'')+'>Covered</button>'+
       '</div></div>'+(sbd?'<input class="sbname" type="text" list="mxNames" autocomplete="off" data-tour="'+tour+'" placeholder="'+(sbd==="in"?"whose standby did you pick up? (name)":"who covered your standby? (name)")+'" value="'+escA(sbn)+'">':'')+'</div>';
-    return '<div class="tour '+(so?so:st==="ot"?"ot":st==="rsot"?"rsot":st==="oot"?"oot":st==="comp"?"comp":(st==="pmxin"||st==="pmxout")?"pmx":w?"mine":"")+'">'+
-      '<div class="th"><span class="tt">'+name+tag+'</span><span class="tm">'+(aw?'Letter '+abcdLetter(y,m,d):'groups '+label(s))+'</span></div>'+
+    return '<div class="tour '+(aw?"abmini ":"")+(so?so:st==="ot"?"ot":st==="rsot"?"rsot":st==="oot"?"oot":st==="comp"?"comp":(st==="pmxin"||st==="pmxout")?"pmx":w?"mine":"")+'">'+
+      '<div class="th"><span class="tt">'+name+tag+'</span><span class="tm">'+(aw?time:'groups '+label(s))+'</span></div>'+
       '<div class="status">'+statusTxt+'</div>'+
       (aw?'':'<div class="grps">Working: '+grpHTML(y,m,d,s)+'</div>')+
-      '<div class="seg" data-tour="'+tour+'">'+seg+'</div>'+nmRow+(aw?'':sbRow)+ootRow+payWrap+noteRow+'</div>';
+      (aw?'':'<div class="seg" data-tour="'+tour+'">'+seg+'</div>'+nmRow)+(aw?'':sbRow)+ootRow+payWrap+noteRow+'</div>';
+  }
+  // During an ABCD chart, the day is one shift (forced up-down) — so work-state (working / off / mutual /
+  // overtime / comp) is set for the WHOLE day at once, and applies to both the 9× and the 6× underneath.
+  function abcdWholeCard(y,m,d,w){
+    var ltr=abcdLetter(y,m,d), mine=(ltr===w.ltr), st=curState(y,m,d,9), nm=mxName(y,m,d,9), tag="", statusTxt, both=otHours(9)+otHours(6);
+    if(st==="ot"){statusTxt="Overtime — you picked up the whole day (9× + 6×, +"+both+"h)"; tag='<span class="mxtag ot">OT +'+both+'h</span>';}
+    else if(st==="mxin"){statusTxt="You picked up this day (mutual)"+(nm?" for "+esc(nm):"")+" — they owe you a day back"; tag='<span class="mxtag">MX IN</span>';}
+    else if(st==="mxout"){statusTxt="You mutual’d out the whole day"+(nm?" to "+esc(nm):"")+" — you owe a day back"; tag='<span class="mxtag">MX OUT</span>';}
+    else if(st==="comp"){statusTxt="Comp time — you’re off the whole day"; tag='<span class="mxtag comp">COMP</span>';}
+    else if(mine){statusTxt="You’re working — Letter "+w.ltr+", forced up-down (both the 9× day and 6× night).";}
+    else {statusTxt="Off — today is Letter "+ltr+" and you’re Letter "+w.ltr+". Pick up the whole day as overtime or a mutual.";}
+    var opts=mine?[["base","Working"],["mxout","Mutual out"],["comp","Comp time"]]:[["base","Off"],["mxin","Mutual in"],["ot","Overtime"]];
+    var seg=opts.map(function(o){var cap=(o[0]==="ot")?'<div class="segcap">Pick up the whole day</div>':'';return cap+'<button data-abst="'+o[0]+'"'+(st===o[0]?' class="on"':'')+'>'+o[1]+'</button>';}).join("");
+    var isMx=(st==="mxin"||st==="mxout");
+    var nmRow=isMx?('<div class="mxnamerow"><span class="lab">🤝 With</span><input class="abmxname" type="text" list="mxNames" autocomplete="off" placeholder="Name — who you swapped the day with" value="'+escA(nm)+'"></div>'):'';
+    var cls=st==="ot"?"ot":st==="comp"?"comp":isMx?"":mine?"mine":"";
+    return '<div class="tour abday '+cls+'">'+
+      '<div class="th"><span class="tt">🔤 Whole day · Letter '+ltr+tag+'</span><span class="tm">'+(mine?"your letter":"off")+'</span></div>'+
+      '<div class="status">'+statusTxt+'</div>'+
+      '<div class="seg abseg">'+seg+'</div>'+nmRow+'</div>';
   }
   function openDay(y,m,d){
     document.getElementById("shDate").textContent=DOWF[new Date(y,m,d).getDay()]+" · "+MON[m]+" "+d+", "+y;
@@ -1525,8 +1558,8 @@
     var set=findSet(y,m,d);
     var showSplit=set&&!set.some(function(t){return periodType(t[0],t[1],t[2]);});   // hide the splitter over any vacation / medical / light-duty window
     var splitHTML=showSplit?buildSplitter(set):"";   // one-press partner-set splits (only on sets you share with your Mutual Partner)
-    var awDay=abcdOf(y,m,d);   // ABCD day still shows both the 9× and 6× cards; just hide the standby footnote (groups don't apply)
-    document.getElementById("shTours").innerHTML=head+splitHTML+tourCard(y,m,d,9)+tourCard(y,m,d,6)+(awDay?'':'<div class="sbnote"><b>*</b> standby — the first 3 groups of a tour. The job can force them to work overtime the following tour.</div>');
+    var awDay=abcdOf(y,m,d);   // ABCD day: one whole-day work-state card on top, then the 9×/6× cards for marks & notes only
+    document.getElementById("shTours").innerHTML=head+(awDay?abcdWholeCard(y,m,d,awDay):splitHTML)+tourCard(y,m,d,9)+tourCard(y,m,d,6)+(awDay?'':'<div class="sbnote"><b>*</b> standby — the first 3 groups of a tour. The job can force them to work overtime the following tour.</div>');
     var dg=document.querySelector("#shTours .dutygo");   // tap the status banner → jump to the time-off editor (pre-select this type)
     if(dg)dg.onclick=function(){pType=pt2;document.getElementById("sheet").classList.remove("show");
       Array.prototype.forEach.call(document.querySelectorAll("#pTypes .stype"),function(x){x.classList.toggle("on",x.getAttribute("data-pt")===pt2);});
@@ -1544,9 +1577,15 @@
         else go();
       };
     });
-    Array.prototype.forEach.call(document.querySelectorAll("#shTours .seg"),function(seg){
+    Array.prototype.forEach.call(document.querySelectorAll("#shTours .seg:not(.abseg)"),function(seg){
       var tour=parseInt(seg.getAttribute("data-tour"),10);
       Array.prototype.forEach.call(seg.querySelectorAll("button"),function(bn){bn.onclick=function(){setState(y,m,d,tour,bn.getAttribute("data-st"));};});
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("#shTours .abseg button"),function(bn){bn.onclick=function(){setBothState(y,m,d,bn.getAttribute("data-abst"));};});   // ABCD whole-day work-state → both tours
+    Array.prototype.forEach.call(document.querySelectorAll("#shTours .abmxname"),function(inp){
+      inp.oninput=function(){setBothMxName(y,m,d,inp.value);};   // save-as-you-type on both tours; no rebuild (keeps focus)
+      inp.onchange=function(){rememberMxName(inp.value);};
+      inp.onclick=function(e){e.stopPropagation();};
     });
     Array.prototype.forEach.call(document.querySelectorAll("#shTours .mxname"),function(inp){
       var tour=parseInt(inp.getAttribute("data-tour"),10);
@@ -2016,6 +2055,7 @@
   function ledger(){
     var by={};
     for(var k in ov){var v=ov[k];if(v!=="in"&&v!=="out")continue;
+      var kp=k.split("|"),kd=kp[0].split("-");if(+kp[1]===6&&abcdOf(+kd[0],+kd[1],+kd[2]))continue;   // ABCD: a whole-day mutual is stored on both tours — count it once (via the 9×)
       var nm=(mx[k]||"").trim()||"Mutual Partner";
       if(!by[nm])by[nm]={credit:0,debit:0};
       if(v==="in")by[nm].credit++;else by[nm].debit++;
