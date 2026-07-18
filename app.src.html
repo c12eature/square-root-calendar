@@ -416,6 +416,10 @@
   .bakremact button{padding:7px 11px;min-height:34px;border:none;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;}
   #bakRemGo{background:var(--amber);color:#3a2600;}
   #bakRemX{background:transparent;color:var(--amber-soft-ink);border:1px solid var(--amber);min-width:34px;}
+  .cfrrem{border-color:#2563eb;background:color-mix(in srgb,#2563eb 12%,var(--panel));} .cfrrem .bakremtxt{color:var(--ink);}
+  .cfrrem.overdue{border-color:#dc2626;background:color-mix(in srgb,#dc2626 12%,var(--panel));}
+  #cfrRemGo{background:#2563eb;color:#fff;} .cfrrem.overdue #cfrRemGo{background:#dc2626;}
+  #cfrRemX{background:transparent;color:var(--ink2);border:1px solid var(--line);min-width:34px;}
   .baksec{margin:0 0 15px;padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--panel2);}
   .bakh{font-size:13px;font-weight:800;color:var(--ink);margin-bottom:5px;}
   .baknote{font-size:12px;color:var(--ink2);line-height:1.45;margin:0 0 10px;font-weight:600;}
@@ -679,6 +683,7 @@
   .cfr5f>span{flex:0 0 96px;}
   .cfr5f input[type=date]{flex:1;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);color:var(--ink);font-family:inherit;font-size:13px;}
   .cfr5f.test>span{color:#2563eb;} .cfr5f.test input[type=date]{border-color:color-mix(in srgb,#f59e0b 55%,var(--line));background:color-mix(in srgb,#f59e0b 9%,var(--panel2));}
+  .cfrhint{color:var(--mut);font-size:11.5px;}
   @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important; animation-duration:.01ms!important; animation-iteration-count:1!important; scroll-behavior:auto!important;}}
 </style>
 
@@ -698,6 +703,7 @@
   </div>
 
   <div class="bakrem" id="bakRem" style="display:none"></div>
+  <div class="bakrem cfrrem" id="cfrRem" style="display:none"></div>
 
 
   <div class="mbar">
@@ -900,13 +906,12 @@
 <div class="sheet set" id="cfrSheet">
   <div class="grip"></div>
   <h3>CFR Refresher</h3>
-  <p class="rsub">CFR (certified first responder) is renewed about every 3 years. Log the <b>test day</b> of your last refresher — that becomes your new expiration — and stay ahead of it.</p>
+  <p class="rsub">CFR (certified first responder) has to be renewed — usually about <b>4 years</b> from your last refresher class. Enter your expiration date and you’ll get a reminder as it gets close.</p>
   <div id="cfrStatus"></div>
   <div class="cfrsec">
-    <div class="setlbl">Log your latest refresher</div>
-    <p class="ldsub" style="margin-top:2px">Enter the <b>test day</b> (the last class) of your most recent CFR refresher. Your expiration = that day + 3 years.</p>
-    <div class="vadd"><div class="vfield"><label>Test day</label><input type="date" id="cfrTest" aria-label="CFR test day"></div><button class="raddbtn" id="cfrSaveTest">Save</button></div>
-    <div class="cfrsub2">Prefer to set the expiration directly? <input type="date" id="cfrExpIn" aria-label="CFR expiration date"> <button class="ldbtn" id="cfrSaveExp" type="button">Set</button></div>
+    <div class="setlbl">CFR expiration date</div>
+    <p class="ldsub" style="margin-top:2px">Enter the date your CFR expires (on your card / from BHS). It’s usually about 4 years from your last refresher’s test-out day.</p>
+    <div class="vadd"><div class="vfield"><label>Expires</label><input type="date" id="cfrExpIn" aria-label="CFR expiration date"></div><button class="raddbtn" id="cfrSaveExp">Save</button></div>
     <div class="perr" id="cfrErr"></div>
   </div>
   <div class="cfrsec">
@@ -1643,6 +1648,7 @@
     }
     renderBakRem();
     updateCfrRowSub();
+    renderCfrRem();
   }
 
   // ---- day detail sheet ----
@@ -2132,7 +2138,7 @@
   function isoNow(){return new Date().toISOString();}
   function b64enc(s){return btoa(unescape(encodeURIComponent(s)));}                 // UTF-8 safe (labels/names may have emoji)
   function b64dec(s){return decodeURIComponent(escape(atob(s)));}
-  function collectData(){var o={};for(var i=0;i<LS.length;i++){var k=LS.key(i);if(k&&k.indexOf("sqrt:")===0){var kn=k.slice(5);if(kn==="bakts"||kn==="baksnooze")continue;o[kn]=LS.getItem(k);}}return o;}  // raw string values, every sqrt:* key (future-proof)
+  function collectData(){var o={};for(var i=0;i<LS.length;i++){var k=LS.key(i);if(k&&k.indexOf("sqrt:")===0){var kn=k.slice(5);if(kn==="bakts"||kn==="baksnooze"||kn==="cfrsnooze")continue;o[kn]=LS.getItem(k);}}return o;}  // raw string values, every sqrt:* key (future-proof)
   function backupObj(){return {app:"square-root-calendar",v:1,ts:isoNow(),data:collectData()};}
   function makeCode(){return "SQRTCAL1:"+b64enc(JSON.stringify(backupObj()));}
   function bakSay(msg,bad){var el=document.getElementById("bakMsg");if(!el)return;el.textContent=msg;el.className="bakmsg show"+(bad?" bad":" ok");}
@@ -2175,7 +2181,7 @@
   // every save() runs this: keep the on-device mirror fresh + queue a cloud push.
   // NOTE: pure sync-metadata keys must NOT re-trigger a push, or cloudPush's own
   // save("cloudts") would loop forever (push → save cloudts → push → …).
-  var _mirrorT=null, NOSYNC={cloudts:1,cbase:1,cdirty:1,cconf:1,bakts:1,baksnooze:1};   // sync-metadata keys never re-trigger a push
+  var _mirrorT=null, NOSYNC={cloudts:1,cbase:1,cdirty:1,cconf:1,bakts:1,baksnooze:1,cfrsnooze:1};   // sync-metadata keys never re-trigger a push
   // NOSYNC-guard is null-safe: during module init (before the var above is assigned) NOSYNC is
   // undefined, so an early save() (e.g. mutual-name seeding) must NOT throw here.
   function afterWrite(k){ if(NOSYNC&&NOSYNC[k])return;
@@ -2208,7 +2214,7 @@
     var tx=db.transaction(IDB_STORE,"readonly"),rq=tx.objectStore(IDB_STORE).get(IDB_KEY);
     rq.onsuccess=function(){res(rq.result||null);};rq.onerror=function(){rej(rq.error);};});});}
   function idbMirror(){try{idbPut({v:1,ts:Date.now(),data:collectData()})["catch"](function(){});}catch(e){}}
-  var SYSKEYS={theme:1,seen:1,instdone:1,instsnooze:1,cloud:1,rcode:1,cloudts:1,cbase:1,cdirty:1,cconf:1,defecc:1,defcfr:1,spot:1,my:1,pt:1,groups:1,mxnames:1};
+  var SYSKEYS={theme:1,seen:1,instdone:1,instsnooze:1,cloud:1,rcode:1,cloudts:1,cbase:1,cdirty:1,cconf:1,defecc:1,defcfr:1,spot:1,my:1,pt:1,groups:1,mxnames:1,cfrsnooze:1};
   function blobHasData(b){ for(var k in b){ if(SYSKEYS[k])continue; var v=b[k]; if(v&&v!=="{}"&&v!=="[]"&&v!=="null"&&v!=="false")return true; } return false; }
   function lsHasData(){return blobHasData(collectData());}
   // on boot: if the primary store lost its data but the IDB snapshot still has some, write it back (only ever ADDS to an empty primary)
@@ -3150,39 +3156,47 @@ var TEN_CODES=[
     save("periods",periods); resetPForm();
     render(); renderPeriods();
   };
-  // ---- CFR Refresher tracker (3-year competency) + weekly class scheduler ----
+  // ---- CFR Refresher: a MANUAL expiration date + a reminder banner when it's close; optional class-day calendar overlay ----
   var cfrTourSel="day";
   function cfrErr(m){var el=document.getElementById("cfrErr");if(el)el.textContent=m||"";}
   function updateCfrRowSub(){var el=document.getElementById("cfrRowSub");if(!el)return;var inf=cfrExpInfo();
-    el.textContent=inf.state==="none"?"Track your 3-year renewal"
+    el.textContent=inf.state==="none"?"Add your CFR expiration date"
       :inf.state==="overdue"?"⛔ Overdue — expired "+fmtVD(inf.exp)
-      :inf.state==="soon"?"⚠ Due "+fmtVD(inf.exp)+" ("+Math.max(0,inf.months)+" mo)"
+      :inf.state==="soon"?"⚠ Expires "+fmtVD(inf.exp)+" ("+Math.max(0,inf.months)+" mo)"
       :"✓ Current — expires "+fmtVD(inf.exp);
     el.className="setsub cfrsub-"+inf.state;}
   function renderCfr(){var inf=cfrExpInfo(),sc=document.getElementById("cfrStatus");
-    if(inf.state==="none"){sc.innerHTML='<div class="cfrstat none"><div class="cfrbig">No CFR date set yet</div><div class="cfrsm">Log your last refresher’s test day below to start tracking.</div></div>';}
+    if(inf.state==="none"){sc.innerHTML='<div class="cfrstat none"><div class="cfrbig">No expiration set yet</div><div class="cfrsm">Enter your CFR expiration date below and you’ll get a reminder as it gets close.</div></div>';}
     else{var lbl=inf.state==="overdue"?"⛔ Overdue":inf.state==="soon"?"⚠ Due soon":"✓ Current";
-      var sub=inf.state==="overdue"?("Expired "+fmtVD(inf.exp)+" — "+Math.abs(inf.months)+" months ago"):("Expires "+fmtVD(inf.exp)+" · in "+inf.months+" months");
+      var sub=inf.state==="overdue"?("Expired "+fmtVD(inf.exp)+" — "+Math.abs(inf.months)+" months ago"):("Expires "+fmtVD(inf.exp)+" · in "+inf.months+" month"+(inf.months===1?"":"s"));
       sc.innerHTML='<div class="cfrstat '+inf.state+'"><div class="cfrbig">'+lbl+'</div><div class="cfrsm">'+sub+'</div></div>';}
     var info=document.getElementById("cfrSesInfo"), sl=document.getElementById("cfrSchedLbl"), sBtn=document.getElementById("cfrSchedule");
     var ids=["cfrD1","cfrD2","cfrD3","cfrD4","cfrD5"];
-    if(cfr.ses){var days=cfrClassDates(),test=cfrTestDate();
+    if(cfr.ses){var days=cfrClassDates();
       ids.forEach(function(id,i){var el=document.getElementById(id);if(el)el.value=days[i]||"";});   // reflect the saved 5 days into the pickers (editable)
-      if(sl)sl.textContent="Your CFR refresher — edit any day"; if(sBtn)sBtn.textContent="📘 Update refresher";
-      info.innerHTML='<div class="cfrses"><div class="cfrsm"><b>'+days.length+' class days</b> on the '+(cfr.ses.tour==="night"?"6× night":"9× day")+(cfr.ses.t?' at '+fmtT(cfr.ses.t):'')+':<br>'+days.map(function(d,i){return (i===days.length-1?'<b>📘 '+fmtVD(d)+' (test out)</b>':fmtVD(d));}).join(" · ")+'<br>New expiration on completion: <b>'+fmtVD(addYears(test,CFR_YEARS))+'</b></div>'+
-        '<div class="cfrbtns"><button class="raddbtn" id="cfrComplete" type="button">✓ Passed the test → set expiration</button><button class="ldbtn" id="cfrClear" type="button">Delete</button></div></div>';
-      document.getElementById("cfrComplete").onclick=function(){var t=cfrTestDate();if(t){cfr.exp=addYears(t,CFR_YEARS);}cfr.ses=null;saveCfr();render();renderCfr();};
-      document.getElementById("cfrClear").onclick=function(){appConfirm("Delete this CFR refresher schedule? Your expiration date stays.","Delete",function(){cfr.ses=null;saveCfr();render();renderCfr();});};
-    } else { if(sl)sl.textContent="Schedule your CFR refresher"; if(sBtn)sBtn.textContent="📘 Save refresher"; info.innerHTML=""; }
+      if(sl)sl.textContent="Your refresher classes — edit any day"; if(sBtn)sBtn.textContent="📘 Update classes";
+      info.innerHTML='<div class="cfrses"><div class="cfrsm"><b>'+days.length+' class days</b> on the '+(cfr.ses.tour==="night"?"6× night":"9× day")+(cfr.ses.t?' at '+fmtT(cfr.ses.t):'')+':<br>'+days.map(function(d,i){return (i===days.length-1?'<b>📘 '+fmtVD(d)+' (test out)</b>':fmtVD(d));}).join(" · ")+'<br><span class="cfrhint">After you pass the test-out, set your new CFR expiration date above.</span></div>'+
+        '<div class="cfrbtns"><button class="ldbtn" id="cfrClear" type="button">Clear these classes</button></div></div>';
+      document.getElementById("cfrClear").onclick=function(){appConfirm("Clear these refresher classes off your calendar? Your expiration date stays.","Clear",function(){cfr.ses=null;saveCfr();render();renderCfr();});};
+    } else { if(sl)sl.textContent="Add your refresher classes (optional)"; if(sBtn)sBtn.textContent="📘 Save classes"; info.innerHTML=""; }
     Array.prototype.forEach.call(document.querySelectorAll("#cfrTour button"),function(b){b.classList.toggle("on",b.getAttribute("data-tr")===cfrTourSel);});
   }
-  document.getElementById("openCfr").onclick=function(){setSheet.classList.remove("show");cfrErr("");document.getElementById("cfrTest").value="";document.getElementById("cfrExpIn").value=cfr.exp||"";
+  function openCfrSheet(){cfrErr("");document.getElementById("cfrExpIn").value=cfr.exp||"";
     cfrTourSel=(cfr.ses&&cfr.ses.tour)||"day"; document.getElementById("cfrSesTime").value=(cfr.ses&&cfr.ses.t)||"09:00";
     if(!cfr.ses)["cfrD1","cfrD2","cfrD3","cfrD4","cfrD5"].forEach(function(id){var el=document.getElementById(id);if(el)el.value="";});
-    renderCfr();openSheet(cfrSheet);};
+    renderCfr();openSheet(cfrSheet);}
+  document.getElementById("openCfr").onclick=function(){setSheet.classList.remove("show");openCfrSheet();};
   document.getElementById("cfrDone").onclick=closeSheets;
-  document.getElementById("cfrSaveTest").onclick=function(){var v=document.getElementById("cfrTest").value;if(!isRealDate(v)){cfrErr("Pick the test day (the last class).");return;}cfr.exp=addYears(v,CFR_YEARS);saveCfr();cfrErr("");document.getElementById("cfrTest").value="";document.getElementById("cfrExpIn").value=cfr.exp;render();renderCfr();};
-  document.getElementById("cfrSaveExp").onclick=function(){var v=document.getElementById("cfrExpIn").value;if(!isRealDate(v)){cfrErr("Pick a valid expiration date.");return;}cfr.exp=v;saveCfr();cfrErr("");render();renderCfr();};
+  document.getElementById("cfrSaveExp").onclick=function(){var v=document.getElementById("cfrExpIn").value;if(!isRealDate(v)){cfrErr("Pick your CFR expiration date.");return;}cfr.exp=v;save("cfrsnooze","");saveCfr();cfrErr("");render();renderCfr();};   // clear any snoozed reminder when a fresh date is set
+  function cfrSnoozed(){var s=load("cfrsnooze",null);if(!s)return false;return (Date.now()-new Date(s).getTime())<30*864e5;}   // dismiss the reminder for 30 days
+  function renderCfrRem(){var el=document.getElementById("cfrRem");if(!el)return;var inf=cfrExpInfo();
+    var show=(inf.state!=="none"&&inf.days<=120)&&!cfrSnoozed();   // pop the reminder once it's within ~4 months or overdue
+    if(!show){el.style.display="none";el.innerHTML="";return;}
+    var msg=inf.state==="overdue"?("📘 Your CFR expired "+fmtVD(inf.exp)+" — schedule a refresher."):("📘 CFR expires "+fmtVD(inf.exp)+" — "+inf.months+" month"+(inf.months===1?"":"s")+" left. Time to schedule a refresher.");
+    el.className="bakrem cfrrem "+inf.state; el.style.display="";
+    el.innerHTML='<span class="bakremtxt">'+msg+'</span><span class="bakremact"><button type="button" id="cfrRemGo">Open</button><button type="button" id="cfrRemX" aria-label="Dismiss for a month">✕</button></span>';
+    document.getElementById("cfrRemGo").onclick=function(){setSheet.classList.remove("show");openCfrSheet();};
+    document.getElementById("cfrRemX").onclick=function(){save("cfrsnooze",isoNow());renderCfrRem();};}
   Array.prototype.forEach.call(document.querySelectorAll("#cfrTour button"),function(b){b.onclick=function(){cfrTourSel=b.getAttribute("data-tr");Array.prototype.forEach.call(document.querySelectorAll("#cfrTour button"),function(x){x.classList.toggle("on",x===b);});};});
   document.getElementById("cfrSchedule").onclick=function(){
     var ds=["cfrD1","cfrD2","cfrD3","cfrD4","cfrD5"].map(function(id){return document.getElementById(id).value;});
