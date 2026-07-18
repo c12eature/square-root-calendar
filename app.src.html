@@ -601,6 +601,10 @@
   .tcsubs{margin-top:9px; display:flex; flex-direction:column; gap:6px;}
   .tcsub{font-size:12px; line-height:1.5; color:var(--ink2); padding:7px 10px; background:var(--panel2); border:1px solid var(--line); border-radius:9px;}
   .tcsub b{color:var(--red); font-weight:800;}
+  /* ---- ABCD chart ---- */
+  .abletseg button{flex:1; font-size:16px; font-weight:900;}
+  .abopt{font-weight:600; color:var(--mut); font-size:10.5px;}
+  .chip.abcd{font-weight:900; letter-spacing:.04em;}   /* the letter chip on an ABCD day */
   @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important; animation-duration:.01ms!important; animation-iteration-count:1!important; scroll-behavior:auto!important;}}
 </style>
 
@@ -671,6 +675,7 @@
       </div>
     </div>
     <button class="setrow gcrow" id="openGroups"><span class="setico">🔄</span><span class="settx"><span class="settl">Group change</span><span class="setsub">Reassigned? Set the start date &amp; your new groups</span></span><span class="setchev">›</span></button>
+    <button class="setrow gcrow" id="openAbcd"><span class="setico">🔤</span><span class="settx"><span class="settl">ABCD Chart</span><span class="setsub">Switch to letter tours — set the dates &amp; your letter</span></span><span class="setchev">›</span></button>
   </div>
   <div class="setsec">
     <div class="setlbl">Mark On Every Tour</div>
@@ -954,6 +959,24 @@
   <button class="done" id="gcDone">Done</button>
 </div>
 
+<div class="sheet set" id="abcdSheet">
+  <div class="grip"></div>
+  <h3>ABCD Chart</h3>
+  <p class="rsub">On the <b>ABCD</b> chart you're assigned a letter and work that letter's days — both the 9× and the 6×. Turn it on for the dates it's in effect and pick your letter. <b>Leave the end date open</b> and set it later when you switch back. Your square-root tours before &amp; after are untouched — and you can still pick up overtime and mutuals on the other letters' days, and add your marks &amp; notes to each tour.</p>
+  <div class="gcadd">
+    <div class="gcf"><label>Start date</label><input type="date" id="abStart"></div>
+    <div class="gcf"><label>End date <span class="abopt">— optional, set later when you switch back</span></label><input type="date" id="abEnd"></div>
+    <div class="gcf"><label>Your letter</label>
+      <div class="onbptseg abletseg" id="abLtrSeg"><button type="button" data-l="A" class="on">A</button><button type="button" data-l="B">B</button><button type="button" data-l="C">C</button><button type="button" data-l="D">D</button></div>
+    </div>
+    <button class="raddbtn" id="abAdd" type="button">＋ Turn on ABCD chart</button>
+    <div class="gcerr" id="abErr"></div>
+  </div>
+  <div class="setlbl gclbl">Your ABCD periods</div>
+  <div class="gclist" id="abList"></div>
+  <button class="done" id="abDone">Done</button>
+</div>
+
 <div class="sheet set" id="instSheet">
   <div class="grip"></div>
   <h3 id="instTitle">Add to your Home Screen</h3>
@@ -1081,6 +1104,15 @@
   function syncCurGroups(){var c=curEpoch();my=c.my;pt=c.pt;}
   syncCurGroups();
   function setCurGroups(nMy,nPt){var c=curEpoch();c.my=nMy;c.pt=nPt||0;my=c.my;pt=c.pt;save("groups",groups);save("my",my);save("pt",pt);}   // edit today's epoch (Settings steppers / partner toggle)
+
+  // ---- ABCD chart (letter-based rotation the department switches to, e.g. during COVID) ----
+  // During an ABCD window you're assigned ONE letter and work BOTH tours (9× + 6×) on your letter's days.
+  // Fixed 4-day calendar cycle A,B,C,D (anchor: Jul 1 2026 = C). Tours stay 9×/6× — the letter just drives base.
+  var ABCD_ANCHOR=Date.UTC(2026,6,1), ABCD_IDX=2, LTRS="ABCD";   // Jul 1 2026 = C(2); letter advances +1/day
+  function abcdLetter(y,m,d){return LTRS.charAt(mod(Math.round((Date.UTC(y,m,d)-ABCD_ANCHOR)/864e5)+ABCD_IDX,4));}
+  function isRealDate(s){if(!/^\d{4}-\d\d-\d\d$/.test(s||""))return false;var p=String(s).split("-"),dt=new Date(+p[0],+p[1]-1,+p[2]);return dt.getFullYear()===+p[0]&&dt.getMonth()===+p[1]-1&&dt.getDate()===+p[2];}   // reject impossible dates (02-30 etc.)
+  var abcd=(function(){var a=load("abcd",[]);return (Array.isArray(a)?a:[]).filter(function(w){return w&&typeof w==="object"&&isRealDate(w.s)&&/^[ABCD]$/.test(w.ltr||"");}).map(function(w){return {s:w.s,e:(isRealDate(w.e)?w.e:""),ltr:w.ltr};});})();
+  function abcdOf(y,m,d){var t=Date.UTC(y,m,d);for(var i=0;i<abcd.length;i++){var w=abcd[i],ws=vacMs(w.s),we=w.e?vacMs(w.e):Infinity;if(isNaN(ws))continue;if(isNaN(we))we=Infinity;if(t>=ws&&t<=we)return w;}return null;}   // the ABCD window covering this date (bad end → open-ended), or null (→ normal square-root chart)
   var sb=load("sb",{});   // per-tour standby marker: {d:"in"(picked up someone's) | "out"(yours covered), n:name} — no ledger, just stays on the tour
   var defEcc=load("defecc",false), defCfr=load("defcfr",false);   // "mark on every worked tour" defaults — ECC/LCC = driving · CFR = certified first responder (medical); toggle off per tour
   var mxnames=load("mxnames",[]);   // remembered mutual-partner names → autocomplete on the name field
@@ -1105,7 +1137,10 @@
 
   // ---- per-tour state: base rotation + mutual swaps (MX) + overtime (MSOT) ----
   function startOf(y,m,d,tour){return tour===9?dayStart(y,m,d):nightStart(y,m,d);}
-  function baseOf(y,m,d,tour){return status(y,m,d,startOf(y,m,d,tour));}      // "mine" | "partner" | "off"
+  function baseOf(y,m,d,tour){
+    var w=abcdOf(y,m,d);
+    if(w)return abcdLetter(y,m,d)===w.ltr?"mine":"off";   // ABCD: you work BOTH the 9× and 6× on your letter's day (no partner)
+    return status(y,m,d,startOf(y,m,d,tour));}      // "mine" | "partner" | "off"
   function K(y,m,d,tour){return y+"-"+m+"-"+d+"|"+tour;}
   // one state per tour (all mutually exclusive): base | mxin/mxout (partner mutual) |
   //   smxin/smxout (self mutual — no partner, chief-approved) | comp (comp time off) |
@@ -1158,7 +1193,7 @@
     var af=stepTour(set[3][0],set[3][1],set[3][2],set[3][3],1);
     if(baseWork(af[0],af[1],af[2],af[3]))return null;                  // a clean set is exactly 4 tours long
     var e0=effGroups(set[0][0],set[0][1],set[0][2]);                   // a partner set must sit fully in ONE group-config
-    for(i=0;i<4;i++){var ei=effGroups(set[i][0],set[i][1],set[i][2]);if(!ei.pt||ei.s!==e0.s)return null;}   // period WITH a partner — never straddle a group/partner change
+    for(i=0;i<4;i++){var ei=effGroups(set[i][0],set[i][1],set[i][2]);if(!ei.pt||ei.s!==e0.s||abcdOf(set[i][0],set[i][1],set[i][2]))return null;}   // period WITH a partner — never straddle a group change OR an ABCD window
     return set;
   }
   var SPLITS={"1h":[1,1,0,0],"2h":[0,0,1,1],"in":[0,1,1,0],"out":[1,0,0,1]};   // which of T1..T4 YOU work
@@ -1262,13 +1297,13 @@
     if(st==="comp")return "comp";
     var b=baseOf(y,m,d,tour);return b==="mine"?"dropped":b;           // gave-away vs partner/off
   }
-  function chipHTML(y,m,d,tour){var s=startOf(y,m,d,tour);   // no 9×/6× label — top half is always the 9× day tour, bottom the 6× night
+  function chipHTML(y,m,d,tour){var s=startOf(y,m,d,tour), aw=abcdOf(y,m,d), lab=aw?abcdLetter(y,m,d):label(s);   // ABCD day → show your letter instead of the group range (top=9× day, bottom=6× night)
     // details shown as small COLORED SQUARES under the pill (text labels jumbled the layout) — full detail is in the day sheet
     var nt=noteOf(y,m,d,tour)?'<i class="dot note" title="Note"></i>':'';
     var ev=(tour===9)?eventOf(y,m,d):null, evb=ev?'<i class="dot '+ev+'" title="'+evLabel(ev)+'"></i>':'';
     var sbv=sbOf(y,m,d,tour), sbt=sbv?'<i class="dot sb" title="'+escA(sbLabel(sbv))+'"></i>':'';
     var so=dutyStatus(y,m,d,tour);
-    if(so)return '<div class="chip '+so+'">'+label(s)+'<span class="rgt"><span class="vacs">'+dutyTag(so)+'</span></span></div>'+((nt||evb||sbt)?'<div class="cbadges">'+evb+sbt+nt+'</div>':'');
+    if(so)return '<div class="chip '+so+(aw?" abcd":"")+'">'+lab+'<span class="rgt"><span class="vacs">'+dutyTag(so)+'</span></span></div>'+((nt||evb||sbt)?'<div class="cbadges">'+evb+sbt+nt+'</div>':'');
     var st=curState(y,m,d,tour),tag="";
     if(st==="ot")tag='<i class="dot ot" title="MSOT"></i>';else if(st==="rsot")tag='<i class="dot rs" title="RSOT"></i>';
     else if(st==="oot")tag='<i class="dot oot" title="Other OT"></i>';
@@ -1280,7 +1315,7 @@
     var xm=wk?(endExtra(y,m,d,tour)+p2pMin(y,m,d,tour)+othMin(y,m,d,tour)):0, arT=xm?'<i class="dot pay" title="Extra pay (AR/P2P/washup/other)"></i>':'';
     var badges=(flagOn(y,m,d,tour,"ecc")?'<i class="dot ecc" title="ECC/LCC"></i>':'')+(flagOn(y,m,d,tour,"cfr")?'<i class="dot cfr" title="CFR"></i>':'');
     var bd=(tag||badges||arT||nt||evb||sbt)?'<div class="cbadges">'+evb+arT+tag+badges+sbt+nt+'</div>':'';
-    return '<div class="chip '+chipCls(y,m,d,tour)+'">'+label(s)+'</div>'+bd;   // no standby '*' on the calendar pill (kept in the day sheet's Working: line)
+    return '<div class="chip '+chipCls(y,m,d,tour)+(aw?" abcd":"")+'">'+lab+'</div>'+bd;   // no standby '*' on the calendar pill (kept in the day sheet's Working: line)
   }
 
   // ---- render calendar ----
@@ -1314,7 +1349,7 @@
       var pd=payday(y,m,d);
       cell.innerHTML=
         '<div class="dnum">'+d+(pd?' <span class="pay">$</span>':'')+'</div>'+
-        '<div class="chalf c9">'+chipHTML(y,m,d,9)+'</div>'+     // 9× day tour — top half
+        '<div class="chalf c9">'+chipHTML(y,m,d,9)+'</div>'+     // 9× day tour — top half (ABCD: your letter's day = mine)
         '<div class="chalf c6">'+chipHTML(y,m,d,6)+'</div>';     // 6× night tour — bottom half
       cell.setAttribute("role","button");cell.setAttribute("tabindex","0");   // keyboard/AT reachable — the day cell is the app's core control
       cell.setAttribute("aria-label",DOWF[dow]+", "+MON[m]+" "+d+", "+y+(isTdy?" — today":"")+(pd?", payday":"")+(hol&&!ces.length?", "+hol:"")+(ces.length?", "+ces.map(function(e){return e.n;}).join(", "):""));
@@ -1327,7 +1362,7 @@
   }
 
   // ---- day detail sheet ----
-  var scrim=document.getElementById("scrim"),sheet=document.getElementById("sheet"),setSheet=document.getElementById("setSheet"),rsotSheet=document.getElementById("rsotSheet"),statSheet=document.getElementById("statSheet"),mxSheet=document.getElementById("mxSheet"),dirSheet=document.getElementById("dirSheet"),statsSheet=document.getElementById("statsSheet"),refSheet=document.getElementById("refSheet"),bakSheet=document.getElementById("bakSheet"),evSheet=document.getElementById("evSheet"),cevSheet=document.getElementById("cevSheet"),legendPop=document.getElementById("legendPop"),instSheet=document.getElementById("instSheet"),groupSheet=document.getElementById("groupSheet"),tenSheet=document.getElementById("tenSheet");
+  var scrim=document.getElementById("scrim"),sheet=document.getElementById("sheet"),setSheet=document.getElementById("setSheet"),rsotSheet=document.getElementById("rsotSheet"),statSheet=document.getElementById("statSheet"),mxSheet=document.getElementById("mxSheet"),dirSheet=document.getElementById("dirSheet"),statsSheet=document.getElementById("statsSheet"),refSheet=document.getElementById("refSheet"),bakSheet=document.getElementById("bakSheet"),evSheet=document.getElementById("evSheet"),cevSheet=document.getElementById("cevSheet"),legendPop=document.getElementById("legendPop"),instSheet=document.getElementById("instSheet"),groupSheet=document.getElementById("groupSheet"),tenSheet=document.getElementById("tenSheet"),abcdSheet=document.getElementById("abcdSheet");
   var navStack=[];   // sheets in the open path — so the phone/browser Back (swipe-back) closes the current sheet, not the app
   function openSheet(s){
     if(navStack.length&&navStack[navStack.length-1]===s){scrim.classList.add("show");s.classList.add("show");return;}   // re-render of the same sheet — no new history entry
@@ -1336,7 +1371,7 @@
     try{history.pushState({sqSheet:navStack.length},"");}catch(e){}
   }
   function closeSheets(){var n=navStack.length;navStack=[];
-    [sheet,setSheet,rsotSheet,statSheet,mxSheet,dirSheet,statsSheet,refSheet,bakSheet,evSheet,cevSheet,legendPop,instSheet,groupSheet,tenSheet].forEach(function(x){x.classList.remove("show");});
+    [sheet,setSheet,rsotSheet,statSheet,mxSheet,dirSheet,statsSheet,refSheet,bakSheet,evSheet,cevSheet,legendPop,instSheet,groupSheet,tenSheet,abcdSheet].forEach(function(x){x.classList.remove("show");});
     scrim.classList.remove("show");
     if(n>0){try{history.go(-n);}catch(e){}}   // unwind the states we pushed
   }
@@ -1384,7 +1419,7 @@
     sheet.addEventListener("touchend",end,{passive:true});
     sheet.addEventListener("touchcancel",end,{passive:true});
   }
-  [sheet,setSheet,rsotSheet,statSheet,mxSheet,dirSheet,statsSheet,refSheet,bakSheet,evSheet,cevSheet,instSheet,groupSheet,tenSheet].forEach(initSheetDrag);
+  [sheet,setSheet,rsotSheet,statSheet,mxSheet,dirSheet,statsSheet,refSheet,bakSheet,evSheet,cevSheet,instSheet,groupSheet,tenSheet,abcdSheet].forEach(initSheetDrag);
   // ---- in-app confirm/prompt (the artifact sandbox blocks window.confirm/prompt/alert) ----
   var cmodal=document.getElementById("cmodal"),cmsg=document.getElementById("cmsg"),cfield=document.getElementById("cfield"),cinput=document.getElementById("cinput"),cyes=document.getElementById("cyes"),cno=document.getElementById("cno"),cCB=null;
   function appHideModal(){cmodal.classList.remove("show");cCB=null;}
@@ -1405,7 +1440,7 @@
   }
   function inSharedSet(y,m,d,tour){var s=findSet(y,m,d);if(!s)return false;for(var i=0;i<s.length;i++)if(s[i][0]===y&&s[i][1]===m&&s[i][2]===d&&s[i][3]===tour)return true;return false;}   // this tour is part of an interlocking set you share with your partner
   function tourCard(y,m,d,tour){
-    var s=startOf(y,m,d,tour), name=tour===9?"9× Day tour":"6× Night tour", time=tour===9?"09:00":"18:00", eg=effGroups(y,m,d);
+    var s=startOf(y,m,d,tour), name=tour===9?"9× Day tour":"6× Night tour", time=tour===9?"09:00":"18:00", eg=effGroups(y,m,d), aw=abcdOf(y,m,d);
     var b=baseOf(y,m,d,tour), st=curState(y,m,d,tour), w=worked(y,m,d,tour), so=dutyStatus(y,m,d,tour), nm=mxName(y,m,d,tour), tag="", statusTxt;
     if(so){statusTxt=dutyEmoji(so)+" "+dutyLabel(so)+(so==="ld"?" — light-duty assignment":" — you’re off your tours"); tag='<span class="mxtag '+so+'">'+dutyTag(so)+'</span>';}
     else if(st==="rsot"){statusTxt="Scheduled OT (RSOT) — report "+time+" · +"+otHours(tour)+"h · from your yearly list"; tag='<span class="mxtag rsot">RSOT +'+otHours(tour)+'h</span>';}
@@ -1474,10 +1509,10 @@
       '<button data-sb="out"'+(sbd==="out"?' class="on"':'')+'>Covered</button>'+
       '</div></div>'+(sbd?'<input class="sbname" type="text" list="mxNames" autocomplete="off" data-tour="'+tour+'" placeholder="'+(sbd==="in"?"whose standby did you pick up? (name)":"who covered your standby? (name)")+'" value="'+escA(sbn)+'">':'')+'</div>';
     return '<div class="tour '+(so?so:st==="ot"?"ot":st==="rsot"?"rsot":st==="oot"?"oot":st==="comp"?"comp":(st==="pmxin"||st==="pmxout")?"pmx":w?"mine":"")+'">'+
-      '<div class="th"><span class="tt">'+name+tag+'</span><span class="tm">groups '+label(s)+'</span></div>'+
+      '<div class="th"><span class="tt">'+name+tag+'</span><span class="tm">'+(aw?'Letter '+abcdLetter(y,m,d):'groups '+label(s))+'</span></div>'+
       '<div class="status">'+statusTxt+'</div>'+
-      '<div class="grps">Working: '+grpHTML(y,m,d,s)+'</div>'+
-      '<div class="seg" data-tour="'+tour+'">'+seg+'</div>'+nmRow+sbRow+ootRow+payWrap+noteRow+'</div>';
+      (aw?'':'<div class="grps">Working: '+grpHTML(y,m,d,s)+'</div>')+
+      '<div class="seg" data-tour="'+tour+'">'+seg+'</div>'+nmRow+(aw?'':sbRow)+ootRow+payWrap+noteRow+'</div>';
   }
   function openDay(y,m,d){
     document.getElementById("shDate").textContent=DOWF[new Date(y,m,d).getDay()]+" · "+MON[m]+" "+d+", "+y;
@@ -1490,7 +1525,8 @@
     var set=findSet(y,m,d);
     var showSplit=set&&!set.some(function(t){return periodType(t[0],t[1],t[2]);});   // hide the splitter over any vacation / medical / light-duty window
     var splitHTML=showSplit?buildSplitter(set):"";   // one-press partner-set splits (only on sets you share with your Mutual Partner)
-    document.getElementById("shTours").innerHTML=head+splitHTML+tourCard(y,m,d,9)+tourCard(y,m,d,6)+'<div class="sbnote"><b>*</b> standby — the first 3 groups of a tour. The job can force them to work overtime the following tour.</div>';
+    var awDay=abcdOf(y,m,d);   // ABCD day still shows both the 9× and 6× cards; just hide the standby footnote (groups don't apply)
+    document.getElementById("shTours").innerHTML=head+splitHTML+tourCard(y,m,d,9)+tourCard(y,m,d,6)+(awDay?'':'<div class="sbnote"><b>*</b> standby — the first 3 groups of a tour. The job can force them to work overtime the following tour.</div>');
     var dg=document.querySelector("#shTours .dutygo");   // tap the status banner → jump to the time-off editor (pre-select this type)
     if(dg)dg.onclick=function(){pType=pt2;document.getElementById("sheet").classList.remove("show");
       Array.prototype.forEach.call(document.querySelectorAll("#pTypes .stype"),function(x){x.classList.toggle("on",x.getAttribute("data-pt")===pt2);});
@@ -1678,6 +1714,40 @@
     renderGroups(); render(); err.textContent="";
   };
   document.getElementById("gcDone").onclick=closeSheets;
+
+  // ---- ABCD chart periods ----
+  var abLtr="A";
+  function renderAbcd(){
+    var list=document.getElementById("abList");
+    if(!abcd.length){list.innerHTML='<div class="rempty">Not on the ABCD chart. Add a period above if the department switches you to it.</div>';return;}
+    list.innerHTML=abcd.map(function(w,i){
+      var when=fmtEpochWhen(w.s).replace("From ","")+(w.e?(" → "+fmtEpochWhen(w.e).replace("From ","")):" → open (still on)");
+      return '<div class="gcitem"><div><div class="gcwhen">Letter '+esc(w.ltr)+'</div><div class="gcgrp">'+esc(when)+'</div></div><button class="gcrm" data-i="'+i+'" type="button" aria-label="Remove ABCD period">&#10005;</button></div>';
+    }).join("");
+    Array.prototype.forEach.call(list.querySelectorAll(".gcrm"),function(b){b.onclick=function(){var i=+b.getAttribute("data-i");
+      appConfirm("Remove this ABCD period? Those dates go back to your square-root chart. Nothing you logged is deleted.","Remove",function(){abcd.splice(i,1);save("abcd",abcd);renderAbcd();render();});};});
+  }
+  Array.prototype.forEach.call(document.querySelectorAll("#abLtrSeg button"),function(b){b.onclick=function(){abLtr=b.getAttribute("data-l");Array.prototype.forEach.call(document.querySelectorAll("#abLtrSeg button"),function(x){x.classList.toggle("on",x===b);});};});
+  document.getElementById("openAbcd").onclick=function(){
+    setSheet.classList.remove("show");
+    var t=new Date();
+    document.getElementById("abStart").value=t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0");
+    document.getElementById("abEnd").value=""; abLtr="A";
+    Array.prototype.forEach.call(document.querySelectorAll("#abLtrSeg button"),function(x){x.classList.toggle("on",x.getAttribute("data-l")==="A");});
+    document.getElementById("abErr").textContent=""; renderAbcd(); openSheet(abcdSheet);
+  };
+  document.getElementById("abAdd").onclick=function(){
+    var s=document.getElementById("abStart").value, e=document.getElementById("abEnd").value, err=document.getElementById("abErr"); err.textContent="";
+    if(!isRealDate(s)){err.textContent="Pick a valid start date.";return;}
+    if(e&&!isRealDate(e)){err.textContent="That end date isn’t valid.";return;}
+    if(e&&vacMs(e)<vacMs(s)){err.textContent="The end date can’t be before the start.";return;}
+    var ns=vacMs(s), ne=e?vacMs(e):Infinity, i;   // reject overlap with an existing ABCD period
+    for(i=0;i<abcd.length;i++){var w=abcd[i],ws=vacMs(w.s),we=w.e?vacMs(w.e):Infinity;if(ns<=we&&ws<=ne){err.textContent="That overlaps an ABCD period you already have — close it out first.";return;}}
+    abcd.push({s:s,e:e||"",ltr:abLtr});
+    abcd.sort(function(a,b){return vacMs(a.s)-vacMs(b.s);});
+    save("abcd",abcd); renderAbcd(); render(); err.textContent="";
+  };
+  document.getElementById("abDone").onclick=closeSheets;
   document.getElementById("setDone").onclick=closeSheets;
   Array.prototype.forEach.call(document.querySelectorAll("#thmSeg button"),function(b){
     b.onclick=function(){theme=b.getAttribute("data-th");save("theme",theme);applyTheme(theme);syncThmSeg();};
@@ -1718,7 +1788,7 @@
   document.getElementById("bakPaste").onclick=function(){doRestore(document.getElementById("bakIn").value);};
   document.getElementById("bakFileIn").onchange=function(){var f=this.files&&this.files[0];if(!f){return;}var r=new FileReader();r.onload=function(){doRestore(String(r.result));};r.onerror=function(){bakSay("Couldn't read that file.",true);};r.readAsText(f);this.value="";};
   // gentle reminder banner — shows when there's real data that hasn't been backed up in a while (snooze 7d)
-  function hasData(){if((periods&&periods.length)||(events&&events.length)||(cev&&cev.length))return true;var m=[ov,ot,ar,mx,add,fh,note,sb],j,kk;for(j=0;j<m.length;j++){for(kk in m[j])return true;}return false;}
+  function hasData(){if((periods&&periods.length)||(events&&events.length)||(cev&&cev.length)||(abcd&&abcd.length))return true;var m=[ov,ot,ar,mx,add,fh,note,sb],j,kk;for(j=0;j<m.length;j++){for(kk in m[j])return true;}return false;}
   function bakAgeDays(){var t=load("bakts",null);if(!t)return 1e9;return (Date.now()-new Date(t).getTime())/864e5;}
   function bakSnoozed(){var s=load("baksnooze",null);if(!s)return false;return (Date.now()-new Date(s).getTime())<7*864e5;}
   function renderBakRem(){var el=document.getElementById("bakRem");if(!el)return;var never=(load("bakts",null)==null),show=hasData()&&bakAgeDays()>21&&!bakSnoozed()&&!(cloudOn&&rcode);if(!show){el.style.display="none";el.innerHTML="";return;}el.style.display="";el.innerHTML='<span class="bakremtxt">⚠︎ '+(never?"Your data isn’t backed up yet":"Your backup is out of date")+' — save it so a new phone or cleared browser can’t wipe it.</span><span class="bakremact"><button type="button" id="bakRemGo">Back up</button><button type="button" id="bakRemX" aria-label="Dismiss for a week">✕</button></span>';document.getElementById("bakRemGo").onclick=function(){setSheet.classList.remove("show");document.getElementById("bakMsg").className="bakmsg";document.getElementById("bakIn").value="";bakUpdate();openSheet(bakSheet);};document.getElementById("bakRemX").onclick=function(){save("baksnooze",isoNow());renderBakRem();};}
