@@ -94,6 +94,8 @@
   .dot.cfr{background:#0369a1;}     /* CFR */
   .dot.sb{background:#eab308;}      /* standby (picked up / covered) */
   .dot.note{background:var(--mut);} /* note */
+  .dot.cfrcls{background:#2563eb;} /* CFR refresher class */
+  .dot.cfrcls.test{background:#2563eb;box-shadow:0 0 0 2px #f59e0b;} /* CFR test day */
   .dot.edu{background:#7c3aed;}     /* Education Day */
   .dot.med{background:#0891b2;}     /* Company Medical */
   .pay{color:var(--pay); font-weight:900; font-size:14px;}
@@ -104,7 +106,7 @@
   .chip.off{background:var(--off); color:var(--off-ink);}
   .chip.partner{background:var(--amber-soft); color:var(--amber-soft-ink);}
   .chip.mine{background:var(--red-fill); color:var(--red-ink); box-shadow:0 1px 4px rgba(210,31,45,.32);}
-  .spot .chip.off, .spot .chip.partner, .spot .chip.dropped, .spot .chip.comp{opacity:.26;}
+  .spot .chip.off, .spot .chip.partner, .spot .chip.dropped, .spot .chip.comp, .spot .chip.ld.ldoff, .spot .chip.tr.ldoff{opacity:.26;}
   .chip.mine.mx{background:linear-gradient(135deg,var(--red-fill),#9d141e);}
   .chalf .rgt{margin-left:auto;display:inline-flex;gap:3px;align-items:center;}
   .chip.dropped{background:transparent;border:1.4px dashed var(--red);color:var(--red-soft-ink);box-shadow:none;padding:2px 3px 2px 4px;}
@@ -269,6 +271,12 @@
   .chip.vac{background:#9b2fb5;color:#fff;box-shadow:0 1px 4px rgba(155,47,181,.32);}
   .chip.ml{background:#0f766e;color:#fff;box-shadow:0 1px 4px rgba(15,118,110,.32);}
   .chip.ld{background:#475569;color:#fff;box-shadow:0 1px 4px rgba(71,85,105,.32);}
+  .chip.tr{background:#4338ca;color:#fff;box-shadow:0 1px 4px rgba(67,56,202,.32);}
+  .chip.tr.ldoff{background:transparent;border:1.4px dashed #6366f1;color:#6366f1;box-shadow:none;padding:2px 3px 2px 4px;}
+  .chip.tr.oot{background:#4338ca;box-shadow:inset 0 0 0 1.7px #c2410c,0 1px 4px rgba(67,56,202,.3);}
+  .chip.tr.gig{background:color-mix(in srgb,#4338ca 20%,var(--panel));color:var(--ink2);box-shadow:none;font-weight:800;overflow:hidden;text-overflow:ellipsis;}
+  .tour.abday.tr{border-color:color-mix(in srgb,#4338ca 55%,var(--line));}
+  .ptag.tr{background:color-mix(in srgb,#4338ca 16%,var(--panel2));color:#6366f1;}
   .chalf .vacs{font-size:10px;font-weight:900;background:rgba(255,255,255,.25);color:#fff;padding:1px 3px;border-radius:3px;letter-spacing:.03em;}
   .mxtag.vac{background:#9b2fb5;color:#fff;}
   .mxtag.ml{background:#0f766e;color:#fff;}
@@ -284,6 +292,7 @@
   .stype[data-pt="vac"].on{background:#9b2fb5;color:#fff;border-color:#9b2fb5;}
   .stype[data-pt="ml"].on{background:#0f766e;color:#fff;border-color:var(--teal);}
   .stype[data-pt="ld"].on{background:#475569;color:#fff;border-color:#475569;}
+  .stype[data-pt="tr"].on{background:#4338ca;color:#fff;border-color:#4338ca;}
   .stype[data-ev="edu"].on{background:#6d4ae0;color:#fff;border-color:#6d4ae0;}
   .stype[data-ev="med"].on{background:#0e7490;color:#fff;border-color:#0e7490;}
   .opt{font-weight:600;color:var(--ink3,var(--ink2));opacity:.7;}
@@ -610,6 +619,61 @@
   .tour.abday .tt{font-weight:900;}
   .abseg{margin-top:2px;}
   .tour.abmini{background:color-mix(in srgb, var(--panel) 92%, transparent);}   /* the per-tour marks/notes cards under an ABCD day */
+  /* ---- light-duty schedules ---- */
+  .dnum .dld{font-size:11px; margin-left:1px; vertical-align:1px;}   /* 📋 marker by the day number on a light-duty day */
+  .chip.ld.ldoff{background:transparent; border:1.4px dashed #64748b; color:#64748b; box-shadow:none; padding:2px 3px 2px 4px;}
+  .chip.ld.oot{background:#475569; box-shadow:inset 0 0 0 1.7px #c2410c,0 1px 4px rgba(71,85,105,.3);}
+  .chip.ld.gig{background:color-mix(in srgb,#475569 20%,var(--panel)); color:var(--ink2); box-shadow:none; font-weight:800; overflow:hidden; text-overflow:ellipsis;}
+  .tour.abday.ld{border-color:color-mix(in srgb,#475569 55%,var(--line));}
+  .ldedit{margin-left:auto; background:none; border:0; color:var(--accent); font-family:inherit; font-size:12px; font-weight:800; cursor:pointer; padding:2px 0;}
+  .ldgig{font-size:13.5px; font-weight:800; color:var(--ink); margin:2px 0 8px;}
+  .ldshifts{display:flex; flex-direction:column; gap:7px; margin:4px 0 2px;}
+  .ldshift{display:flex; align-items:center; gap:9px; padding:9px 11px; border:1px solid var(--line); border-radius:10px; background:var(--panel2);}
+  .ldsi{font-size:16px;} .ldst{font-size:13.5px; color:var(--ink); font-variant-numeric:tabular-nums;}
+  .ldedrow{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:11px; padding-top:11px; border-top:1px solid var(--line);}
+  .ldedrow .lab{font-size:12px; font-weight:800; color:var(--ink2);}
+  .ldedrow input[type=time]{padding:8px 9px; border:1px solid var(--line); border-radius:9px; background:var(--panel2); color:var(--ink); font-family:inherit; font-size:13px;}
+  .ldto{color:var(--mut);}
+  .ldbtn{padding:9px 13px; border:1px solid var(--line); border-radius:10px; background:var(--panel2); color:var(--ink2); font-family:inherit; font-size:12px; font-weight:800; cursor:pointer;}
+  .ldbtn.ldOff{margin-left:auto; color:#64748b;}
+  .ldotseg{display:flex; gap:7px; margin-top:10px;}
+  .ldotseg button{flex:1; padding:11px 6px; min-height:42px; border:1px solid var(--line); border-radius:10px; background:var(--panel2); color:var(--ink2); font-family:inherit; font-size:12.5px; font-weight:800; cursor:pointer;}
+  .ldotseg button.on{background:#475569; color:#fff; border-color:#475569;}
+  .ldotf{display:flex; align-items:center; gap:9px; margin-top:9px; flex-wrap:wrap;}
+  .ldotf .lab{font-size:12px; font-weight:800; color:var(--ink2); display:flex; align-items:center; gap:6px;}
+  .ldoth{width:74px; padding:8px 9px; border:1px solid var(--line); border-radius:9px; background:var(--panel2); color:var(--ink); font-family:inherit; font-size:13px;}
+  .ldotl{flex:1; min-width:150px; padding:8px 10px; border:1px solid var(--line); border-radius:9px; background:var(--panel2); color:var(--ink); font-family:inherit; font-size:13px;}
+  /* ---- light-duty editor (in the Time-off sheet) ---- */
+  .ldcfg{border:1px solid var(--line); border-radius:12px; padding:11px; margin-bottom:13px; background:var(--panel2);}
+  .ldcfg .lab{font-size:11px; font-weight:800; color:var(--ink2); display:block; margin-bottom:6px;}
+  .ldmode,.ldltr,.lddays{display:flex; gap:6px; flex-wrap:wrap;}
+  .ldmode button,.ldltr button{flex:1; min-width:92px; padding:9px 6px; border:1px solid var(--line); border-radius:10px; background:var(--panel); color:var(--ink2); font-family:inherit; font-size:12px; font-weight:800; cursor:pointer;}
+  .ldmode button.on{background:#475569; color:#fff; border-color:#475569;}
+  .ldltr button{min-width:0;} .ldltr button.on{background:var(--accent); color:#fff; border-color:var(--accent);}
+  .lddays button{flex:1; min-width:36px; padding:9px 4px; border:1px solid var(--line); border-radius:9px; background:var(--panel); color:var(--ink2); font-family:inherit; font-size:12px; font-weight:800; cursor:pointer;}
+  .lddays button.on{background:#475569; color:#fff; border-color:#475569;}
+  .ldrow{display:flex; gap:9px; flex-wrap:wrap; align-items:flex-end; margin-top:10px;}
+  .ldrow .vfield{flex:1; min-width:96px;}
+  .ldsub{font-size:11.5px; color:var(--mut); margin-top:8px; line-height:1.5;}
+  .ldgigin{width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:9px; background:var(--panel); color:var(--ink); font-family:inherit; font-size:13.5px; margin-top:3px;}
+  .ptag.ld .ldm{opacity:.8; font-weight:700;}
+  /* ---- CFR refresher ---- */
+  .cfrrow{margin-top:11px;padding:9px 11px;border-radius:10px;font-size:12.5px;line-height:1.45;background:color-mix(in srgb,#2563eb 12%,var(--panel));border:1px solid color-mix(in srgb,#2563eb 34%,var(--line));color:var(--ink);}
+  .cfrrow.test{background:color-mix(in srgb,#f59e0b 15%,var(--panel));border-color:color-mix(in srgb,#f59e0b 45%,var(--line));}
+  .cfrsub-overdue{color:#dc2626 !important;font-weight:800;} .cfrsub-soon{color:#d97706 !important;font-weight:800;} .cfrsub-current{color:var(--pay) !important;font-weight:700;}
+  .cfrstat{border-radius:13px;padding:15px;margin-bottom:15px;text-align:center;border:1px solid var(--line);}
+  .cfrstat.current{background:color-mix(in srgb,var(--pay) 12%,var(--panel2));border-color:color-mix(in srgb,var(--pay) 40%,var(--line));}
+  .cfrstat.soon{background:color-mix(in srgb,#f59e0b 14%,var(--panel2));border-color:color-mix(in srgb,#f59e0b 45%,var(--line));}
+  .cfrstat.overdue{background:color-mix(in srgb,#dc2626 13%,var(--panel2));border-color:color-mix(in srgb,#dc2626 45%,var(--line));}
+  .cfrstat.none{background:var(--panel2);}
+  .cfrbig{font-size:19px;font-weight:900;letter-spacing:-.01em;} .cfrsm{font-size:13px;color:var(--ink2);margin-top:5px;line-height:1.5;}
+  .cfrsec{border-top:1px solid var(--line);padding-top:14px;margin-top:6px;}
+  .cfrsec .setlbl{margin-bottom:4px;}
+  .cfrsub2{font-size:12.5px;color:var(--ink2);margin-top:9px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .cfrsub2 input[type=date]{padding:7px 9px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);color:var(--ink);font-family:inherit;font-size:12.5px;}
+  .cfrses{margin-top:11px;padding:11px;border-radius:11px;background:color-mix(in srgb,#2563eb 9%,var(--panel2));border:1px solid color-mix(in srgb,#2563eb 30%,var(--line));}
+  .cfrbtns{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;} .cfrbtns .raddbtn{flex:1;}
+  #cfrTour{gap:6px;} #cfrTour button{padding:9px 6px;}
   @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important; animation-duration:.01ms!important; animation-iteration-count:1!important; scroll-behavior:auto!important;}}
 </style>
 
@@ -692,7 +756,8 @@
   <div class="setsec">
     <div class="setlbl">Add to Calendar</div>
     <div class="setlist">
-      <button class="setrow" id="openStat"><span class="setico">🗓️</span><span class="settx"><span class="settl">Status &amp; Time Off</span><span class="setsub">Vacation · medical · light duty</span></span><span class="setchev">›</span></button>
+      <button class="setrow" id="openStat"><span class="setico">🗓️</span><span class="settx"><span class="settl">Status &amp; Time Off</span><span class="setsub">Vacation · medical · light duty · training</span></span><span class="setchev">›</span></button>
+      <button class="setrow" id="openCfr"><span class="setico">📘</span><span class="settx"><span class="settl">CFR Refresher</span><span class="setsub" id="cfrRowSub">Track your 3-year renewal</span></span><span class="setchev">›</span></button>
       <button class="setrow" id="openRsot"><span class="setico">⏰</span><span class="settx"><span class="settl">Scheduled OT (RSOT)</span><span class="setsub">Your yearly list</span></span><span class="setchev">›</span></button>
       <button class="setrow" id="openEv"><span class="setico">🎓</span><span class="settx"><span class="settl">Education &amp; Medicals</span><span class="setsub">Mark ed days &amp; company medicals</span></span><span class="setchev">›</span></button>
       <button class="setrow" id="openCev"><span class="setico">📌</span><span class="settx"><span class="settl">Company Events</span><span class="setsub">Custom events — name, date, time, color</span></span><span class="setchev">›</span></button>
@@ -780,20 +845,74 @@
 <div class="sheet set" id="statSheet">
   <div class="grip"></div>
   <h3>Status &amp; Time Off</h3>
-  <p class="rsub">Punch in vacation, medical leave, or light duty — your regular tours in that window show the status and you're off. <b>Vacation needs an end date.</b> Medical leave &amp; light duty can stay open; set an end date on them to go back to your regular tours.</p>
+  <p class="rsub">Punch in vacation, medical leave, or light duty. Vacation &amp; medical leave = you’re off. <b>Light duty</b> lets you set the schedule you actually work — your group chart, an ABCD letter, or a custom weekly schedule. <b>Vacation needs an end date.</b> Medical &amp; light duty can stay open; set an end date to go back to your regular tours.</p>
   <div class="stypes" id="pTypes">
     <button class="stype on" data-pt="vac">🌴 Vacation</button>
     <button class="stype" data-pt="ml">🩹 Medical leave</button>
     <button class="stype" data-pt="ld">📋 Light duty</button>
+    <button class="stype" data-pt="tr">🎓 Training</button>
+  </div>
+  <div class="ldcfg" id="ldCfg" style="display:none">
+    <span class="lab">Light-duty schedule — the schedule you actually work while on light duty</span>
+    <div class="ldmode" id="ldMode">
+      <button type="button" data-m="group" class="on">📋 Group chart</button>
+      <button type="button" data-m="abcd">🔤 ABCD chart</button>
+      <button type="button" data-m="custom">🗓️ Custom</button>
+    </div>
+    <span class="lab" style="margin-top:11px">Light-duty gig name — where you’re working (optional)</span>
+    <input class="ldgigin" id="ldGig" type="text" autocomplete="off" placeholder="e.g. Medical Office, The Rock, Fire Prevention">
+    <div id="ldAbcd" style="display:none">
+      <span class="lab" style="margin-top:11px">Your letter</span>
+      <div class="ldltr" id="ldLtr"><button type="button" data-l="A" class="on">A</button><button type="button" data-l="B">B</button><button type="button" data-l="C">C</button><button type="button" data-l="D">D</button></div>
+    </div>
+    <div id="ldCustom" style="display:none">
+      <span class="lab" style="margin-top:11px">Days you work</span>
+      <div class="lddays" id="ldDays"><button type="button" data-d="0">Su</button><button type="button" data-d="1" class="on">Mo</button><button type="button" data-d="2" class="on">Tu</button><button type="button" data-d="3" class="on">We</button><button type="button" data-d="4" class="on">Th</button><button type="button" data-d="5" class="on">Fr</button><button type="button" data-d="6">Sa</button></div>
+      <div class="ldrow"><div class="vfield"><label>Start</label><input type="time" id="ldSs" value="09:00"></div><div class="vfield"><label>End</label><input type="time" id="ldSe" value="18:00"></div></div>
+      <div class="ldsub">This is your usual week. Change or turn off any single day later by tapping it on the calendar. Overtime on an off day (like a Saturday) → open that day and add it as <b>Other OT</b>.</div>
+    </div>
+  </div>
+  <div class="ldcfg" id="trCfg" style="display:none">
+    <span class="lab">Training takes you off the group chart. Class days show 🎓 at training; the days in between are off — you can pick up overtime on those.</span>
+    <span class="lab" style="margin-top:11px">What training?</span>
+    <input class="ldgigin" id="trName" type="text" autocomplete="off" placeholder="e.g. Chauffeur School, Hazmat, Rescue">
+    <span class="lab" style="margin-top:11px">Class days</span>
+    <div class="lddays" id="trDays"><button type="button" data-d="0">Su</button><button type="button" data-d="1" class="on">Mo</button><button type="button" data-d="2" class="on">Tu</button><button type="button" data-d="3" class="on">We</button><button type="button" data-d="4" class="on">Th</button><button type="button" data-d="5" class="on">Fr</button><button type="button" data-d="6">Sa</button></div>
+    <div class="ldrow"><div class="vfield"><label>Start</label><input type="time" id="trSs" value="09:00"></div><div class="vfield"><label>End</label><input type="time" id="trSe" value="18:00"></div></div>
+    <div class="ldsub">Runs Mon–Fri by default over the dates you set. Tap a single day on the calendar to add or remove a class day.</div>
   </div>
   <div class="vadd">
     <div class="vfield"><label>Start</label><input type="date" id="pStart" aria-label="Start date"></div>
     <div class="vfield"><label>End <span class="opt req" id="pEndOpt">(required)</span></label><input type="date" id="pEnd" aria-label="End date"></div>
     <button class="raddbtn" id="pAdd">Add</button>
+    <button class="raddbtn" id="pCancel" type="button" style="display:none;background:var(--panel2);color:var(--ink2)">Cancel</button>
   </div>
   <div class="perr" id="pErr"></div>
   <div class="rlist" id="pList"></div>
   <button class="done" id="pDone">Done</button>
+</div>
+
+<div class="sheet set" id="cfrSheet">
+  <div class="grip"></div>
+  <h3>CFR Refresher</h3>
+  <p class="rsub">CFR (certified first responder) is renewed about every 3 years. Log the <b>test day</b> of your last refresher — that becomes your new expiration — and stay ahead of it.</p>
+  <div id="cfrStatus"></div>
+  <div class="cfrsec">
+    <div class="setlbl">Log your latest refresher</div>
+    <p class="ldsub" style="margin-top:2px">Enter the <b>test day</b> (the last class) of your most recent CFR refresher. Your expiration = that day + 3 years.</p>
+    <div class="vadd"><div class="vfield"><label>Test day</label><input type="date" id="cfrTest" aria-label="CFR test day"></div><button class="raddbtn" id="cfrSaveTest">Save</button></div>
+    <div class="cfrsub2">Prefer to set the expiration directly? <input type="date" id="cfrExpIn" aria-label="CFR expiration date"> <button class="ldbtn" id="cfrSaveExp" type="button">Set</button></div>
+    <div class="perr" id="cfrErr"></div>
+  </div>
+  <div class="cfrsec">
+    <div class="setlbl">Schedule an upcoming refresher</div>
+    <p class="ldsub" style="margin-top:2px">Puts the once-a-week class on your calendar while you take it — you stay full duty on the chart. The last class is your test day.</p>
+    <div class="ldrow"><div class="vfield"><label>First class</label><input type="date" id="cfrSesStart" aria-label="First class date"></div><div class="vfield"><label>Time</label><input type="time" id="cfrSesTime" value="09:00"></div></div>
+    <div class="ldrow"><div class="vfield"><label>Which tour</label><div class="ldmode" id="cfrTour"><button type="button" data-tr="day" class="on">☀️ Day</button><button type="button" data-tr="night">🌙 Night</button></div></div><div class="vfield" style="max-width:110px"><label>Weeks</label><input type="number" id="cfrWeeks" min="1" max="52" value="5" class="ldoth" style="width:100%"></div></div>
+    <button class="raddbtn" id="cfrSchedule" type="button" style="width:100%;margin-top:6px">📘 Put classes on my calendar</button>
+    <div id="cfrSesInfo"></div>
+  </div>
+  <button class="done" id="cfrDone">Done</button>
 </div>
 
 <div class="sheet set" id="evSheet">
@@ -1132,8 +1251,48 @@
   // duty-status periods: {t:"vac"|"ml"|"ld", s:"YYYY-MM-DD", e:"" (blank = ongoing)}. Migrates old vacation data.
   var periods=(function(){var p=load("periods",null);if(!p){var o=load("vac",[]);p=(o&&o.length)?o.map(function(v){return{t:"vac",s:v.s,e:v.e};}):[];}
     return (p||[]).filter(function(v){return v&&typeof v==="object"&&typeof v.s==="string";})   // drop malformed entries (bad restore)
-      .map(function(v){if(v.t==="vac"&&!v.e)v.e=v.s;return v;});})();   // a vacation must be bounded — a blank end would read as "off forever"
+      .map(function(v){if(v.t==="vac"&&!v.e)v.e=v.s;   // a vacation must be bounded — a blank end would read as "off forever"
+        if(v.t==="ld"&&!v.m)v.m="group";   // a light-duty period always carries a schedule mode — migrate any mode-less (legacy / corrupt) one so editing it can't silently flip its meaning
+        if(v.t==="ld"&&v.m){   // sanitize a light-duty schedule (bad restore / hand-edited)
+          if(v.m!=="group"&&v.m!=="abcd"&&v.m!=="custom")v.m="group";
+          else{ if(typeof v.gig!=="string")delete v.gig;   // gig applies to all modes
+            if(v.m==="abcd"){if(!/^[ABCD]$/.test(v.ltr||""))v.ltr="A";}
+            else if(v.m==="custom"){if(!Array.isArray(v.days)||v.days.length!==7)v.days=[false,true,true,true,true,true,false];
+              v.days=v.days.map(function(x){return !!x;});
+              if(typeof v.ss!=="string")v.ss="09:00"; if(typeof v.se!=="string")v.se="18:00";
+              if(!v.ex||typeof v.ex!=="object")v.ex={};} }
+        }
+        if(v.t==="tr"){   // sanitize a training schedule
+          if(typeof v.name!=="string")v.name="";
+          if(!Array.isArray(v.days)||v.days.length!==7)v.days=[false,true,true,true,true,true,false];
+          v.days=v.days.map(function(x){return !!x;});
+          if(typeof v.ss!=="string")v.ss="09:00"; if(typeof v.se!=="string")v.se="18:00";
+          if(!v.ex||typeof v.ex!=="object")v.ex={};
+        }
+        return v;});})();
   var now=new Date(), view={y:now.getFullYear(),m:now.getMonth()};
+  // ---- CFR refresher: a competency you renew every ~3 years. cfr.exp = current expiration date; cfr.ses = a scheduled
+  // weekly refresher (you stay full-duty on the chart while taking it). The LAST class is the TEST day → new expiration = test + 3 years.
+  var CFR_YEARS=3;
+  var cfr=(function(){var c=load("cfr",{});if(!c||typeof c!=="object")c={};
+    if(!isRealDate(c.exp))c.exp="";
+    if(c.ses&&typeof c.ses==="object"&&isRealDate(c.ses.s)){var w=Math.round(+c.ses.wk||0);
+      c.ses={s:c.ses.s,tour:(c.ses.tour==="night"?"night":"day"),t:(typeof c.ses.t==="string"&&c.ses.t?c.ses.t:"09:00"),wk:(w>=1&&w<=52?w:5)};}
+    else c.ses=null;
+    return c;})();
+  function saveCfr(){save("cfr",cfr);}
+  function addYears(iso,n){var p=String(iso).split("-"),Y=+p[0]+n,M=+p[1]-1,D=+p[2],dt=new Date(Date.UTC(Y,M,D));
+    if(dt.getUTCMonth()!==M)dt=new Date(Date.UTC(Y,M+1,0));   // Feb 29 + n yrs → clamp to Feb 28, don't roll into March
+    return isoUTC(dt.getTime());}
+  function cfrClassDates(){var s=cfr.ses;if(!s)return [];var bp=s.s.split("-"),base=Date.UTC(+bp[0],+bp[1]-1,+bp[2]),out=[];for(var i=0;i<s.wk;i++)out.push(isoUTC(base+i*7*864e5));return out;}
+  function cfrTestDate(){var d=cfrClassDates();return d.length?d[d.length-1]:"";}
+  function cfrClassOn(y,m,d,tour){var s=cfr.ses;if(!s)return null;var want=(s.tour==="night")?6:9;if(tour!==want)return null;
+    var t=Date.UTC(y,m,d),bp=s.s.split("-"),base=Date.UTC(+bp[0],+bp[1]-1,+bp[2]);if(isNaN(base))return null;
+    var diff=Math.round((t-base)/864e5);if(diff<0||diff%7!==0)return null;var idx=diff/7;if(idx>=s.wk)return null;
+    return {test:(idx===s.wk-1),time:s.t||"",idx:idx,weeks:s.wk};}
+  function cfrExpInfo(){if(!cfr.exp)return {state:"none"};var em=vacMs(cfr.exp);if(isNaN(em))return {state:"none"};
+    var today=Date.UTC(now.getFullYear(),now.getMonth(),now.getDate()),days=Math.round((em-today)/864e5);
+    return {state:(days<0?"overdue":days<=183?"soon":"current"),exp:cfr.exp,days:days,months:Math.round(days/30.44)};}
 
   var MON=["January","February","March","April","May","June","July","August","September","October","November","December"];
   var DOWF=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
@@ -1297,10 +1456,102 @@
   function vacMs(iso){if(!iso||typeof iso!=="string")return NaN;var p=iso.split("-");return Date.UTC(+p[0],+p[1]-1,+p[2]);}   // NaN on bad input → comparisons fail closed (no match, no crash)
   function periodType(y,m,d){var t=Date.UTC(y,m,d);for(var i=0;i<periods.length;i++){var p=periods[i];if(!p)continue;if(t>=vacMs(p.s)&&(!p.e||t<=vacMs(p.e)))return p.t;}return null;}
   function dutyStatus(y,m,d,tour){var pt2=periodType(y,m,d);return (pt2&&curState(y,m,d,tour)==="base"&&baseOf(y,m,d,tour)==="mine")?pt2:null;}
-  function dutyTag(t){return t==="vac"?"VAC":t==="ml"?"ML":"LD";}
-  function dutyLabel(t){return t==="vac"?"Vacation":t==="ml"?"Medical leave":"Light duty";}
-  function dutyEmoji(t){return t==="vac"?"🌴":t==="ml"?"🩹":"📋";}
+  function dutyTag(t){return t==="vac"?"VAC":t==="ml"?"ML":t==="tr"?"TR":"LD";}
+  function dutyLabel(t){return t==="vac"?"Vacation":t==="ml"?"Medical leave":t==="tr"?"Training":"Light duty";}
+  function dutyEmoji(t){return t==="vac"?"🌴":t==="ml"?"🩹":t==="tr"?"🎓":"📋";}
+  // ---- Light-duty schedules ----
+  // A light-duty period can carry its OWN schedule (light duty = day-work, not firefighting tours). Three modes:
+  //   m:"group"  → you keep working your square-root group's on-tours
+  //   m:"abcd"   → you work an ABCD letter chart (ltr:"A".."D")
+  //   m:"custom" → a weekly builder: gig (where you work), days[0..6] (which weekdays), ss/se (shift times),
+  //                ex:{key:{on,s,e}} per-day overrides (edit or add/remove a single day).
+  // During an ld-with-schedule window the light-duty schedule OVERRIDES both the group chart and any ABCD window.
+  // A legacy ld with no .m keeps the old "you're off" behavior (via dutyStatus).
+  var DOWMIN=["Su","Mo","Tu","We","Th","Fr","Sa"];
+  function dk(y,m,d){return y+"-"+m+"-"+d;}   // internal per-day key (0-indexed month) — matches K() minus the tour
+  function ldPeriodOf(y,m,d){var t=Date.UTC(y,m,d);
+    for(var i=0;i<periods.length;i++){var p=periods[i];if(!p||p.t!=="ld"||!p.m)continue;
+      var ps=vacMs(p.s),pe=p.e?vacMs(p.e):Infinity;if(isNaN(ps))continue;if(isNaN(pe))pe=Infinity;
+      if(t>=ps&&t<=pe)return p;}
+    return null;}
+  // any period whose OWN schedule REPLACES the group/ABCD tours on that date (light-duty-with-mode or training).
+  // Used both to short-circuit rendering and to keep stats/ledger from counting stale per-tour data on those dates.
+  function schedPeriodOf(y,m,d){var t=Date.UTC(y,m,d);
+    for(var i=0;i<periods.length;i++){var p=periods[i];if(!p||!((p.t==="ld"&&p.m)||p.t==="tr"))continue;
+      var ps=vacMs(p.s),pe=p.e?vacMs(p.e):Infinity;if(isNaN(ps))continue;if(isNaN(pe))pe=Infinity;
+      if(t>=ps&&t<=pe)return p;}
+    return null;}
+  function ldSched(y,m,d){var p=ldPeriodOf(y,m,d);if(!p)return null;
+    var mode=p.m,shifts=[],work=false,gig=p.gig||"";   // gig (where you work on light duty) applies to all 3 modes
+    if(mode==="abcd"){ if(abcdLetter(y,m,d)===p.ltr){shifts=[{s:"09:00",e:"18:00",tag:"Day"},{s:"18:00",e:"09:00",tag:"Night"}];work=true;} }
+    else if(mode==="custom"){
+      var ov=p.ex&&p.ex[dk(y,m,d)],wd=new Date(y,m,d).getDay(),on,ss,se;
+      if(ov){on=!!ov.on;ss=ov.s||p.ss||"09:00";se=ov.e||p.se||"18:00";}
+      else{on=!!(p.days&&p.days[wd]);ss=p.ss||"09:00";se=p.se||"18:00";}
+      if(on){shifts=[{s:ss,e:se,tag:""}];work=true;} }
+    else { if(status(y,m,d,startOf(y,m,d,9))==="mine"){shifts.push({s:"09:00",e:"18:00",tag:"Day"});work=true;}
+      if(status(y,m,d,startOf(y,m,d,6))==="mine"){shifts.push({s:"18:00",e:"09:00",tag:"Night"});work=true;} }
+    return {p:p,mode:mode,work:work,shifts:shifts,gig:gig};}
+  function ldModeLabel(m){return m==="abcd"?"ABCD chart":m==="custom"?"Custom schedule":"Group chart";}
+  // ---- Training (chauffeur school, hazmat, etc.): off the group chart; a weekday class pattern. ----
+  // On a class day you're AT TRAINING (off, no OT). On a non-class day in the window you're off but can pick up Other OT.
+  function patternOn(p,y,m,d){var ov=p.ex&&p.ex[dk(y,m,d)],wd=new Date(y,m,d).getDay();   // shared weekday pattern + per-day overrides
+    if(ov)return {on:!!ov.on, s:ov.s||p.ss||"09:00", e:ov.e||p.se||"18:00"};
+    return {on:!!(p.days&&p.days[wd]), s:p.ss||"09:00", e:p.se||"18:00"};}
+  function trPeriodOf(y,m,d){var t=Date.UTC(y,m,d);
+    for(var i=0;i<periods.length;i++){var p=periods[i];if(!p||p.t!=="tr")continue;
+      var ps=vacMs(p.s),pe=p.e?vacMs(p.e):Infinity;if(isNaN(ps))continue;if(isNaN(pe))pe=Infinity;
+      if(t>=ps&&t<=pe)return p;}
+    return null;}
+  function trSched(y,m,d){var p=trPeriodOf(y,m,d);if(!p)return null;var pat=patternOn(p,y,m,d);
+    return {p:p, name:p.name||"", inClass:pat.on, s:pat.s, e:pat.e};}   // raw name (blank stays blank) so display fallbacks work
+  function trChip(y,m,d,tour,tr){
+    var oo=ldOt(y,m,d), note=noteOf(y,m,d,9)?'<i class="dot note" title="Note"></i>':'';
+    if(tour===9){var lab,cls="tr";
+      if(tr.inClass){lab="🎓 class";}
+      else if(oo){lab="OT +"+oo.h+"h";cls="tr oot";}
+      else {lab="off";cls="tr ldoff";}
+      var badges=(oo&&!tr.inClass)?'<i class="dot oot" title="Other OT"></i>':'';
+      return '<div class="chip '+cls+'">'+lab+'</div>'+((badges||note)?'<div class="cbadges">'+badges+note+'</div>':'');
+    }
+    return (tr.inClass&&tr.name)?'<div class="chip tr gig">'+esc(tr.name)+'</div>':'';
+  }
+  // Light-duty "Other OT" — reuses the Other-OT (oot) state of the 9× so it flows straight into the OT stats.
+  function ldOt(y,m,d){var k=K(y,m,d,9);return ot[k]==="o"?{h:ootHrs(y,m,d,9),n:ootNote(y,m,d,9)}:null;}
+  function setLdOt(y,m,d,on,h,note){var k=K(y,m,d,9),o={},q;for(q in add[k])o[q]=add[k][q];
+    if(on){ot[k]="o";o.oohrs=(h>0?h:8);if(note&&note.trim())o.oonote=note.trim();else delete o.oonote;}   // always store explicit hours (default 8h light-duty OT — never fall through to the 9h full-tour default)
+    else{delete ot[k];delete o.oohrs;delete o.oonote;}
+    if(addAlive(o))add[k]=o;else delete add[k];
+    save("ot",ot);save("add",add);render();openDay(y,m,d);}
   function shiftDate(y,m,d,n){var t=new Date(y,m,d+n);return[t.getFullYear(),t.getMonth(),t.getDate()];}
+  function fmtT12(hm){var s=fmtT(hm);if(!s)return "";var p=s.split(" ");return p[0].replace(":00","")+(p[1]==="AM"?"a":"p");}   // "09:00" → "9a", "18:30" → "6:30p"
+  function fmtRange(sh){return fmtT12(sh.s)+(sh.e?"–"+fmtT12(sh.e):"");}
+  // The calendar pill for a light-duty day (schedule overrides the normal tour pills).
+  function shiftTag(ls,tag){for(var i=0;i<ls.shifts.length;i++)if(ls.shifts[i].tag===tag)return ls.shifts[i];return null;}
+  function ldChip(y,m,d,tour,ls){
+    var oo=ldOt(y,m,d), note=noteOf(y,m,d,9)?'<i class="dot note" title="Note"></i>':'';
+    var isDay=(tour===9);
+    if(ls.mode==="custom"){   // one shift → time in the DAY (top) half; gig in the NIGHT (bottom) half
+      if(isDay){
+        var lab,cls="ld";
+        if(ls.work){lab=fmtRange(ls.shifts[0]);}
+        else if(oo){lab="OT +"+oo.h+"h";cls="ld oot";}
+        else {lab="off";cls="ld ldoff";}
+        var badges=(oo&&ls.work)?'<i class="dot oot" title="Other OT"></i>':'';
+        return '<div class="chip '+cls+'">'+lab+'</div>'+((badges||note)?'<div class="cbadges">'+badges+note+'</div>':'');
+      }
+      return (ls.work&&ls.gig)?'<div class="chip ld gig">'+esc(ls.gig)+'</div>':'';
+    }
+    // group / abcd → Day shift in the DAY (top) half, Night shift in the NIGHT (bottom) half (match the chart's top=day/bottom=night)
+    if(isDay){var dS=shiftTag(ls,"Day"),l2,c2="ld";
+      if(dS){l2="Day";}
+      else if(oo){l2="OT +"+oo.h+"h";c2="ld oot";}
+      else {l2="off";c2="ld ldoff";}
+      var b2=(oo&&dS)?'<i class="dot oot" title="Other OT"></i>':'';
+      return '<div class="chip '+c2+'">'+l2+'</div>'+((b2||note)?'<div class="cbadges">'+b2+note+'</div>':'');
+    }
+    return shiftTag(ls,"Night")?'<div class="chip ld">Night</div>':'<div class="chip ld ldoff">off</div>';
+  }
   function chipCls(y,m,d,tour){
     var so=dutyStatus(y,m,d,tour); if(so)return so;
     var st=curState(y,m,d,tour);
@@ -1309,7 +1560,9 @@
     if(st==="comp")return "comp";
     var b=baseOf(y,m,d,tour);return b==="mine"?"dropped":b;           // gave-away vs partner/off
   }
-  function chipHTML(y,m,d,tour){var s=startOf(y,m,d,tour), aw=abcdOf(y,m,d), lab=aw?(tour===9?"9×":"6×"):label(s);   // ABCD day → the pill says 9×/6× (the letter sits by the day number); square-root → the group range
+  function chipHTML(y,m,d,tour){var lsd=ldSched(y,m,d); if(lsd)return ldChip(y,m,d,tour,lsd);   // light-duty schedule overrides the normal tour pill
+    var trd=trSched(y,m,d); if(trd)return trChip(y,m,d,tour,trd);   // training overrides the normal tour pill
+    var s=startOf(y,m,d,tour), aw=abcdOf(y,m,d), lab=aw?(tour===9?"9×":"6×"):label(s);   // ABCD day → the pill says 9×/6× (the letter sits by the day number); square-root → the group range
     // details shown as small COLORED SQUARES under the pill (text labels jumbled the layout) — full detail is in the day sheet
     var nt=noteOf(y,m,d,tour)?'<i class="dot note" title="Note"></i>':'';
     var ev=(tour===9)?eventOf(y,m,d):null, evb=ev?'<i class="dot '+ev+'" title="'+evLabel(ev)+'"></i>':'';
@@ -1326,7 +1579,8 @@
     var wk=worked(y,m,d,tour), ao=wk?addOf(y,m,d,tour):{};
     var xm=wk?(endExtra(y,m,d,tour)+p2pMin(y,m,d,tour)+othMin(y,m,d,tour)):0, arT=xm?'<i class="dot pay" title="Extra pay (AR/P2P/washup/other)"></i>':'';
     var badges=(flagOn(y,m,d,tour,"ecc")?'<i class="dot ecc" title="ECC/LCC"></i>':'')+(flagOn(y,m,d,tour,"cfr")?'<i class="dot cfr" title="CFR"></i>':'');
-    var bd=(tag||badges||arT||nt||evb||sbt)?'<div class="cbadges">'+evb+arT+tag+badges+sbt+nt+'</div>':'';
+    var cc=cfrClassOn(y,m,d,tour), cfrB=cc?'<i class="dot cfrcls'+(cc.test?' test':'')+'" title="'+(cc.test?"CFR refresher — TEST day":"CFR refresher class")+'"></i>':'';   // 📘 overlay while full duty
+    var bd=(tag||badges||arT||nt||evb||sbt||cfrB)?'<div class="cbadges">'+evb+arT+tag+badges+cfrB+sbt+nt+'</div>':'';
     return '<div class="chip '+chipCls(y,m,d,tour)+'">'+lab+'</div>'+bd;   // no standby '*' on the calendar pill (kept in the day sheet's Working: line)
   }
 
@@ -1360,8 +1614,10 @@
       } else if(hol)cell.title=hol;
       var pd=payday(y,m,d);
       var aw=abcdOf(y,m,d);   // ABCD → show the letter next to the day number; pills become 9×/6×
+      var lsc=ldSched(y,m,d), trc=lsc?null:trSched(y,m,d);   // light-duty 📋 / training 🎓 marker (overrides the ABCD letter)
+      var mkr=lsc?' <span class="dld" title="Light duty">📋</span>':trc?' <span class="dld" title="Training">🎓</span>':(aw?' <span class="dltr">'+abcdLetter(y,m,d)+'</span>':'');
       cell.innerHTML=
-        '<div class="dnum">'+d+(aw?' <span class="dltr">'+abcdLetter(y,m,d)+'</span>':'')+(pd?' <span class="pay">$</span>':'')+'</div>'+
+        '<div class="dnum">'+d+mkr+(pd?' <span class="pay">$</span>':'')+'</div>'+
         '<div class="chalf c9">'+chipHTML(y,m,d,9)+'</div>'+     // 9× day tour — top half (ABCD: your letter's day = mine)
         '<div class="chalf c6">'+chipHTML(y,m,d,6)+'</div>';     // 6× night tour — bottom half
       cell.setAttribute("role","button");cell.setAttribute("tabindex","0");   // keyboard/AT reachable — the day cell is the app's core control
@@ -1372,10 +1628,11 @@
       grid.appendChild(cell);
     }
     renderBakRem();
+    updateCfrRowSub();
   }
 
   // ---- day detail sheet ----
-  var scrim=document.getElementById("scrim"),sheet=document.getElementById("sheet"),setSheet=document.getElementById("setSheet"),rsotSheet=document.getElementById("rsotSheet"),statSheet=document.getElementById("statSheet"),mxSheet=document.getElementById("mxSheet"),dirSheet=document.getElementById("dirSheet"),statsSheet=document.getElementById("statsSheet"),refSheet=document.getElementById("refSheet"),bakSheet=document.getElementById("bakSheet"),evSheet=document.getElementById("evSheet"),cevSheet=document.getElementById("cevSheet"),legendPop=document.getElementById("legendPop"),instSheet=document.getElementById("instSheet"),groupSheet=document.getElementById("groupSheet"),tenSheet=document.getElementById("tenSheet"),abcdSheet=document.getElementById("abcdSheet");
+  var scrim=document.getElementById("scrim"),sheet=document.getElementById("sheet"),setSheet=document.getElementById("setSheet"),rsotSheet=document.getElementById("rsotSheet"),statSheet=document.getElementById("statSheet"),mxSheet=document.getElementById("mxSheet"),dirSheet=document.getElementById("dirSheet"),statsSheet=document.getElementById("statsSheet"),refSheet=document.getElementById("refSheet"),bakSheet=document.getElementById("bakSheet"),evSheet=document.getElementById("evSheet"),cevSheet=document.getElementById("cevSheet"),legendPop=document.getElementById("legendPop"),instSheet=document.getElementById("instSheet"),groupSheet=document.getElementById("groupSheet"),tenSheet=document.getElementById("tenSheet"),abcdSheet=document.getElementById("abcdSheet"),cfrSheet=document.getElementById("cfrSheet");
   var navStack=[];   // sheets in the open path — so the phone/browser Back (swipe-back) closes the current sheet, not the app
   function openSheet(s){
     if(navStack.length&&navStack[navStack.length-1]===s){scrim.classList.add("show");s.classList.add("show");return;}   // re-render of the same sheet — no new history entry
@@ -1384,7 +1641,7 @@
     try{history.pushState({sqSheet:navStack.length},"");}catch(e){}
   }
   function closeSheets(){var n=navStack.length;navStack=[];
-    [sheet,setSheet,rsotSheet,statSheet,mxSheet,dirSheet,statsSheet,refSheet,bakSheet,evSheet,cevSheet,legendPop,instSheet,groupSheet,tenSheet,abcdSheet].forEach(function(x){x.classList.remove("show");});
+    [sheet,setSheet,rsotSheet,statSheet,mxSheet,dirSheet,statsSheet,refSheet,bakSheet,evSheet,cevSheet,legendPop,instSheet,groupSheet,tenSheet,abcdSheet,cfrSheet].forEach(function(x){x.classList.remove("show");});
     scrim.classList.remove("show");
     if(n>0){try{history.go(-n);}catch(e){}}   // unwind the states we pushed
   }
@@ -1432,7 +1689,7 @@
     sheet.addEventListener("touchend",end,{passive:true});
     sheet.addEventListener("touchcancel",end,{passive:true});
   }
-  [sheet,setSheet,rsotSheet,statSheet,mxSheet,dirSheet,statsSheet,refSheet,bakSheet,evSheet,cevSheet,instSheet,groupSheet,tenSheet,abcdSheet].forEach(initSheetDrag);
+  [sheet,setSheet,rsotSheet,statSheet,mxSheet,dirSheet,statsSheet,refSheet,bakSheet,evSheet,cevSheet,instSheet,groupSheet,tenSheet,abcdSheet,cfrSheet].forEach(initSheetDrag);
   // ---- in-app confirm/prompt (the artifact sandbox blocks window.confirm/prompt/alert) ----
   var cmodal=document.getElementById("cmodal"),cmsg=document.getElementById("cmsg"),cfield=document.getElementById("cfield"),cinput=document.getElementById("cinput"),cyes=document.getElementById("cyes"),cno=document.getElementById("cno"),cCB=null;
   function appHideModal(){cmodal.classList.remove("show");cCB=null;}
@@ -1514,6 +1771,7 @@
     var pb=[];if(eE)pb.push("ECC/LCC");if(eC)pb.push("CFR");if(arm)pb.push("AR "+fmtMin(arm));if(p2pWy)pb.push("P2P "+p2pWy+"-way ("+fmtMin(p2pTot)+")");if(ao.aq)pb.push("Washup "+ao.aq);if(othm)pb.push((othl||"Other")+" "+fmtMin(othm));
     var payOpen=pb.length>0, trig=payOpen?esc(pb.join(" · ")):"＋ Add pay &amp; details";
     var payWrap=w?('<div class="paywrap'+(payOpen?' open':'')+'"><button class="paytrig" data-tour="'+tour+'"><span class="paylbl">'+trig+'</span><span class="paychev">▾</span></button><div class="paybody">'+chkRow+arRow+p2pRow+wuRow+othRow+'</div></div>'):'';
+    var cc=cfrClassOn(y,m,d,tour), cfrRow=cc?('<div class="cfrrow'+(cc.test?' test':'')+'">📘 <b>CFR refresher '+(cc.test?"TEST":"class")+'</b> · week '+(cc.idx+1)+' of '+cc.weeks+(cc.time?' · '+fmtT(cc.time):'')+(cc.test?' — this is your new expiration date':'')+'</div>'):'';
     var noteRow='<div class="noterow"><textarea class="notein" data-tour="'+tour+'" rows="1" placeholder="📝 Notes for this tour — anything you want to remember…">'+esc(noteOf(y,m,d,tour))+'</textarea></div>';
     var sbv=sbOf(y,m,d,tour), sbd=sbv?sbv.d:"", sbn=sbv?sbv.n:"";   // standby: picked up someone's / got yours covered (+ name, no ledger)
     var sbRow='<div class="wurow"><div class="wutop"><span class="lab">🧍 Standby</span><div class="arseg sbseg" data-tour="'+tour+'">'+
@@ -1521,17 +1779,21 @@
       '<button data-sb="in"'+(sbd==="in"?' class="on"':'')+'>Picked up</button>'+
       '<button data-sb="out"'+(sbd==="out"?' class="on"':'')+'>Covered</button>'+
       '</div></div>'+(sbd?'<input class="sbname" type="text" list="mxNames" autocomplete="off" data-tour="'+tour+'" placeholder="'+(sbd==="in"?"whose standby did you pick up? (name)":"who covered your standby? (name)")+'" value="'+escA(sbn)+'">':'')+'</div>';
+    // On an ABCD day the work-state lives on the whole-day card above; the mini keeps only marks & a note,
+    // so drop the per-tour work-state tag and swap the status for a neutral, non-duplicating line.
+    var miniStatus=aw?(so?(dutyEmoji(so)+" "+dutyLabel(so)):(w?"Working the "+(tour===9?"9× day":"6× night")+" — add ECC/CFR & a note below":"Off — the whole-day card above sets this")):statusTxt;
     return '<div class="tour '+(aw?"abmini ":"")+(so?so:st==="ot"?"ot":st==="rsot"?"rsot":st==="oot"?"oot":st==="comp"?"comp":(st==="pmxin"||st==="pmxout")?"pmx":w?"mine":"")+'">'+
-      '<div class="th"><span class="tt">'+name+tag+'</span><span class="tm">'+(aw?time:'groups '+label(s))+'</span></div>'+
-      '<div class="status">'+statusTxt+'</div>'+
+      '<div class="th"><span class="tt">'+name+(aw?"":tag)+'</span><span class="tm">'+(aw?time:'groups '+label(s))+'</span></div>'+
+      '<div class="status">'+miniStatus+'</div>'+
       (aw?'':'<div class="grps">Working: '+grpHTML(y,m,d,s)+'</div>')+
-      (aw?'':'<div class="seg" data-tour="'+tour+'">'+seg+'</div>'+nmRow)+(aw?'':sbRow)+ootRow+payWrap+noteRow+'</div>';
+      (aw?'':'<div class="seg" data-tour="'+tour+'">'+seg+'</div>'+nmRow)+(aw?'':sbRow)+ootRow+payWrap+cfrRow+noteRow+'</div>';
   }
   // During an ABCD chart, the day is one shift (forced up-down) — so work-state (working / off / mutual /
   // overtime / comp) is set for the WHOLE day at once, and applies to both the 9× and the 6× underneath.
   function abcdWholeCard(y,m,d,w){
-    var ltr=abcdLetter(y,m,d), mine=(ltr===w.ltr), st=curState(y,m,d,9), nm=mxName(y,m,d,9), tag="", statusTxt, both=otHours(9)+otHours(6);
-    if(st==="ot"){statusTxt="Overtime — you picked up the whole day (9× + 6×, +"+both+"h)"; tag='<span class="mxtag ot">OT +'+both+'h</span>';}
+    var ltr=abcdLetter(y,m,d), mine=(ltr===w.ltr), st=curState(y,m,d,9), st6=curState(y,m,d,6), so=dutyStatus(y,m,d,9), nm=mxName(y,m,d,9), tag="", statusTxt, both=otHours(9)+otHours(6);
+    if(so){statusTxt=dutyEmoji(so)+" "+dutyLabel(so)+(so==="ld"?" — light-duty assignment (you’re off your tours)":" — you’re off the whole day"); tag='<span class="mxtag '+so+'">'+dutyTag(so)+'</span>';}   // vacation / medical / light-duty on your letter day: show the leave, not "working"
+    else if(st==="ot"){statusTxt="Overtime — you picked up the whole day (9× + 6×, +"+both+"h)"; tag='<span class="mxtag ot">OT +'+both+'h</span>';}
     else if(st==="mxin"){statusTxt="You picked up this day (mutual)"+(nm?" for "+esc(nm):"")+" — they owe you a day back"; tag='<span class="mxtag">MX IN</span>';}
     else if(st==="mxout"){statusTxt="You mutual’d out the whole day"+(nm?" to "+esc(nm):"")+" — you owe a day back"; tag='<span class="mxtag">MX OUT</span>';}
     else if(st==="comp"){statusTxt="Comp time — you’re off the whole day"; tag='<span class="mxtag comp">COMP</span>';}
@@ -1541,29 +1803,88 @@
     var seg=opts.map(function(o){var cap=(o[0]==="ot")?'<div class="segcap">Pick up the whole day</div>':'';return cap+'<button data-abst="'+o[0]+'"'+(st===o[0]?' class="on"':'')+'>'+o[1]+'</button>';}).join("");
     var isMx=(st==="mxin"||st==="mxout");
     var nmRow=isMx?('<div class="mxnamerow"><span class="lab">🤝 With</span><input class="abmxname" type="text" list="mxNames" autocomplete="off" placeholder="Name — who you swapped the day with" value="'+escA(nm)+'"></div>'):'';
-    var cls=st==="ot"?"ot":st==="comp"?"comp":isMx?"":mine?"mine":"";
+    var mixed=(!so&&st!==st6)?'<div class="wunote">⚠ The 9× and 6× have different states set (from before ABCD) — pick one below to set the whole day.</div>':'';   // reconcile pre-ABCD per-tour data: any choice unifies both tours
+    var cls=so?so:st==="ot"?"ot":st==="comp"?"comp":isMx?"":mine?"mine":"";
     return '<div class="tour abday '+cls+'">'+
-      '<div class="th"><span class="tt">🔤 Whole day · Letter '+ltr+tag+'</span><span class="tm">'+(mine?"your letter":"off")+'</span></div>'+
-      '<div class="status">'+statusTxt+'</div>'+
+      '<div class="th"><span class="tt">🔤 Whole day · Letter '+ltr+tag+'</span><span class="tm">'+(so?dutyTag(so):mine?"your letter":"off")+'</span></div>'+
+      '<div class="status">'+statusTxt+'</div>'+mixed+
       '<div class="seg abseg">'+seg+'</div>'+nmRow+'</div>';
+  }
+  // ---- Light-duty day sheet: the schedule (from the period's mode) + a per-day editor (custom) + Other OT + a note ----
+  function setLdOtNoteNr(y,m,d,note){var k=K(y,m,d,9);if(ot[k]!=="o")return;var o={},q;for(q in add[k])o[q]=add[k][q];note=(note||"").trim();if(note)o.oonote=note;else delete o.oonote;if(addAlive(o))add[k]=o;else delete add[k];save("add",add);}
+  function ldDaySheet(y,m,d,ls){
+    var oo=ldOt(y,m,d), note=noteOf(y,m,d,9), body="";
+    if(ls.work){
+      body+='<div class="ldshifts">'+ls.shifts.map(function(sh){
+        return '<div class="ldshift"><span class="ldsi">'+(sh.tag==="Night"?"🌙":sh.tag==="Day"?"🌅":"🕘")+'</span><span class="ldst">'+(sh.tag?'<b>'+sh.tag+'</b> · ':'')+fmtT(sh.s)+(sh.e?" – "+fmtT(sh.e):"")+'</span></div>';
+      }).join("")+'</div>';
+    } else {
+      body+='<div class="status">You’re off this day on your light-duty schedule.</div>';
+    }
+    if(ls.mode==="custom"){
+      if(ls.work){var sh=ls.shifts[0];
+        body+='<div class="ldedrow"><span class="lab">Today’s hours</span><input class="ldTimeS" type="time" value="'+escA(sh.s)+'"><span class="ldto">–</span><input class="ldTimeE" type="time" value="'+escA(sh.e)+'"><button class="ldbtn ldOff" type="button">Off today</button></div>';
+      } else {
+        body+='<div class="ldedrow"><button class="ldbtn ldWork" type="button">＋ Work this day</button></div>';
+      }
+    }
+    var sched='<div class="tour abday ld">'+
+      '<div class="th"><span class="tt">📋 Light duty · '+ldModeLabel(ls.mode)+'</span><button class="ldedit" type="button">Edit schedule ›</button></div>'+
+      (ls.gig?'<div class="ldgig">📍 '+esc(ls.gig)+'</div>':'')+body+'</div>';
+    return sched+(ls.work?'':ldOtCard(y,m,d,"Picked up overtime on a day off your light-duty schedule (like that Saturday)? Log it here — it counts in your OT stats."))+dayNoteCard(y,m,d);
+  }
+  function ldOtCard(y,m,d,subText){var oo=ldOt(y,m,d),ooOn=!!oo,ooH=oo?oo.h:8,ooN=oo?oo.n:"";
+    return '<div class="tour"><div class="th"><span class="tt">🕐 Other OT</span>'+(ooOn?'<span class="tm">+'+ooH+'h</span>':'')+'</div>'+
+      '<div class="status">'+subText+'</div>'+
+      '<div class="ldotseg"><button data-ldot="0"'+(ooOn?'':' class="on"')+'>—</button><button data-ldot="1"'+(ooOn?' class="on"':'')+'>Other OT</button></div>'+
+      (ooOn?('<div class="ldotf"><label class="lab">Hours <input class="ldoth" type="number" min="0" step="0.5" value="'+ooH+'"></label><input class="ldotl" type="text" autocomplete="off" placeholder="what for? (detail / where)" value="'+escA(ooN)+'"></div>'):'')+'</div>';}
+  function dayNoteCard(y,m,d){return '<div class="tour"><div class="noterow"><textarea class="notein" data-tour="9" rows="1" placeholder="📝 Notes for this day…">'+esc(noteOf(y,m,d,9))+'</textarea></div></div>';}
+  function trDaySheet(y,m,d,tr){
+    var st=tr.inClass
+      ? 'At training'+(tr.s?' · '+fmtT(tr.s)+(tr.e?" – "+fmtT(tr.e):""):"")+' — you’re off your group tours today.'
+      : 'Off today — no class scheduled. You’re free to pick up overtime.';
+    var toggle=tr.inClass
+      ? '<div class="ldedrow"><span class="lab">Not in class today?</span><button class="ldbtn ldOff" type="button">No class today</button></div>'
+      : '<div class="ldedrow"><button class="ldbtn ldWork" type="button">＋ Add a class this day</button></div>';
+    var head='<div class="tour abday tr">'+
+      '<div class="th"><span class="tt">🎓 Training'+(tr.name?' · '+esc(tr.name):"")+'</span><button class="ldedit" type="button">Edit ›</button></div>'+
+      '<div class="status">'+st+'</div>'+toggle+'</div>';
+    var otCard=tr.inClass?'':ldOtCard(y,m,d,"On a day off from class you can still pick up overtime — log it here and it counts in your OT stats.");
+    return head+otCard+dayNoteCard(y,m,d);
+  }
+  function wireLdDay(y,m,d,ls){var p=ls.p, key=dk(y,m,d);
+    function setEx(o){if(!p.ex)p.ex={};p.ex[key]=o;save("periods",periods);render();openDay(y,m,d);}
+    var ed=document.querySelector("#shTours .ldedit");
+    if(ed)ed.onclick=function(){document.getElementById("sheet").classList.remove("show");startPeriodEdit(p);openSheet(statSheet);};
+    var ts=document.querySelector("#shTours .ldTimeS"), te=document.querySelector("#shTours .ldTimeE");
+    if(ts&&te){ts.onchange=te.onchange=function(){setEx({on:true,s:ts.value||"09:00",e:te.value||"18:00"});};}
+    var off=document.querySelector("#shTours .ldOff"); if(off)off.onclick=function(){setEx({on:false});};
+    var wk=document.querySelector("#shTours .ldWork"); if(wk)wk.onclick=function(){setEx({on:true,s:p.ss||"09:00",e:p.se||"18:00"});};
+    Array.prototype.forEach.call(document.querySelectorAll("#shTours .ldotseg button"),function(b){b.onclick=function(){
+      if(b.getAttribute("data-ldot")==="1"){var cur=ldOt(y,m,d);setLdOt(y,m,d,true,cur?cur.h:8,cur?cur.n:"");}
+      else setLdOt(y,m,d,false);};});
+    var oh=document.querySelector("#shTours .ldoth"); if(oh)oh.onchange=function(){var v=parseFloat(oh.value);setLdOt(y,m,d,true,(v>0?v:0),(document.querySelector("#shTours .ldotl")||{}).value||"");};
+    var ol=document.querySelector("#shTours .ldotl"); if(ol){ol.oninput=function(){setLdOtNoteNr(y,m,d,ol.value);};ol.onclick=function(e){e.stopPropagation();};}
   }
   function openDay(y,m,d){
     document.getElementById("shDate").textContent=DOWF[new Date(y,m,d).getDay()]+" · "+MON[m]+" "+d+", "+y;
     document.getElementById("shDay").innerHTML=MON[m].slice(0,3)+" "+d+(payday(y,m,d)?'<span class="sh-pay">$ Payday</span>':'');
     var pt2=periodType(y,m,d);
+    var lsDay=ldSched(y,m,d);   // a light-duty schedule day gets its own sheet (overrides the tours / ABCD card); its banner replaces the generic duty banner
+    var trDay=lsDay?null:trSched(y,m,d);   // a training day gets its own sheet too
     var hol=holiday(y,m,d), holIcon=(hol&&hol.indexOf("9/11")>=0)?"🇺🇸":"🎉";   // 9/11 = remembrance, not celebration
     var evd=eventOf(y,m,d);
     var cevHead=cevOn(y,m,d).map(function(e){var cc=cevC(e.c);return '<button class="b24row cevgo" type="button" style="color:'+cc+';background:color-mix(in srgb,'+cc+' 13%,var(--panel));border:1px solid color-mix(in srgb,'+cc+' 34%,var(--line))">📌 '+esc(e.n)+(cevTime(e)?' <span class="evsub">· '+esc(cevTime(e))+'</span>':'')+'<span class="dgedit">Edit ›</span></button>'+(e.note?'<div class="cevnoterow">'+esc(e.note)+'</div>':'');}).join("");
-    var head=(hol?'<div class="holrow">'+holIcon+' '+esc(hol)+'</div>':'')+cevHead+(evd?'<button class="b24row evgo '+evd+'" type="button">'+evEmoji(evd)+' '+evLabel(evd)+' <span class="evsub">· 9× day</span><span class="dgedit">Edit ›</span></button>':'')+(pt2?'<button class="b24row dutygo '+pt2+'" type="button">'+dutyEmoji(pt2)+' '+dutyLabel(pt2)+'<span class="dgedit">Edit ›</span></button>':'');
+    var head=(hol?'<div class="holrow">'+holIcon+' '+esc(hol)+'</div>':'')+cevHead+(evd?'<button class="b24row evgo '+evd+'" type="button">'+evEmoji(evd)+' '+evLabel(evd)+' <span class="evsub">· 9× day</span><span class="dgedit">Edit ›</span></button>':'')+((pt2&&!lsDay&&!trDay)?'<button class="b24row dutygo '+pt2+'" type="button">'+dutyEmoji(pt2)+' '+dutyLabel(pt2)+'<span class="dgedit">Edit ›</span></button>':'');
     var set=findSet(y,m,d);
     var showSplit=set&&!set.some(function(t){return periodType(t[0],t[1],t[2]);});   // hide the splitter over any vacation / medical / light-duty window
     var splitHTML=showSplit?buildSplitter(set):"";   // one-press partner-set splits (only on sets you share with your Mutual Partner)
     var awDay=abcdOf(y,m,d);   // ABCD day: one whole-day work-state card on top, then the 9×/6× cards for marks & notes only
-    document.getElementById("shTours").innerHTML=head+(awDay?abcdWholeCard(y,m,d,awDay):splitHTML)+tourCard(y,m,d,9)+tourCard(y,m,d,6)+(awDay?'':'<div class="sbnote"><b>*</b> standby — the first 3 groups of a tour. The job can force them to work overtime the following tour.</div>');
+    document.getElementById("shTours").innerHTML=head+(lsDay?ldDaySheet(y,m,d,lsDay):trDay?trDaySheet(y,m,d,trDay):((awDay?abcdWholeCard(y,m,d,awDay):splitHTML)+tourCard(y,m,d,9)+tourCard(y,m,d,6)+(awDay?'':'<div class="sbnote"><b>*</b> standby — the first 3 groups of a tour. The job can force them to work overtime the following tour.</div>')));
+    if(lsDay)wireLdDay(y,m,d,lsDay); else if(trDay)wireLdDay(y,m,d,{p:trDay.p});   // training reuses the LD Other-OT + edit wiring (no per-day time edits)
     var dg=document.querySelector("#shTours .dutygo");   // tap the status banner → jump to the time-off editor (pre-select this type)
-    if(dg)dg.onclick=function(){pType=pt2;document.getElementById("sheet").classList.remove("show");
-      Array.prototype.forEach.call(document.querySelectorAll("#pTypes .stype"),function(x){x.classList.toggle("on",x.getAttribute("data-pt")===pt2);});
-      updateEndReq();pErr("");renderPeriods();openSheet(statSheet);};
+    if(dg)dg.onclick=function(){document.getElementById("sheet").classList.remove("show");
+      resetPForm();setPType(pt2);renderPeriods();openSheet(statSheet);};   // reset any in-progress edit + sync the config panel (avoids overwriting a period with the wrong type)
     var eg=document.querySelector("#shTours .evgo");   // tap the education/medical banner → jump to that editor (pre-select type)
     if(eg)eg.onclick=function(){evType=evd;document.getElementById("sheet").classList.remove("show");
       Array.prototype.forEach.call(document.querySelectorAll("#evTypes .stype"),function(x){x.classList.toggle("on",x.getAttribute("data-ev")===evd);});
@@ -1827,7 +2148,7 @@
   document.getElementById("bakPaste").onclick=function(){doRestore(document.getElementById("bakIn").value);};
   document.getElementById("bakFileIn").onchange=function(){var f=this.files&&this.files[0];if(!f){return;}var r=new FileReader();r.onload=function(){doRestore(String(r.result));};r.onerror=function(){bakSay("Couldn't read that file.",true);};r.readAsText(f);this.value="";};
   // gentle reminder banner — shows when there's real data that hasn't been backed up in a while (snooze 7d)
-  function hasData(){if((periods&&periods.length)||(events&&events.length)||(cev&&cev.length)||(abcd&&abcd.length))return true;var m=[ov,ot,ar,mx,add,fh,note,sb],j,kk;for(j=0;j<m.length;j++){for(kk in m[j])return true;}return false;}
+  function hasData(){if((periods&&periods.length)||(events&&events.length)||(cev&&cev.length)||(abcd&&abcd.length)||(cfr&&(cfr.exp||cfr.ses)))return true;var m=[ov,ot,ar,mx,add,fh,note,sb],j,kk;for(j=0;j<m.length;j++){for(kk in m[j])return true;}return false;}
   function bakAgeDays(){var t=load("bakts",null);if(!t)return 1e9;return (Date.now()-new Date(t).getTime())/864e5;}
   function bakSnoozed(){var s=load("baksnooze",null);if(!s)return false;return (Date.now()-new Date(s).getTime())<7*864e5;}
   function renderBakRem(){var el=document.getElementById("bakRem");if(!el)return;var never=(load("bakts",null)==null),show=hasData()&&bakAgeDays()>21&&!bakSnoozed()&&!(cloudOn&&rcode);if(!show){el.style.display="none";el.innerHTML="";return;}el.style.display="";el.innerHTML='<span class="bakremtxt">⚠︎ '+(never?"Your data isn’t backed up yet":"Your backup is out of date")+' — save it so a new phone or cleared browser can’t wipe it.</span><span class="bakremact"><button type="button" id="bakRemGo">Back up</button><button type="button" id="bakRemX" aria-label="Dismiss for a week">✕</button></span>';document.getElementById("bakRemGo").onclick=function(){setSheet.classList.remove("show");document.getElementById("bakMsg").className="bakmsg";document.getElementById("bakIn").value="";bakUpdate();openSheet(bakSheet);};document.getElementById("bakRemX").onclick=function(){save("baksnooze",isoNow());renderBakRem();};}
@@ -2055,7 +2376,8 @@
   function ledger(){
     var by={};
     for(var k in ov){var v=ov[k];if(v!=="in"&&v!=="out")continue;
-      var kp=k.split("|"),kd=kp[0].split("-");if(+kp[1]===6&&abcdOf(+kd[0],+kd[1],+kd[2]))continue;   // ABCD: a whole-day mutual is stored on both tours — count it once (via the 9×)
+      var kp=k.split("|"),kd=kp[0].split("-");if(schedPeriodOf(+kd[0],+kd[1],+kd[2]))continue;   // light-duty / training days have no mutuals — ignore any stale per-tour mutual under a schedule window
+      if(+kp[1]===6&&abcdOf(+kd[0],+kd[1],+kd[2])){var o9=ov[kp[0]+"|9"];if(o9==="in"||o9==="out")continue;}   // ABCD: a whole-day mutual is stored on both tours — count once via the 9×, but never drop a lone 6× that has no paired 9×
       var nm=(mx[k]||"").trim()||"Mutual Partner";
       if(!by[nm])by[nm]={credit:0,debit:0};
       if(v==="in")by[nm].credit++;else by[nm].debit++;
@@ -2089,8 +2411,11 @@
   function otStats(){var all={},k,byK={};
     for(k in ot)all[k]=1; for(k in ar)all[k]=1; for(k in add)all[k]=1;
     for(k in all){var p=k.split("|"),dp=p[0].split("-"),y=+dp[0],m=+dp[1],d=+dp[2],t=+p[1];
+      var sp=schedPeriodOf(y,m,d);
+      if(sp){var active=(sp.t==="tr")?((trSched(y,m,d)||{}).inClass):((ldSched(y,m,d)||{}).work);
+        if(!(t===9&&ot[k]==="o"&&!active))continue;}   // on a light-duty / training day, count ONLY the sanctioned 9× Other-OT logged on an OFF/non-class day — ignore stale MSOT/AR/etc and any hidden OT on a working/class day
       var cs=curState(y,m,d,t),ms=cs==="ot"?otHours(t):0,rs=cs==="rsot"?otHours(t):0,oo=cs==="oot"?ootHrs(y,m,d,t):0,ool=cs==="oot"?ootNote(y,m,d,t):"",a=0,wu=0,pp=0,ot2=0,otl="";
-      if(worked(y,m,d,t)){a=arMin(y,m,d,t);wu=Math.max(0,washupExtra(y,m,d,t)-a);pp=p2pMin(y,m,d,t);ot2=othMin(y,m,d,t);otl=othLbl(y,m,d,t);}
+      if(worked(y,m,d,t)&&!sp){a=arMin(y,m,d,t);wu=Math.max(0,washupExtra(y,m,d,t)-a);pp=p2pMin(y,m,d,t);ot2=othMin(y,m,d,t);otl=othLbl(y,m,d,t);}   // on a schedule day only the Other-OT hours count, never stale AR/washup/P2P/Other on that tour
       if(ms+rs+oo+a+wu+pp+ot2<=0)continue;                   // skip tours with no extra pay (e.g. ECC/CFR-only)
       var pk=payKeyOf(y,m,d,t),r=byK[pk]||(byK[pk]={ms:0,rs:0,oo:0,ar:0,p2p:0,wu:0,oth:0,tours:[]});
       r.ms+=ms;r.rs+=rs;r.oo+=oo;r.ar+=a;r.p2p+=pp;r.wu+=wu;r.oth+=ot2;
@@ -2719,46 +3044,130 @@ var TEN_CODES=[
   };
 
   // ---- Status & time-off manager (vacation / medical leave / light duty; blank end = ongoing) ----
-  var pType="vac";
+  var pType="vac", ldEMode="group", ldELtr="A", pEditIdx=-1;
   function fmtVD(iso){var p=iso.split("-");return MON[+p[1]-1].slice(0,3)+" "+(+p[2])+", "+p[0];}
   function pErr(msg){var el=document.getElementById("pErr");if(el)el.textContent=msg||"";}
   function updateEndReq(){var o=document.getElementById("pEndOpt");if(!o)return;if(pType==="vac"){o.textContent="(required)";o.className="opt req";}else{o.textContent="(optional)";o.className="opt";}}
+  function showLdCfg(){   // reveal the light-duty / training config only for the matching type, and the right sub-block for the LD mode
+    document.getElementById("ldCfg").style.display=(pType==="ld")?"block":"none";
+    document.getElementById("trCfg").style.display=(pType==="tr")?"block":"none";
+    document.getElementById("ldAbcd").style.display=(pType==="ld"&&ldEMode==="abcd")?"block":"none";
+    document.getElementById("ldCustom").style.display=(pType==="ld"&&ldEMode==="custom")?"block":"none";
+    Array.prototype.forEach.call(document.querySelectorAll("#ldMode button"),function(x){x.classList.toggle("on",x.getAttribute("data-m")===ldEMode);});
+    Array.prototype.forEach.call(document.querySelectorAll("#ldLtr button"),function(x){x.classList.toggle("on",x.getAttribute("data-l")===ldELtr);});
+  }
+  function buildTraining(s,e){var name=(document.getElementById("trName").value||"").trim();
+    var days=[0,1,2,3,4,5,6].map(function(wd){return !!document.querySelector('#trDays button[data-d="'+wd+'"].on');});
+    if(!days.some(function(x){return x;})){pErr("Pick at least one class day.");return null;}
+    var obj={t:"tr",s:s,e:e||"",name:name,days:days,ss:document.getElementById("trSs").value||"09:00",se:document.getElementById("trSe").value||"18:00"};
+    obj.ex=(pEditIdx>=0&&periods[pEditIdx]&&periods[pEditIdx].ex)?periods[pEditIdx].ex:{};
+    return obj;}
+  function setPType(t){pType=t;Array.prototype.forEach.call(document.querySelectorAll("#pTypes .stype"),function(x){x.classList.toggle("on",x.getAttribute("data-pt")===t);});updateEndReq();showLdCfg();}
+  function resetSchedCfg(){   // restore the light-duty & training builders to their defaults so no prior period's schedule bleeds into the next Add
+    ldEMode="group";ldELtr="A";
+    var g=document.getElementById("ldGig");if(g)g.value="";
+    var a=document.getElementById("ldSs");if(a)a.value="09:00"; var b=document.getElementById("ldSe");if(b)b.value="18:00";
+    Array.prototype.forEach.call(document.querySelectorAll("#ldDays button"),function(x){var wd=+x.getAttribute("data-d");x.classList.toggle("on",wd>=1&&wd<=5);});
+    var tn=document.getElementById("trName");if(tn)tn.value="";
+    var ta=document.getElementById("trSs");if(ta)ta.value="09:00"; var tb=document.getElementById("trSe");if(tb)tb.value="18:00";
+    Array.prototype.forEach.call(document.querySelectorAll("#trDays button"),function(x){var wd=+x.getAttribute("data-d");x.classList.toggle("on",wd>=1&&wd<=5);});
+    showLdCfg();
+  }
+  function resetPForm(){pEditIdx=-1;document.getElementById("pStart").value="";document.getElementById("pEnd").value="";document.getElementById("pAdd").textContent="Add";var c=document.getElementById("pCancel");if(c)c.style.display="none";resetSchedCfg();pErr("");}
   function renderPeriods(){
     var list=document.getElementById("pList");
     if(!periods.length){list.innerHTML='<div class="rempty">Nothing entered yet — pick a type and dates above.</div>';return;}
     var idx=periods.map(function(v,i){return i;}).sort(function(a,b){return vacMs(periods[a].s)-vacMs(periods[b].s);});
     list.innerHTML=yrAcc(idx,function(i){return +periods[i].s.slice(0,4);},function(i){var v=periods[i];
       var span=v.e?(fmtVD(v.s)+' – '+fmtVD(v.e)):(fmtVD(v.s)+' · ongoing');
+      var mtag=(v.t==="ld"&&v.m)?' <span class="ldm">· '+ldModeLabel(v.m)+(v.m==="abcd"?" "+esc(v.ltr):"")+(v.gig?" · "+esc(v.gig):"")+'</span>':(v.t==="tr"&&v.name)?' <span class="ldm">· '+esc(v.name)+'</span>':'';
       var tail=v.e?('<span class="rt night">'+(Math.round((vacMs(v.e)-vacMs(v.s))/864e5)+1)+'d</span>')
         :('<label class="pendset" title="Set the end date to return to regular tours">📅<input type="date" class="pendin" data-i="'+i+'" min="'+escA(v.s)+'" aria-label="Set end date"></label>');
-      return '<div class="ritem'+(v.e?'':' ongoing')+'"><span class="ptag '+v.t+'">'+dutyEmoji(v.t)+' '+dutyTag(v.t)+'</span><span class="rd">'+span+'</span>'+tail+'<button class="rx" data-i="'+i+'" aria-label="Remove">✕</button></div>';
+      var edit=(v.t==="ld"||v.t==="tr")?'<button class="cevedit pedit" data-i="'+i+'" aria-label="Edit schedule" type="button">✎</button>':'';
+      return '<div class="ritem'+(v.e?'':' ongoing')+(pEditIdx===i?' editing':'')+'"><span class="ptag '+v.t+'">'+dutyEmoji(v.t)+' '+dutyTag(v.t)+'</span><span class="rd">'+span+mtag+'</span>'+tail+edit+'<button class="rx" data-i="'+i+'" aria-label="Remove">✕</button></div>';
     });
-    Array.prototype.forEach.call(list.querySelectorAll(".rx"),function(b){b.onclick=function(){periods.splice(+b.getAttribute("data-i"),1);save("periods",periods);render();renderPeriods();};});
+    Array.prototype.forEach.call(list.querySelectorAll(".rx"),function(b){b.onclick=function(){var i=+b.getAttribute("data-i");if(pEditIdx===i)resetPForm();else if(pEditIdx>i)pEditIdx--;periods.splice(i,1);save("periods",periods);render();renderPeriods();};});
+    Array.prototype.forEach.call(list.querySelectorAll(".pedit"),function(b){b.onclick=function(){startPeriodEdit(periods[+b.getAttribute("data-i")]);};});
     wireYrAcc(list);
     Array.prototype.forEach.call(list.querySelectorAll(".pendin"),function(inp){inp.onchange=function(){var i=+inp.getAttribute("data-i"),val=inp.value;if(!val)return;
       if(vacMs(val)<vacMs(periods[i].s)){pErr("End can't be before the start date.");inp.value="";return;}
       periods[i].e=val;save("periods",periods);pErr("");render();renderPeriods();};});
   }
-  Array.prototype.forEach.call(document.querySelectorAll("#pTypes .stype"),function(b){
-    b.onclick=function(){pType=b.getAttribute("data-pt");
-      Array.prototype.forEach.call(document.querySelectorAll("#pTypes .stype"),function(x){x.classList.toggle("on",x===b);});
-      updateEndReq(); pErr("");
-    };
-  });
-  document.getElementById("openStat").onclick=function(){setSheet.classList.remove("show");updateEndReq();pErr("");renderPeriods();openSheet(statSheet);};
+  function startPeriodEdit(p){var i=periods.indexOf(p);if(i<0)return;pEditIdx=i;
+    setPType(p.t==="tr"?"tr":"ld");
+    document.getElementById("pStart").value=p.s||""; document.getElementById("pEnd").value=p.e||"";
+    if(p.t==="tr"){document.getElementById("trName").value=p.name||"";document.getElementById("trSs").value=p.ss||"09:00";document.getElementById("trSe").value=p.se||"18:00";
+      Array.prototype.forEach.call(document.querySelectorAll("#trDays button"),function(x){x.classList.toggle("on",!!(p.days&&p.days[+x.getAttribute("data-d")]));});}
+    else{ldEMode=p.m||"group"; ldELtr=(p.m==="abcd"&&/^[ABCD]$/.test(p.ltr||""))?p.ltr:"A";
+      document.getElementById("ldGig").value=p.gig||"";   // gig applies to all modes
+      if(p.m==="custom"){document.getElementById("ldSs").value=p.ss||"09:00";document.getElementById("ldSe").value=p.se||"18:00";
+        Array.prototype.forEach.call(document.querySelectorAll("#ldDays button"),function(x){x.classList.toggle("on",!!(p.days&&p.days[+x.getAttribute("data-d")]));});}}
+    showLdCfg();
+    document.getElementById("pAdd").textContent="Update"; var c=document.getElementById("pCancel");if(c)c.style.display="";
+    pErr(""); renderPeriods();
+  }
+  Array.prototype.forEach.call(document.querySelectorAll("#pTypes .stype"),function(b){b.onclick=function(){if(pEditIdx>=0)resetPForm();setPType(b.getAttribute("data-pt"));pErr("");};});   // switching type mid-edit cancels the in-place edit (becomes a fresh Add) so we never overwrite a period with the wrong type
+  Array.prototype.forEach.call(document.querySelectorAll("#ldMode button"),function(b){b.onclick=function(){ldEMode=b.getAttribute("data-m");showLdCfg();};});
+  Array.prototype.forEach.call(document.querySelectorAll("#ldLtr button"),function(b){b.onclick=function(){ldELtr=b.getAttribute("data-l");showLdCfg();};});
+  Array.prototype.forEach.call(document.querySelectorAll("#ldDays button"),function(b){b.onclick=function(){b.classList.toggle("on");};});
+  Array.prototype.forEach.call(document.querySelectorAll("#trDays button"),function(b){b.onclick=function(){b.classList.toggle("on");};});
+  document.getElementById("openStat").onclick=function(){setSheet.classList.remove("show");resetPForm();setPType("vac");renderPeriods();openSheet(statSheet);};
   document.getElementById("pDone").onclick=closeSheets;
+  var pCancelBtn=document.getElementById("pCancel"); if(pCancelBtn)pCancelBtn.onclick=function(){resetPForm();renderPeriods();};
   document.getElementById("pAdd").onclick=function(){
     var s=document.getElementById("pStart").value,e=document.getElementById("pEnd").value;
     if(!s){pErr("Pick a start date.");document.getElementById("pStart").focus();return;}
     if(pType==="vac"&&!e){pErr("Vacation needs an end date.");document.getElementById("pEnd").focus();return;}   // vacation must have an end
     if(e&&vacMs(e)<vacMs(s)){var t=s;s=e;e=t;}
     var ns=vacMs(s),ne=e?vacMs(e):Infinity;   // no overlapping leaves — close out the current one before starting another
-    for(var oi=0;oi<periods.length;oi++){var op=periods[oi];if(!op)continue;var os=vacMs(op.s),oe=op.e?vacMs(op.e):Infinity;
+    for(var oi=0;oi<periods.length;oi++){if(oi===pEditIdx)continue;var op=periods[oi];if(!op)continue;var os=vacMs(op.s),oe=op.e?vacMs(op.e):Infinity;
       if(ns<=oe&&ne>=os){pErr("That overlaps your "+dutyLabel(op.t).toLowerCase()+" ("+fmtVD(op.s)+(op.e?" – "+fmtVD(op.e):" · ongoing")+"). Close that out first.");return;}}
-    periods.push({t:pType,s:s,e:e||""}); save("periods",periods);
-    document.getElementById("pStart").value=""; document.getElementById("pEnd").value=""; pErr("");
+    var obj;
+    if(pType==="ld"){obj={t:"ld",s:s,e:e||"",m:ldEMode};
+      var gv=(document.getElementById("ldGig").value||"").trim(); if(gv)obj.gig=gv;   // gig applies to all 3 modes
+      if(ldEMode==="abcd")obj.ltr=ldELtr;
+      else if(ldEMode==="custom"){obj.ss=document.getElementById("ldSs").value||"09:00";obj.se=document.getElementById("ldSe").value||"18:00";
+        obj.days=[0,1,2,3,4,5,6].map(function(wd){return !!document.querySelector('#ldDays button[data-d="'+wd+'"].on');});
+        if(!obj.days.some(function(x){return x;})){pErr("Pick at least one day you work.");return;}
+        obj.ex=(pEditIdx>=0&&periods[pEditIdx]&&periods[pEditIdx].ex)?periods[pEditIdx].ex:{};}
+    } else if(pType==="tr"){obj=buildTraining(s,e);if(!obj)return;
+    } else { obj={t:pType,s:s,e:e||""}; }
+    if(pEditIdx>=0)periods[pEditIdx]=obj; else periods.push(obj);
+    save("periods",periods); resetPForm();
     render(); renderPeriods();
   };
+  // ---- CFR Refresher tracker (3-year competency) + weekly class scheduler ----
+  var cfrTourSel="day";
+  function cfrErr(m){var el=document.getElementById("cfrErr");if(el)el.textContent=m||"";}
+  function updateCfrRowSub(){var el=document.getElementById("cfrRowSub");if(!el)return;var inf=cfrExpInfo();
+    el.textContent=inf.state==="none"?"Track your 3-year renewal"
+      :inf.state==="overdue"?"⛔ Overdue — expired "+fmtVD(inf.exp)
+      :inf.state==="soon"?"⚠ Due "+fmtVD(inf.exp)+" ("+Math.max(0,inf.months)+" mo)"
+      :"✓ Current — expires "+fmtVD(inf.exp);
+    el.className="setsub cfrsub-"+inf.state;}
+  function renderCfr(){var inf=cfrExpInfo(),sc=document.getElementById("cfrStatus");
+    if(inf.state==="none"){sc.innerHTML='<div class="cfrstat none"><div class="cfrbig">No CFR date set yet</div><div class="cfrsm">Log your last refresher’s test day below to start tracking.</div></div>';}
+    else{var lbl=inf.state==="overdue"?"⛔ Overdue":inf.state==="soon"?"⚠ Due soon":"✓ Current";
+      var sub=inf.state==="overdue"?("Expired "+fmtVD(inf.exp)+" — "+Math.abs(inf.months)+" months ago"):("Expires "+fmtVD(inf.exp)+" · in "+inf.months+" months");
+      sc.innerHTML='<div class="cfrstat '+inf.state+'"><div class="cfrbig">'+lbl+'</div><div class="cfrsm">'+sub+'</div></div>';}
+    var info=document.getElementById("cfrSesInfo");
+    if(cfr.ses){var dates=cfrClassDates(),test=cfrTestDate();
+      info.innerHTML='<div class="cfrses"><div class="cfrsm"><b>'+cfr.ses.wk+' classes</b> · every '+DOWF[new Date(vacMs(cfr.ses.s)).getUTCDay()]+' on the '+(cfr.ses.tour==="night"?"6× night":"9× day")+(cfr.ses.t?' at '+fmtT(cfr.ses.t):'')+'<br>📘 Test day: <b>'+fmtVD(test)+'</b> → new expiration <b>'+fmtVD(addYears(test,CFR_YEARS))+'</b></div>'+
+        '<div class="cfrbtns"><button class="raddbtn" id="cfrComplete" type="button">✓ Mark complete → set expiration</button><button class="ldbtn" id="cfrClear" type="button">Clear</button></div></div>';
+      document.getElementById("cfrComplete").onclick=function(){var t=cfrTestDate();if(t){cfr.exp=addYears(t,CFR_YEARS);}cfr.ses=null;saveCfr();render();renderCfr();};
+      document.getElementById("cfrClear").onclick=function(){cfr.ses=null;saveCfr();render();renderCfr();};
+    } else info.innerHTML="";
+    Array.prototype.forEach.call(document.querySelectorAll("#cfrTour button"),function(b){b.classList.toggle("on",b.getAttribute("data-tr")===cfrTourSel);});
+  }
+  document.getElementById("openCfr").onclick=function(){setSheet.classList.remove("show");cfrErr("");document.getElementById("cfrTest").value="";document.getElementById("cfrExpIn").value=cfr.exp||"";renderCfr();openSheet(cfrSheet);};
+  document.getElementById("cfrDone").onclick=closeSheets;
+  document.getElementById("cfrSaveTest").onclick=function(){var v=document.getElementById("cfrTest").value;if(!isRealDate(v)){cfrErr("Pick the test day (the last class).");return;}cfr.exp=addYears(v,CFR_YEARS);saveCfr();cfrErr("");document.getElementById("cfrTest").value="";document.getElementById("cfrExpIn").value=cfr.exp;render();renderCfr();};
+  document.getElementById("cfrSaveExp").onclick=function(){var v=document.getElementById("cfrExpIn").value;if(!isRealDate(v)){cfrErr("Pick a valid expiration date.");return;}cfr.exp=v;saveCfr();cfrErr("");render();renderCfr();};
+  Array.prototype.forEach.call(document.querySelectorAll("#cfrTour button"),function(b){b.onclick=function(){cfrTourSel=b.getAttribute("data-tr");renderCfr();};});
+  document.getElementById("cfrSchedule").onclick=function(){var s=document.getElementById("cfrSesStart").value,t=document.getElementById("cfrSesTime").value||"09:00",wk=Math.round(+document.getElementById("cfrWeeks").value||0);
+    if(!isRealDate(s)){cfrErr("Pick the first class date.");return;}
+    if(!(wk>=1&&wk<=52)){cfrErr("Enter the number of weeks (1–52).");return;}
+    cfr.ses={s:s,tour:cfrTourSel,t:t,wk:wk};saveCfr();cfrErr("");render();renderCfr();};
   // ---- Education days & company medicals (one-day, 9× only) ----
   var evType="edu";
   function evErr(msg){var el=document.getElementById("evErr");if(el)el.textContent=msg||"";}
