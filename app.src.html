@@ -757,6 +757,12 @@
   <div class="grip"></div>
   <h3>Settings</h3>
   <div class="setsec">
+    <div class="setlbl">You</div>
+    <div class="field"><label>Full name</label><input class="cevin" id="setName" type="text" autocomplete="name" placeholder="First Last — shown to your crew" style="margin-bottom:0"></div>
+    <div class="field" style="margin-bottom:6px"><label>Company / assignment</label><input class="cevin" id="setCo" type="text" autocomplete="off" placeholder="e.g. E295, L144, Squad 1" style="margin-bottom:0"></div>
+    <p class="rsub" style="margin:0 3px">Used when you join a <b>House Calendar</b> so your crew sees who's who.</p>
+  </div>
+  <div class="setsec">
     <div class="setlbl">Your Groups</div>
     <div class="setgrps setgrps2">
       <div class="field">
@@ -1166,8 +1172,10 @@
     </div>
 
     <div class="onbstep" data-step="2" hidden>
-      <h2>What's your group?</h2>
-      <p class="onbp">Your chart group number — your tours show in <b class="gc gred">red</b>.</p>
+      <h2>About you</h2>
+      <p class="onbp">Your name &amp; company — so your firehouse can find you if you join a <b>House Calendar</b>. Then your chart group — tours show in <b class="gc gred">red</b>.</p>
+      <input class="bakcodein" id="onbName" type="text" autocomplete="name" autocapitalize="words" spellcheck="false" placeholder="Full name (First Last)" style="margin-bottom:9px;text-transform:none">
+      <input class="bakcodein" id="onbCo" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Company / assignment (E295, L144…)" style="margin-bottom:15px;text-transform:none">
       <div class="stepper big" id="onbMyStep"><button data-d="-1" type="button">−</button><div class="v"><span id="onbMy">7</span></div><button data-d="1" type="button">+</button></div>
       <div class="onbrange" id="onbMyRange"></div>
       <button class="onbnext" id="onbToPartner" type="button">Next</button>
@@ -1250,6 +1258,7 @@
   function warnNoSave(){if(saveWarned)return;saveWarned=true;try{var b=document.createElement("div");b.setAttribute("role","alert");b.style.cssText="position:fixed;left:8px;right:8px;bottom:8px;z-index:9999;background:#7f1d1d;color:#fff;padding:11px 13px;border-radius:11px;font:600 12.5px/1.45 -apple-system,BlinkMacSystemFont,system-ui,sans-serif;box-shadow:0 8px 26px rgba(0,0,0,.45)";b.textContent="⚠︎ Changes aren’t being saved — storage is full or you’re in Private Browsing. Entries will be lost when you close the app. (Tap to dismiss.)";b.onclick=function(){b.remove();};document.body.appendChild(b);}catch(e){}}
   function save(k,v){try{LS.setItem("sqrt:"+k,JSON.stringify(v));afterWrite(k);return true;}catch(e){warnNoSave();return false;}}
   var my=load("my",7), pt=load("pt",19), spot=load("spot",false), ov=load("ov",{}), ot=load("ot",{}), ar=load("ar",{}), mx=load("mx",{}), add=load("add",{}), note=load("note",{}), events=load("ev",[]), cev=load("cev",[]);
+  var uname=load("name",""), uco=load("co","");   // your identity — full name + company/assignment (shown to your House Calendar crew)
   // ---- group assignments over time (reassignment = new groups + maybe a new partner) ----
   // Each epoch = {s:"YYYY-MM-DD", my:group, pt:partner|0}. Any date uses the epoch whose start is the
   // latest one on/before it — so PAST tours keep your OLD groups and every logged input stays put;
@@ -2056,7 +2065,9 @@
 
   // ---- settings ----
   function syncPt(){document.getElementById("vPt").textContent=pt?pt:"None";var b=document.getElementById("ptClear");if(b)b.textContent=pt?"✕ No partner":"＋ Add partner";}
-  document.getElementById("gear").onclick=function(){syncCurGroups();document.getElementById("vMy").textContent=my;syncPt();syncDefSw();openSheet(setSheet);};
+  document.getElementById("gear").onclick=function(){syncCurGroups();document.getElementById("vMy").textContent=my;syncPt();syncDefSw();document.getElementById("setName").value=uname;document.getElementById("setCo").value=uco;openSheet(setSheet);};
+  document.getElementById("setName").oninput=function(){uname=this.value;save("name",uname);};   // save-as-you-type (no calendar rebuild)
+  document.getElementById("setCo").oninput=function(){uco=this.value.trim();save("co",uco);};
   function syncDefSw(){var a=document.getElementById("defCfrSw"),b=document.getElementById("defEccSw");
     if(a){a.classList.toggle("on",defCfr);a.setAttribute("aria-checked",defCfr?"true":"false");}
     if(b){b.classList.toggle("on",defEcc);b.setAttribute("aria-checked",defEcc?"true":"false");}}
@@ -2378,11 +2389,14 @@
   function showOnbStep(n){ Array.prototype.forEach.call(document.querySelectorAll("#onb .onbstep"),function(s){var m=(+s.getAttribute("data-step")===n);s.classList.toggle("on",m);s.hidden=!m;});
     Array.prototype.forEach.call(document.querySelectorAll(".onbprog i"),function(i){i.classList.toggle("on",+i.getAttribute("data-s")<=n);}); }
   function startOnboarding(){ onbMyVal=my;onbPtVal=(pt||19);onbHasPt=!!pt; updOnbMy();updOnbPt();
+    var nEl=document.getElementById("onbName");if(nEl)nEl.value=uname; var cEl=document.getElementById("onbCo");if(cEl)cEl.value=uco;
     Array.prototype.forEach.call(document.querySelectorAll("#onbPtSeg button"),function(x){x.classList.toggle("on",x.getAttribute("data-p")===(onbHasPt?"yes":"no"));});
     document.getElementById("onbPtWrap").hidden=!onbHasPt;
     showOnbStep(1); var o=document.getElementById("onb");o.classList.add("show");o.setAttribute("aria-hidden","false"); }
   function closeOnboarding(){ var o=document.getElementById("onb");o.classList.remove("show");o.setAttribute("aria-hidden","true"); }
   function commitGroups(){ my=onbMyVal; pt=onbHasPt?onbPtVal:0;
+    var nEl=document.getElementById("onbName"),cEl=document.getElementById("onbCo");
+    if(nEl){uname=nEl.value;save("name",uname);} if(cEl){uco=cEl.value.trim();save("co",uco);}   // capture name/company from onboarding
     groups=[{s:"1970-01-01",my:my,pt:pt}]; save("groups",groups); save("my",my); save("pt",pt); save("seen",1);   // fresh user → one base epoch
     var vMy=document.getElementById("vMy");if(vMy)vMy.textContent=my; syncPt();render(); }
   function finishOnboarding(){ closeOnboarding(); if(!isStandalone()&&!load("instdone",false)&&!instSnoozed())setTimeout(function(){save("instsnooze",isoNow());openInstall();},350); }
