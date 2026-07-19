@@ -880,6 +880,10 @@
     <p class="rsub" style="margin:0 3px">Used when you join a <b>House Calendar</b> so your crew sees who's who. Contact info is visible to your house members.</p>
   </div>
   <div class="setsec">
+    <div class="setlbl">🔔 Notifications</div>
+    <div id="setNotif"></div>
+  </div>
+  <div class="setsec">
     <div class="setlbl">Your Groups</div>
     <div class="setgrps setgrps2">
       <div class="field">
@@ -2189,7 +2193,8 @@
 
   // ---- settings ----
   function syncPt(){document.getElementById("vPt").textContent=pt?pt:"None";var b=document.getElementById("ptClear");if(b)b.textContent=pt?"✕ No partner":"＋ Add partner";}
-  document.getElementById("gear").onclick=function(){syncCurGroups();document.getElementById("vMy").textContent=my;syncPt();syncDefSw();document.getElementById("setName").value=uname;document.getElementById("setCo").value=uco;document.getElementById("setPhone").value=uphone;document.getElementById("setSpouse").value=uspouse;document.getElementById("setSphone").value=usphone;document.getElementById("setLetter").value=hletter;openSheet(setSheet);};
+  document.getElementById("gear").onclick=function(){syncCurGroups();document.getElementById("vMy").textContent=my;syncPt();syncDefSw();document.getElementById("setName").value=uname;document.getElementById("setCo").value=uco;document.getElementById("setPhone").value=uphone;document.getElementById("setSpouse").value=uspouse;document.getElementById("setSphone").value=usphone;document.getElementById("setLetter").value=hletter;renderSetNotif();openSheet(setSheet);};
+  document.getElementById("setNotif").addEventListener("click",function(e){ var b=e.target.closest("[data-act]"); if(!b)return; var act=b.getAttribute("data-act"); if(act==="pushon")enablePush(); else if(act==="pushoff")disablePush(); else if(act==="pref")togglePref(b.getAttribute("data-k")); });
   document.getElementById("setName").oninput=function(){uname=this.value;save("name",uname);};   // save-as-you-type (no calendar rebuild)
   document.getElementById("setCo").oninput=function(){uco=this.value.trim();save("co",uco);};
   document.getElementById("setPhone").oninput=function(){uphone=this.value.trim();save("phone",uphone);};
@@ -3274,13 +3279,22 @@ var TEN_CODES=[
     Notification.requestPermission().then(function(perm){ if(perm!=="granted"){ appConfirm("Notifications are turned off. Enable them for this site in your browser/phone settings, then try again.","OK",function(){}); return; }
       navigator.serviceWorker.ready.then(function(reg){ return reg.pushManager.getSubscription().then(function(sub){ return sub||reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlB64ToU8(VAPID_PUB)}); }); })
         .then(function(sub){ return hFetch("POST","?a=savepush",{id:HS.id,m:HS.m,s:HS.s,sub:(sub.toJSON?sub.toJSON():sub),prefs:hpushPrefs}); })
-        .then(function(r){ if(r&&r.status===200){ hpushOn=true; save("hpush",true); renderHouse(); } else { appConfirm("Couldn't turn on notifications right now — try again in a bit.","OK",function(){}); } })
+        .then(function(r){ if(r&&r.status===200){ hpushOn=true; save("hpush",true); refreshNotifUI(); } else { appConfirm("Couldn't turn on notifications right now — try again in a bit.","OK",function(){}); } })
         .catch(function(){ appConfirm("Couldn't set up notifications on this device.","OK",function(){}); });
     }).catch(function(){ appConfirm("Couldn't request notification permission.","OK",function(){}); }); }
   function disablePush(){ hpushOn=false; save("hpush",false);
     if(navigator.serviceWorker&&navigator.serviceWorker.ready)navigator.serviceWorker.ready.then(function(reg){ if(reg.pushManager)reg.pushManager.getSubscription().then(function(sub){ if(sub)sub.unsubscribe().catch(function(){}); }); }).catch(function(){});
     if(HS)hFetch("POST","?a=clearpush",{m:HS.m,s:HS.s}).catch(function(){});
-    renderHouse(); }
+    refreshNotifUI(); }
+  function togglePref(k){ hpushPrefs[k]=!hpushPrefs[k]; save("hpushprefs",hpushPrefs); if(HS)hFetch("POST","?a=setprefs",{m:HS.m,s:HS.s,prefs:hpushPrefs}).catch(function(){}); refreshNotifUI(); }
+  function refreshNotifUI(){ if(HS&&document.getElementById("houseSheet")&&document.getElementById("houseSheet").classList.contains("show"))renderHouse(); renderSetNotif(); }
+  function prefTog(k,lbl,sub){ return '<button class="hprefrow" data-act="pref" data-k="'+k+'"><span class="hprefl">'+lbl+'<span class="hprefsub">'+sub+'</span></span><span class="htgl'+(hpushPrefs[k]?" on":"")+'"><span class="htglk"></span></span></button>'; }
+  function notifTogglesHTML(){ return '<div class="hprefs">'+prefTog("personal","Personal requests","when someone picks you for a swap or cover")+prefTog("general","General requests","any open tour posted to your house")+prefTog("tours","Tour reminders","before each tour you're scheduled to work")+'</div>'; }
+  function renderSetNotif(){ var el=document.getElementById("setNotif"); if(!el)return;
+    if(!pushSupported()){ el.innerHTML='<p class="ldsub">This device can’t show push notifications.<br>On iPhone, add the app to your Home Screen first, then reopen this.</p>'; return; }
+    if(!HS){ el.innerHTML='<p class="ldsub">Join or create a House Calendar (🏠) first, then turn on notifications here.</p>'; return; }
+    if(!hpushOn){ el.innerHTML='<p class="ldsub" style="margin-top:0">Get a heads-up on your phone for swaps, open tours, and the tours you’re about to work.</p><button class="raddbtn" data-act="pushon" style="width:100%">🔔 Turn on push notifications</button>'; return; }
+    el.innerHTML='<div class="hpushrow on" style="margin-top:0">🔔 Push notifications on <button class="hpxbtn" data-act="pushoff">Turn off</button></div><p class="ldsub" style="margin:0 0 8px">Choose what pings your phone:</p>'+notifTogglesHTML(); }
   function renderHouse(){ var body=document.getElementById("houseBody"); if(!body)return;
     if(!HS){ body.innerHTML='<div class="hscroll">'+hGate()+'</div>'; return; }
     var me=HD&&HD.members[HS.m];
@@ -3353,13 +3367,7 @@ var TEN_CODES=[
   function pushSupported(){ return ("Notification" in window) && ("serviceWorker" in navigator) && ("PushManager" in window); }
   function pushRow(){ if(!pushSupported())return '';
     if(!hpushOn) return '<button class="raddbtn ghost" data-act="pushon" style="width:100%;margin-bottom:10px">🔔 Turn on push notifications</button>';
-    var tog=function(k,lbl,sub){ return '<button class="hprefrow" data-act="pref" data-k="'+k+'"><span class="hprefl">'+lbl+'<span class="hprefsub">'+sub+'</span></span><span class="htgl'+(hpushPrefs[k]?" on":"")+'"><span class="htglk"></span></span></button>'; };
-    return '<div class="hpushrow on">🔔 Push notifications on <button class="hpxbtn" data-act="pushoff">Turn off</button></div>'+
-      '<div class="hprefs">'+
-      tog("personal","Personal requests","when someone picks you for a swap/cover")+
-      tog("general","General requests","any open tour posted to the house")+
-      tog("tours","Tour reminders","before each tour you're scheduled to work")+
-      '</div>'; }
+    return '<div class="hpushrow on">🔔 Notifications on · fine-tune in ⚙ Settings <button class="hpxbtn" data-act="pushoff">Turn off</button></div>'; }
   function reqCard(r){ var mine=r.by===HS.m,tookIt=r.takenBy===HS.m,forMe=(r.to===HS.m&&r.status==="open");
     var acts='';
     if(mine)acts+='<button class="ldbtn sm" data-act="cancelreq" data-rid="'+r.id+'">Cancel</button>';
@@ -3440,7 +3448,7 @@ var TEN_CODES=[
     if(act==="resolve"){ appConfirm("Mark this swap/cover done? It'll be added to both calendars.","Done",function(){ hReloadThen(hOp({type:"resolveRequest",rid:rid})); }); return; }
     if(act==="pushon"){ enablePush(); return; }
     if(act==="pushoff"){ disablePush(); return; }
-    if(act==="pref"){ var k=el.getAttribute("data-k"); hpushPrefs[k]=!hpushPrefs[k]; save("hpushprefs",hpushPrefs); if(HS)hFetch("POST","?a=setprefs",{m:HS.m,s:HS.s,prefs:hpushPrefs}).catch(function(){}); renderHouse(); return; }
+    if(act==="pref"){ togglePref(el.getAttribute("data-k")); return; }
   }
   function openHouseOnDate(y,mm,dd){ if(!HS)return; hVY=y;hVM=mm;hVD=dd; hview="day"; hMsg=""; hReqPre=null; renderHouse(); openSheet(houseSheet); hGet().then(function(r){ if(r&&r.doc)renderHouse(); }); }
   document.getElementById("openHouse").onclick=function(){ hMsg=""; renderHouse(); openSheet(houseSheet); if(HS)hGet().then(function(r){ if(r&&r.doc)pushMyProfile().then(function(){renderHouse();}); else renderHouse(); }); };
