@@ -627,13 +627,40 @@
   .boxboro{font-size:11px; font-weight:700; color:var(--mut);}
   .boxgo{flex:none; font-size:17px; opacity:.85;}
   /* ---- House Calendar ---- */
-  #houseBody{overflow-y:auto; -webkit-overflow-scrolling:touch;}
-  .hhd{display:flex; align-items:flex-start; gap:10px; margin-bottom:10px;}
+  .sheet.house{display:flex; flex-direction:column; height:94dvh; max-height:94dvh; overflow:hidden; padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));}
+  .sheet.house #houseBody{flex:1 1 auto; min-height:0; display:flex; flex-direction:column; overflow:hidden;}
+  .hscroll{flex:1 1 auto; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:1px 1px 4px;}
+  .sheet.house .done{flex:none; margin-top:10px;}
+  .hhd{display:flex; align-items:flex-start; gap:10px; margin-bottom:10px; flex:none;}
   .hhd h3{font-size:19px;} .hsub{font-size:12px; color:var(--mut); font-weight:700; margin-top:2px;}
   .hcode{margin-left:auto; flex:none; background:color-mix(in srgb,var(--accent) 14%,var(--panel)); color:var(--accent); border:1px solid color-mix(in srgb,var(--accent) 34%,var(--line)); border-radius:9px; padding:7px 10px; font-weight:900; font-family:inherit; letter-spacing:.08em; cursor:pointer; font-size:14px;}
-  .htabs{display:flex; gap:5px; background:var(--panel); border:1px solid var(--line); border-radius:11px; padding:4px; margin-bottom:12px; overflow-x:auto;}
-  .htab{flex:1; white-space:nowrap; padding:9px 8px; border:none; border-radius:8px; background:transparent; color:var(--ink2); font-size:12px; font-weight:800; cursor:pointer; font-family:inherit;}
-  .htab.on{background:var(--accent); color:#fff;}
+  .htabs{display:flex; gap:4px; background:var(--panel2); border:1px solid var(--line); border-radius:12px; padding:4px; margin-bottom:12px; flex:none;}
+  .htab{flex:1; display:flex; align-items:center; justify-content:center; gap:5px; white-space:nowrap; padding:10px 6px; border:none; border-radius:9px; background:transparent; color:var(--ink2); font-size:12.5px; font-weight:800; cursor:pointer; font-family:inherit; transition:background .12s,color .12s;}
+  .htab.on{background:var(--accent); color:#fff; box-shadow:0 1px 4px color-mix(in srgb,var(--accent) 40%,transparent);}
+  .htab .hcount{font-size:10px; font-weight:900; line-height:1; padding:2px 5px; border-radius:20px; background:color-mix(in srgb,var(--ink) 12%,transparent); color:var(--ink2);}
+  .htab.on .hcount{background:rgba(255,255,255,.26); color:#fff;}
+  .htab .hcount.alert{background:#f59e0b; color:#3a2600;} .htab.on .hcount.alert{background:#fff; color:#8a5a00;}
+  /* roster: search + collapsible company groups */
+  .hrostbar{position:sticky; top:0; z-index:3; background:var(--panel); padding-bottom:9px; margin-bottom:2px; flex:none;}
+  .hrostbar .dsearch{margin-bottom:0;}
+  .hrgroup{border:1px solid var(--line); border-radius:12px; margin-bottom:9px; background:var(--panel2); overflow:hidden;}
+  .hrghead{display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; padding:12px 13px; border:none; background:transparent; color:var(--ink); font-family:inherit; font-size:14px; font-weight:900; cursor:pointer; letter-spacing:.02em;}
+  .hrgttl{display:flex; align-items:center; gap:9px;} .hrgn{font-size:11px; font-weight:800; color:var(--ink2); background:var(--panel); border:1px solid var(--line); border-radius:20px; padding:2px 8px;}
+  .hrgchev{flex:none; color:var(--mut); font-size:13px; transition:transform .16s;} .hrgroup:not(.collapsed) .hrgchev{transform:rotate(180deg);}
+  .hrgbody{padding:2px 12px 8px; display:block;}
+  .hrgroup.collapsed .hrgbody{display:none;} .hrlist.searching .hrgroup.collapsed .hrgbody{display:block;}
+  .hrempty{color:var(--mut); font-size:12.5px; padding:8px 2px;}
+  .hgrow{display:flex; gap:9px; align-items:flex-start; padding:8px 0; border-top:1px solid var(--line2);}
+  .hgrow:first-child{border-top:none;}
+  .hgnum{flex:none; min-width:28px; text-align:center; font-size:12px; font-weight:900; color:var(--ink); background:var(--panel); border:1px solid var(--line); border-radius:7px; padding:5px 3px; font-variant-numeric:tabular-nums;}
+  .hgrow.empty{padding:5px 0;} .hgrow.empty .hgnum{color:var(--mut); background:transparent; border-style:dashed; font-weight:800;}
+  .hgnum.nog{color:var(--mut); border-style:dashed;}
+  .hgdash{color:var(--mut); padding-top:5px; font-size:12px;}
+  .hgmems{flex:1; min-width:0; display:flex; flex-direction:column; gap:9px;}
+  .hmline{min-width:0;} .hmline.pend{opacity:.72;}
+  .hmltop{display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
+  .hmline .hrname{font-size:13.5px;} .hmline .hrcontact{margin-top:3px;}
+  .hdutyp{font-size:10px; font-weight:800; color:#b45309; background:color-mix(in srgb,#f59e0b 12%,var(--panel)); border:1px solid color-mix(in srgb,#f59e0b 35%,var(--line)); border-radius:6px; padding:1px 6px; white-space:nowrap;}
   .hmsg{font-size:12.5px; font-weight:700; color:var(--ink2); background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-bottom:11px;}
   .hmsg.warn{color:#b45309; border-color:color-mix(in srgb,#f59e0b 45%,var(--line)); background:color-mix(in srgb,#f59e0b 10%,var(--panel));}
   .hdaynav{display:flex; align-items:center; gap:8px; margin-bottom:11px;}
@@ -649,6 +676,32 @@
   .hmem{display:inline-flex; align-items:center; gap:5px; background:var(--red-fill); color:var(--red-ink); border-radius:8px; padding:4px 8px; font-size:12.5px; font-weight:800;}
   .hmname{white-space:nowrap;} .hmg{font-size:10px; font-weight:900; background:rgba(255,255,255,.28); padding:1px 4px; border-radius:4px;}
   .hmcall{text-decoration:none; font-size:13px;} .hnone{color:var(--mut); padding-top:3px;}
+  /* day view — tour-first, tappable */
+  .hdayhint{font-size:11.5px; color:var(--mut); margin-bottom:11px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; line-height:1.5;}
+  .hpickup{border:1px solid var(--line); border-radius:8px; background:var(--panel2); color:var(--accent); font-family:inherit; font-size:11.5px; font-weight:800; padding:5px 9px; cursor:pointer;}
+  .htsec{border:1px solid var(--line); border-radius:14px; padding:10px 12px 12px; margin-bottom:12px; background:var(--panel2);}
+  .htsec.t9{background:color-mix(in srgb,#f59e0b 8%,var(--panel)); border-color:color-mix(in srgb,#f59e0b 26%,var(--line));}
+  .htsec.t6{background:color-mix(in srgb,#6366f1 9%,var(--panel)); border-color:color-mix(in srgb,#6366f1 26%,var(--line));}
+  .htshd{font-size:14px; font-weight:900; letter-spacing:.02em; margin-bottom:8px; display:flex; align-items:center; gap:7px;}
+  .htsec.t9 .htshd{color:#b45309;} .htsec.t6 .htshd{color:#4f46e5;} .hticon{font-size:15px;}
+  .htco{display:flex; gap:9px; align-items:flex-start; padding:8px 0; border-top:1px dashed var(--line2);}
+  .htco:first-of-type{border-top:none; padding-top:2px;}
+  .htconame{flex:none; min-width:46px; font-size:12px; font-weight:900; color:var(--ink2); padding-top:6px;}
+  .htchips{flex:1; min-width:0; display:flex; flex-wrap:wrap; gap:6px;}
+  .hwchip{display:inline-flex; align-items:center; gap:5px; background:var(--panel); border:1px solid var(--line); border-radius:9px; padding:6px 9px; font-size:12.5px; font-weight:800; color:var(--ink); cursor:pointer; font-family:inherit; transition:transform .08s;}
+  .hwchip:active{transform:scale(.96);}
+  .hwchip.me{border-color:var(--accent); background:color-mix(in srgb,var(--accent) 12%,var(--panel)); color:var(--accent);}
+  .hwchip.rsot{border-style:dashed;}
+  .hwtag{font-size:9.5px; font-weight:900; background:color-mix(in srgb,var(--ink) 10%,transparent); color:var(--ink2); border-radius:5px; padding:1px 5px;}
+  .hwtag.g{opacity:.7;} .hwtag.rsotb{background:#c2410c; color:#fff;}
+  /* request context + inbox */
+  .hctx{display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:var(--ink); background:color-mix(in srgb,var(--accent) 10%,var(--panel)); border:1px solid color-mix(in srgb,var(--accent) 30%,var(--line)); border-radius:10px; padding:9px 11px; margin-bottom:10px;}
+  .hctx .hclr{margin-left:auto; flex:none; border:none; background:transparent; color:var(--mut); font-size:15px; cursor:pointer; font-family:inherit; font-weight:900;}
+  .hrseg.big button{padding:11px 6px; font-size:13px;}
+  .hreq.forme{border-color:color-mix(in srgb,var(--accent) 45%,var(--line)); background:color-mix(in srgb,var(--accent) 8%,var(--panel));}
+  .hreqfor{font-size:10px; font-weight:900; background:var(--accent); color:#fff; border-radius:5px; padding:1px 6px;}
+  .reqto{color:var(--accent); font-weight:800; white-space:nowrap;}
+  .househint{color:var(--accent)!important;}
   .hoffrow{font-size:11.5px; color:var(--mut); margin-top:7px; padding-top:7px; border-top:1px dashed var(--line); line-height:1.5;}
   .hoffrow.warn{color:#b45309;}
   .hrostwrap{display:flex; flex-direction:column; gap:8px;}
@@ -1128,7 +1181,7 @@
   <button class="done" id="boxDone">Done</button>
 </div>
 
-<div class="sheet set" id="houseSheet">
+<div class="sheet set house" id="houseSheet">
   <div class="grip"></div>
   <div id="houseBody"></div>
   <button class="done" id="houseDone">Done</button>
@@ -1981,13 +2034,14 @@
     var hol=holiday(y,m,d), holIcon=(hol&&hol.indexOf("9/11")>=0)?"🇺🇸":"🎉";   // 9/11 = remembrance, not celebration
     var evd=eventOf(y,m,d);
     var cevHead=cevOn(y,m,d).map(function(e){var cc=cevC(e.c);return '<button class="b24row cevgo" type="button" style="color:'+cc+';background:color-mix(in srgb,'+cc+' 13%,var(--panel));border:1px solid color-mix(in srgb,'+cc+' 34%,var(--line))">📌 '+esc(e.n)+(cevTime(e)?' <span class="evsub">· '+esc(cevTime(e))+'</span>':'')+'<span class="dgedit">Edit ›</span></button>'+(e.note?'<div class="cevnoterow">'+esc(e.note)+'</div>':'');}).join("");
-    var head=(hol?'<div class="holrow">'+holIcon+' '+esc(hol)+'</div>':'')+cevHead+(evd?'<button class="b24row evgo '+evd+'" type="button">'+evEmoji(evd)+' '+evLabel(evd)+' <span class="evsub">· 9× day</span><span class="dgedit">Edit ›</span></button>':'')+((pt2&&!lsDay&&!trDay)?'<button class="b24row dutygo '+pt2+'" type="button">'+dutyEmoji(pt2)+' '+dutyLabel(pt2)+'<span class="dgedit">Edit ›</span></button>':'');
+    var head=(HS?'<button class="b24row househint" type="button">🏠 Who&rsquo;s working in the house<span class="dgedit">Open ›</span></button>':'')+(hol?'<div class="holrow">'+holIcon+' '+esc(hol)+'</div>':'')+cevHead+(evd?'<button class="b24row evgo '+evd+'" type="button">'+evEmoji(evd)+' '+evLabel(evd)+' <span class="evsub">· 9× day</span><span class="dgedit">Edit ›</span></button>':'')+((pt2&&!lsDay&&!trDay)?'<button class="b24row dutygo '+pt2+'" type="button">'+dutyEmoji(pt2)+' '+dutyLabel(pt2)+'<span class="dgedit">Edit ›</span></button>':'');
     var set=findSet(y,m,d);
     var showSplit=set&&!set.some(function(t){return periodType(t[0],t[1],t[2]);});   // hide the splitter over any vacation / medical / light-duty window
     var splitHTML=showSplit?buildSplitter(set):"";   // one-press partner-set splits (only on sets you share with your Mutual Partner)
     var awDay=abcdOf(y,m,d);   // ABCD day: one whole-day work-state card on top, then the 9×/6× cards for marks & notes only
     document.getElementById("shTours").innerHTML=head+(lsDay?ldDaySheet(y,m,d,lsDay):trDay?trDaySheet(y,m,d,trDay):((awDay?abcdWholeCard(y,m,d,awDay):splitHTML)+tourCard(y,m,d,9)+tourCard(y,m,d,6)+(awDay?'':'<div class="sbnote"><b>*</b> standby — the first 3 groups of a tour. The job can force them to work overtime the following tour.</div>')));
     if(lsDay)wireLdDay(y,m,d,lsDay); else if(trDay)wireLdDay(y,m,d,{p:trDay.p});   // training reuses the LD Other-OT + edit wiring (no per-day time edits)
+    var hh=document.querySelector("#shTours .househint"); if(hh)hh.onclick=function(){document.getElementById("sheet").classList.remove("show");openHouseOnDate(y,m,d);};   // jump to the house day view for this date
     var dg=document.querySelector("#shTours .dutygo");   // tap the status banner → jump to the time-off editor (pre-select this type)
     if(dg)dg.onclick=function(){document.getElementById("sheet").classList.remove("show");
       resetPForm();setPType(pt2);renderPeriods();openSheet(statSheet);};   // reset any in-progress edit + sync the config panel (avoids overwriting a period with the wrong type)
@@ -3130,11 +3184,16 @@ var TEN_CODES=[
   var HD=load("housedoc",null);     // cached last-fetched house document
   var uphone=load("phone",""), uspouse=load("spouse",""), usphone=load("sphone",""), hletter=load("hletter","");
   var hqapplied=load("hqapplied",{});   // request ids already applied to my personal calendar
-  var hview="day", hVY=now.getFullYear(), hVM=now.getMonth(), hVD=now.getDate(), hMsg="";
+  var hview="day", hVY=now.getFullYear(), hVM=now.getMonth(), hVD=now.getDate(), hMsg="", hRostOpen={}, hRostQ="", hReqPre=null;
   function hSave(){ if(HS)save("house",HS); else localStorage.removeItem("sqrt:house"); if(HD)save("housedoc",HD); else localStorage.removeItem("sqrt:housedoc"); }
   function hex256(str){ return crypto.subtle.digest("SHA-256", new TextEncoder().encode(str)).then(function(b){return toHex(new Uint8Array(b));}); }
   function dutyForHouse(){ return (periods||[]).filter(function(p){return p&&p.t&&isRealDate(p.s);}).map(function(p){return {t:p.t,s:p.s,e:p.e||""};}).slice(0,24); }
-  function myProfile(){ return {name:uname,company:uco,group:my,letter:hletter,phone:uphone,spouse:uspouse,spousePhone:usphone,duty:dutyForHouse()}; }
+  function myRsotList(){ var out=[],t0=new Date(),y0=t0.getFullYear(),m0=t0.getMonth(),d0=t0.getDate();   // my upcoming scheduled-OT (RSOT) tours, so the house can see + I can offer them for swap
+    for(var i=0;i<130&&out.length<120;i++){ var dt=new Date(y0,m0,d0+i),yy=dt.getFullYear(),mm=dt.getMonth(),dd=dt.getDate();
+      if(curState(yy,mm,dd,9)==="rsot")out.push({d:isoLocal(yy,mm,dd),t:9});
+      if(curState(yy,mm,dd,6)==="rsot")out.push({d:isoLocal(yy,mm,dd),t:6}); }
+    return out; }
+  function myProfile(){ return {name:uname,company:uco,group:my,letter:hletter,phone:uphone,spouse:uspouse,spousePhone:usphone,duty:dutyForHouse(),ot:myRsotList()}; }
   // --- sync layer ---
   function hFetch(method,qs,body,hdrs){ var h=body?{"Content-Type":"application/json"}:{}; if(hdrs){for(var k in hdrs)h[k]=hdrs[k];} return fetch("/api/house"+(qs||""),{method:method,headers:h,body:body?JSON.stringify(body):undefined})
     .then(function(r){ return r.json().catch(function(){return {};}).then(function(j){ return {status:r.status,j:j}; }); })
@@ -3158,6 +3217,7 @@ var TEN_CODES=[
   function houseAbcdActive(y,m,d){ if(!HD||!HD.abcd)return false; var t=Date.UTC(y,m,d),s=vacMs(HD.abcd.s),e=HD.abcd.e?vacMs(HD.abcd.e):Infinity; return !isNaN(s)&&t>=s&&t<=e; }
   function memberOff(mem,y,m,d){ var t=Date.UTC(y,m,d),ds=mem.duty||[]; for(var i=0;i<ds.length;i++){var s=vacMs(ds[i].s),e=ds[i].e?vacMs(ds[i].e):Infinity; if(!isNaN(s)&&t>=s&&t<=e)return ds[i].t;} return null; }
   function memberWorks(mem,y,m,d,tour){ if(houseAbcdActive(y,m,d)){return mem.letter&&abcdLetter(y,m,d)===mem.letter;} return mem.group?has(startOf(y,m,d,tour),mem.group):false; }
+  function memberRSOT(mem,y,m,d,tour){ var iso=isoLocal(y,m,d),ot=mem.ot||[]; for(var i=0;i<ot.length;i++)if(ot[i].t===tour&&ot[i].d===iso)return true; return false; }   // scheduled OT (RSOT) — extra body on this tour, swappable
   function memList(status){ if(!HD)return []; return Object.keys(HD.members).map(function(k){return [k,HD.members[k]];}).filter(function(x){return !status||x[1].status===status;}); }
   function amAdmin(){ return HD&&HS&&HD.admins.indexOf(HS.m)>=0; }
   // --- apply completed swap/cover requests to my personal calendar ---
@@ -3173,20 +3233,22 @@ var TEN_CODES=[
   // --- rendering ---
   function hDateLabel(y,m,d){return DOWF[new Date(y,m,d).getDay()].slice(0,3)+" "+MON[m].slice(0,3)+" "+d;}
   function tourKeyLbl(t){return t.t===9?"9× Day":"6× Night";}
-  function reqLine(r){var by=(HD.members[r.by]&&HD.members[r.by].name)||"?";
-    var tt=r.tour?hDateLabel(r.tour.y,r.tour.m,r.tour.d)+" "+tourKeyLbl(r.tour):"";
-    if(r.type==="swap")return esc(by)+" wants to swap "+tt+" for "+(r.want?hDateLabel(r.want.y,r.want.m,r.want.d)+" "+tourKeyLbl(r.want):"?");
-    if(r.type==="cover")return esc(by)+" needs "+tt+" covered";
+  function reqLine(r){var by=(HD.members[r.by]&&HD.members[r.by].name)||"?", toN=(r.to&&HD.members[r.to])?(HD.members[r.to].name||"?"):"";
+    var tt=r.tour?hDateLabel(r.tour.y,r.tour.m,r.tour.d)+" "+tourKeyLbl(r.tour):"", dir=toN?' <span class="reqto">→ '+esc(toN)+'</span>':'';
+    if(r.type==="swap")return esc(by)+" wants to swap "+tt+" for "+(r.want?hDateLabel(r.want.y,r.want.m,r.want.d)+" "+tourKeyLbl(r.want):"?")+dir;
+    if(r.type==="cover")return esc(by)+" needs "+tt+" covered"+dir;
     return esc(by)+" is looking to pick up tours"; }
   function memberCard(mem){ var call=mem.phone?'<a class="hmcall" href="'+escA("tel:"+mem.phone.replace(/[^0-9+]/g,""))+'">📞</a>':'';
     return '<span class="hmem"><span class="hmname">'+esc(mem.name||"—")+'</span>'+(mem.group?'<span class="hmg">g'+mem.group+'</span>':'')+(mem.letter&&houseAbcdActive(hVY,hVM,hVD)?'<span class="hmg">'+mem.letter+'</span>':'')+call+'</span>'; }
   function pushMyProfile(){ return hOp(Object.assign({type:"updateProfile"},myProfile())); }
   function renderHouse(){ var body=document.getElementById("houseBody"); if(!body)return;
-    if(!HS){ body.innerHTML=hGate(); return; }
+    if(!HS){ body.innerHTML='<div class="hscroll">'+hGate()+'</div>'; return; }
     var me=HD&&HD.members[HS.m];
-    if(HD&&!me){ body.innerHTML='<h3>House Calendar</h3><p class="rsub">You were removed from this house, or it no longer exists.</p><button class="raddbtn" data-act="forget" style="width:100%">Start over</button>'; return; }
-    if(!HD||(me&&me.status!=="active")){ body.innerHTML=hPending(); return; }
-    body.innerHTML=hHeader()+hTabs()+(hMsg?'<div class="hmsg">'+esc(hMsg)+'</div>':'')+(hview==="roster"?hRoster():hview==="requests"?hRequests():hview==="manage"?hManage():hDay()); }
+    if(HD&&!me){ body.innerHTML='<div class="hscroll"><h3>House Calendar</h3><p class="rsub">You were removed from this house, or it no longer exists.</p><button class="raddbtn" data-act="forget" style="width:100%">Start over</button></div>'; return; }
+    if(!HD||(me&&me.status!=="active")){ body.innerHTML='<div class="hscroll">'+hPending()+'</div>'; return; }
+    var view=(hview==="roster"?hRoster():hview==="requests"?hRequests():hview==="manage"?hManage():hDay());
+    body.innerHTML=hHeader()+hTabs()+'<div class="hscroll">'+(hMsg?'<div class="hmsg">'+esc(hMsg)+'</div>':'')+view+'</div>';
+    if(hview==="roster")filterRoster(); }
   function hGate(){ var ready=(uname&&uco);
     return '<h3>🏠 House Calendar</h3><p class="rsub">Sync your firehouse — see who’s reporting for each tour, swap &amp; cover tours, and keep the crew in one place.</p>'+
       (ready?'':'<div class="hmsg warn">Set your <b>full name</b> and <b>company</b> in Settings first — that’s how your crew finds you.</div>')+
@@ -3196,38 +3258,74 @@ var TEN_CODES=[
   function hHeader(){ var admin=amAdmin();
     return '<div class="hhd"><div><h3 style="margin:0">🏠 '+esc(HD.name)+'</h3><div class="hsub">'+memList("active").length+' active'+(admin?' · you’re an admin':'')+'</div></div>'+
       (admin?'<button class="hcode" data-act="sharecode" title="Share join code">'+esc(HD.code)+' ⧉</button>':'')+'</div>'; }
-  function hTabs(){ var t=[["day","📅 Day"],["roster","👥 Roster"],["requests","🔁 Requests"]]; if(amAdmin())t.push(["manage","⚙️ Manage"]);
-    return '<div class="htabs">'+t.map(function(x){return '<button class="htab'+(hview===x[0]?" on":"")+'" data-act="tab" data-v="'+x[0]+'">'+x[1]+'</button>';}).join("")+'</div>'; }
+  function hTabs(){ var openReq=(HD.requests||[]).filter(function(r){return r.status==="open";}).length, pend=amAdmin()?memList("pending").length:0;
+    var badge=function(n,alert){return n?' <span class="hcount'+(alert?' alert':'')+'">'+n+'</span>':'';};
+    var t=[["day","📅","Day",""],["roster","👥","Roster",badge(memList("active").length)],["requests","🔁","Requests",badge(openReq,true)]];
+    if(amAdmin())t.push(["manage","⚙️","Manage",badge(pend,true)]);
+    return '<div class="htabs">'+t.map(function(x){return '<button class="htab'+(hview===x[0]?" on":"")+'" data-act="tab" data-v="'+x[0]+'"><span>'+x[1]+'</span><span>'+x[2]+'</span>'+x[3]+'</button>';}).join("")+'</div>'; }
   function hDay(){ var y=hVY,m=hVM,d=hVD,ab=houseAbcdActive(y,m,d),mems=memList("active");
     var out='<div class="hdaynav"><button class="hnavb" data-act="pday">‹</button><button class="hdate" data-act="today">'+DOWF[new Date(y,m,d).getDay()]+" · "+MON[m]+" "+d+", "+y+'</button><button class="hnavb" data-act="nday">›</button></div>';
+    out+='<div class="hdayhint">👆 Tap anyone to swap, get covered, or pick up their tour · <button class="hpickup" data-act="pickup">✋ I want a tour</button></div>';
     if(ab)out+='<div class="habanner">🔤 On the ABCD chart'+(hletter?' · your letter '+esc(hletter):'')+'</div>';
     var evs=(HD.events||[]).filter(function(e){return e.dates&&e.dates.some(function(x){return vacMs(x)===Date.UTC(y,m,d);});});
     if(evs.length)out+=evs.map(function(e){return '<div class="hevent">📌 <b>'+esc(e.title)+'</b>'+(e.note?' · '+esc(e.note):'')+'</div>';}).join("");
     var cos=HD.companies.slice(); mems.forEach(function(x){var c=x[1].company||"";if(cos.indexOf(c)<0)cos.push(c);}); if(!cos.length)cos=[""];
-    cos.forEach(function(co){ var inco=mems.filter(function(x){return (x[1].company||"")===co;}); if(!inco.length&&co)return;
-      out+='<div class="hco"><div class="hcolbl">'+(co?esc(co):"Unassigned")+'</div>';
-      [9,6].forEach(function(t){ var on=inco.filter(function(x){return !memberOff(x[1],y,m,d)&&memberWorks(x[1],y,m,d,t);});
-        out+='<div class="htour"><span class="htlbl">'+(t===9?"☀️ 9×":"🌙 6×")+'</span><span class="htmems">'+(on.length?on.map(function(x){return memberCard(x[1]);}).join(""):'<span class="hnone">—</span>')+'</span></div>'; });
-      if(ab){var noltr=inco.filter(function(x){return !memberOff(x[1],y,m,d)&&!x[1].letter;}); if(noltr.length)out+='<div class="hoffrow warn">🔤 no ABCD letter set: '+noltr.map(function(x){return esc(x[1].name||"?");}).join(", ")+'</div>';}
-      var off=inco.filter(function(x){return memberOff(x[1],y,m,d);}); if(off.length)out+='<div class="hoffrow">🚫 '+off.map(function(x){return esc(x[1].name||"?")+' ('+dutyLabel(memberOff(x[1],y,m,d))+')';}).join(", ")+'</div>';
+    function chip(id,mem,t,rsot){ return '<button class="hwchip'+(rsot?" rsot":"")+(id===HS.m?" me":"")+'" data-act="dayreq" data-mid="'+escA(id)+'" data-t="'+t+'"><span class="hwname">'+esc(mem.name||"—")+'</span>'+(rsot?'<span class="hwtag rsotb">RSOT</span>':(ab&&mem.letter?'<span class="hwtag">'+esc(mem.letter)+'</span>':(mem.group?'<span class="hwtag g">'+mem.group+'</span>':'')))+'</button>'; }
+    [9,6].forEach(function(t){
+      out+='<div class="htsec '+(t===9?"t9":"t6")+'"><div class="htshd">'+(t===9?'<span class="hticon">☀️</span> 9× · Day tour':'<span class="hticon">🌙</span> 6× · Night tour')+'</div>';
+      cos.forEach(function(co){ var inco=mems.filter(function(x){return (x[1].company||"")===co;}); if(!inco.length&&co)return;
+        var reg=inco.filter(function(x){return !memberOff(x[1],y,m,d)&&memberWorks(x[1],y,m,d,t);});
+        var rs=inco.filter(function(x){return !memberOff(x[1],y,m,d)&&!memberWorks(x[1],y,m,d,t)&&memberRSOT(x[1],y,m,d,t);});
+        var chips=reg.map(function(x){return chip(x[0],x[1],t,false);}).join("")+rs.map(function(x){return chip(x[0],x[1],t,true);}).join("");
+        out+='<div class="htco"><span class="htconame">'+(co?esc(co):"Unassigned")+'</span><div class="htchips">'+(chips||'<span class="hnone">—</span>')+'</div></div>'; });
       out+='</div>'; });
+    var off=mems.filter(function(x){return memberOff(x[1],y,m,d);});
+    if(off.length)out+='<div class="hoffrow">🚫 Off today: '+off.map(function(x){return esc(x[1].name||"?")+' ('+esc(dutyLabel(memberOff(x[1],y,m,d)))+')';}).join(", ")+'</div>';
+    if(ab){var noltr=mems.filter(function(x){return !memberOff(x[1],y,m,d)&&!x[1].letter;}); if(noltr.length)out+='<div class="hoffrow warn">🔤 no ABCD letter set: '+noltr.map(function(x){return esc(x[1].name||"?");}).join(", ")+'</div>';}
     return out; }
-  function hRoster(){ var mems=memList().sort(function(a,b){return (a[1].company||"~").localeCompare(b[1].company||"~")||(a[1].name||"").localeCompare(b[1].name||"");});
-    return '<div class="hrostwrap">'+mems.map(function(x){var mem=x[1],pend=mem.status!=="active";
-      var duty=memberOff(mem,hVY,hVM,hVD);
-      return '<div class="hrost'+(pend?" pend":"")+'"><div class="hrtop"><span class="hrname">'+esc(mem.name||"—")+(mem.role==="admin"?' <span class="hadmin">admin</span>':'')+(pend?' <span class="hpend">pending</span>':'')+'</span><span class="hrco">'+esc(mem.company||"—")+(mem.group?" · g"+mem.group:"")+'</span></div>'+
-        '<div class="hrcontact">'+(mem.phone?'<a href="'+escA("tel:"+mem.phone.replace(/[^0-9+]/g,""))+'">📞 '+esc(mem.phone)+'</a>':'')+(mem.spouse?'<span class="hrsp">💛 '+esc(mem.spouse)+(mem.spousePhone?' <a href="'+escA("tel:"+mem.spousePhone.replace(/[^0-9+]/g,""))+'">'+esc(mem.spousePhone)+'</a>':'')+'</span>':'')+'</div>'+
-        (duty?'<div class="hrduty">'+dutyEmoji(duty)+' '+dutyLabel(duty)+' today</div>':'')+'</div>'; }).join("")+'</div>'; }
-  function hRequests(){ var open=HD.requests.filter(function(r){return r.status==="open"||r.status==="taken";});
-    var out='<div class="hnewreq"><div class="setlbl">Post a request</div>'+
-      '<div class="hrseg" id="hReqType"><button data-rt="swap" class="on">Swap</button><button data-rt="cover">Cover</button><button data-rt="pickup">Pick up</button></div>'+
-      '<div class="ldrow"><div class="vfield"><label>Your tour</label><input type="date" id="hReqDate"></div><div class="vfield"><label>&nbsp;</label><div class="hrseg" id="hReqTour"><button data-t="9" class="on">9×</button><button data-t="6">6×</button></div></div></div>'+
-      '<div id="hWantWrap"><div class="ldrow"><div class="vfield"><label>Swap for</label><input type="date" id="hWantDate"></div><div class="vfield"><label>&nbsp;</label><div class="hrseg" id="hWantTour"><button data-t="9" class="on">9×</button><button data-t="6">6×</button></div></div></div></div>'+
+  function memberLine(id,mem){ var pend=mem.status!=="active", ad=HD.admins.indexOf(id)>=0, duty=memberOff(mem,hVY,hVM,hVD);
+    var s=((mem.name||"")+" "+(mem.company||"")+" g"+(mem.group||"")+" "+(mem.phone||"")).toLowerCase();
+    var contact=(mem.phone?'<a href="'+escA("tel:"+mem.phone.replace(/[^0-9+]/g,""))+'">📞 '+esc(mem.phone)+'</a>':'')+(mem.spouse?'<span class="hrsp">💛 '+esc(mem.spouse)+(mem.spousePhone?' <a href="'+escA("tel:"+mem.spousePhone.replace(/[^0-9+]/g,""))+'">'+esc(mem.spousePhone)+'</a>':'')+'</span>':'');
+    return '<div class="hmline'+(pend?" pend":"")+'" data-s="'+escA(s)+'"><div class="hmltop"><span class="hrname">'+esc(mem.name||"—")+'</span>'+(ad?'<span class="hadmin">admin</span>':'')+(pend?'<span class="hpend">pending</span>':'')+(duty?'<span class="hdutyp">'+dutyEmoji(duty)+' '+esc(dutyLabel(duty))+'</span>':'')+'</div>'+(contact?'<div class="hrcontact">'+contact+'</div>':'')+'</div>'; }
+  function sortPpl(a){ a.sort(function(p,q){ var pa=p[1].status!=="active"?1:0,qa=q[1].status!=="active"?1:0; if(pa!==qa)return pa-qa; var pd=HD.admins.indexOf(p[0])>=0?0:1,qd=HD.admins.indexOf(q[0])>=0?0:1; if(pd!==qd)return pd-qd; return (p[1].name||"").localeCompare(q[1].name||""); }); return a; }
+  function hRoster(){ var mems=memList();
+    var order=HD.companies.slice(); mems.forEach(function(x){var c=x[1].company||"";if(order.indexOf(c)<0)order.push(c);});
+    order.sort(function(a,b){return (a===""?1:0)-(b===""?1:0);});   // "Unassigned" company bucket last
+    var bar='<div class="hrostbar"><input class="dsearch" id="hRosterSearch" type="text" inputmode="search" autocomplete="off" placeholder="Search a member — name, company, group…" value="'+escA(hRostQ)+'"></div>';
+    var groups=order.map(function(co){ var inco=mems.filter(function(x){return (x[1].company||"")===co;}); if(!inco.length)return "";
+      var byG={}; inco.forEach(function(x){ var g=parseInt(x[1].group,10)||0; (byG[g]=byG[g]||[]).push(x); });   // group# → member(s); two people can share a group ("double-grouped")
+      var rows=""; for(var g=1;g<=25;g++){ var ppl=byG[g]||[];
+        rows+= ppl.length ? '<div class="hgrow"><span class="hgnum">'+g+'</span><div class="hgmems">'+sortPpl(ppl).map(function(x){return memberLine(x[0],x[1]);}).join("")+'</div></div>'
+                          : '<div class="hgrow empty"><span class="hgnum">'+g+'</span><span class="hgdash">—</span></div>'; }
+      if(byG[0]&&byG[0].length) rows+='<div class="hgrow"><span class="hgnum nog" title="No group set yet">?</span><div class="hgmems">'+sortPpl(byG[0]).map(function(x){return memberLine(x[0],x[1]);}).join("")+'</div></div>';
+      var collapsed=hRostOpen[co]===false;
+      return '<div class="hrgroup'+(collapsed?" collapsed":"")+'" data-co="'+escA(co)+'"><button class="hrghead" data-act="rosttoggle" data-co="'+escA(co)+'"><span class="hrgttl">'+(co?esc(co):"Unassigned")+' <span class="hrgn">'+inco.length+'</span></span><span class="hrgchev">▾</span></button><div class="hrgbody">'+rows+'</div></div>'; }).join("");
+    return bar+'<div class="hrlist" id="hRosterList">'+(groups||'<div class="hrempty">No members yet — share your join code to get the crew in.</div>')+'<div class="hrempty" id="hRostNoHits" style="display:none">No members match your search.</div></div>'; }
+  function filterRoster(){ var list=document.getElementById("hRosterList"); if(!list)return; var q=(hRostQ||"").trim().toLowerCase();
+    list.classList.toggle("searching",!!q); var total=0;
+    [].forEach.call(list.querySelectorAll(".hrgroup"),function(grp){ var any=0;
+      [].forEach.call(grp.querySelectorAll(".hgrow"),function(row){
+        if(row.classList.contains("empty")){ row.style.display=q?"none":""; return; }   // hide blank group slots while searching
+        var ra=0; [].forEach.call(row.querySelectorAll(".hmline"),function(l){ var hit=!q||(l.getAttribute("data-s")||"").indexOf(q)>=0; l.style.display=hit?"":"none"; if(hit)ra++; });
+        row.style.display=(ra||!q)?"":"none"; if(ra)any++; });
+      grp.style.display=(any||!q)?"":"none"; total+=any; });
+    var nh=document.getElementById("hRostNoHits"); if(nh)nh.style.display=(q&&!total)?"":"none"; }
+  function hRequests(){ var pre=hReqPre||{}, typ=pre.type||"swap";
+    var open=HD.requests.filter(function(r){return r.status==="open"||r.status==="taken";});
+    open.sort(function(a,b){ var am=a.to===HS.m?0:1,bm=b.to===HS.m?0:1; if(am!==bm)return am-bm; return b.at-a.at; });   // directed-at-me first, newest first
+    var myIso=pre.myTour?isoLocal(pre.myTour.y,pre.myTour.m,pre.myTour.d):"", myT=pre.myTour?pre.myTour.t:9;
+    var wIso=pre.wantTour?isoLocal(pre.wantTour.y,pre.wantTour.m,pre.wantTour.d):"", wT=pre.wantTour?pre.wantTour.t:9;
+    var banner=(pre.toName||pre.ctxLbl)?'<div class="hctx">'+(pre.toName?'🔁 With <b>'+esc(pre.toName)+'</b>':'🤝 Your tour')+(pre.ctxLbl?' · '+esc(pre.ctxLbl):'')+'<button class="hclr" data-act="clrctx">✕</button></div>':'';
+    var myLbl=typ==="swap"?(pre.toName?"Your tour to give them":"Your tour to give"):"Your tour";
+    var out='<div class="hnewreq">'+banner+'<div class="setlbl">'+((pre.toName||pre.ctxLbl)?"Finish this request":"Post a request")+'</div>'+
+      '<div class="hrseg big" id="hReqType"><button data-rt="swap" class="'+(typ==="swap"?"on":"")+'">🔁 Swap</button><button data-rt="cover" class="'+(typ==="cover"?"on":"")+'">🤝 Cover</button><button data-rt="pickup" class="'+(typ==="pickup"?"on":"")+'">✋ Pick up</button></div>'+
+      '<div class="ldrow"><div class="vfield"><label>'+myLbl+'</label><input type="date" id="hReqDate" value="'+escA(myIso)+'"></div><div class="vfield"><label>&nbsp;</label><div class="hrseg" id="hReqTour"><button data-t="9" class="'+(myT===9?"on":"")+'">9×</button><button data-t="6" class="'+(myT===6?"on":"")+'">6×</button></div></div></div>'+
+      '<div id="hWantWrap" style="'+(typ==="swap"?"":"display:none")+'"><div class="ldrow"><div class="vfield"><label>Swap for</label><input type="date" id="hWantDate" value="'+escA(wIso)+'"></div><div class="vfield"><label>&nbsp;</label><div class="hrseg" id="hWantTour"><button data-t="9" class="'+(wT===9?"on":"")+'">9×</button><button data-t="6" class="'+(wT===6?"on":"")+'">6×</button></div></div></div></div>'+
       '<input class="cevin" id="hReqNote" placeholder="Note (optional)" style="margin-bottom:6px"><button class="raddbtn" data-act="newreq" style="width:100%">Post request</button></div>';
     out+='<div class="setlbl" style="margin-top:14px">Open requests</div>';
-    out+= open.length? open.map(function(r){var mine=r.by===HS.m,tookIt=r.takenBy===HS.m;
-      return '<div class="hreq"><div class="hreqtxt">'+reqLine(r)+(r.note?'<div class="hreqnote">'+esc(r.note)+'</div>':'')+(r.status==="taken"?'<div class="hreqst">✓ taken'+(tookIt?" by you":(r.takenBy?" by "+esc((HD.members[r.takenBy]&&HD.members[r.takenBy].name)||"someone"):""))+'</div>':'')+'</div>'+
-        '<div class="hreqact">'+(mine?'<button class="ldbtn" data-act="cancelreq" data-rid="'+r.id+'">Cancel</button>':(r.status==="open"?'<button class="raddbtn sm" data-act="take" data-rid="'+r.id+'">I’ll take it</button>':''))+((mine||tookIt)&&r.status==="taken"?'<button class="raddbtn sm" data-act="resolve" data-rid="'+r.id+'">Done ✓</button>':'')+'</div></div>'; }).join("") : '<div class="dempty">No open requests. Post one above.</div>';
+    out+= open.length? open.map(function(r){var mine=r.by===HS.m,tookIt=r.takenBy===HS.m,forMe=r.to===HS.m;
+      return '<div class="hreq'+(forMe?" forme":"")+'"><div class="hreqtxt">'+(forMe?'<span class="hreqfor">📩 for you</span> ':'')+reqLine(r)+(r.note?'<div class="hreqnote">'+esc(r.note)+'</div>':'')+(r.status==="taken"?'<div class="hreqst">✓ taken'+(tookIt?" by you":(r.takenBy?" by "+esc((HD.members[r.takenBy]&&HD.members[r.takenBy].name)||"someone"):""))+'</div>':'')+'</div>'+
+        '<div class="hreqact">'+(mine?'<button class="ldbtn" data-act="cancelreq" data-rid="'+r.id+'">Cancel</button>':(r.status==="open"?'<button class="raddbtn sm" data-act="take" data-rid="'+r.id+'">I’ll take it</button>':''))+((mine||tookIt)&&r.status==="taken"?'<button class="raddbtn sm" data-act="resolve" data-rid="'+r.id+'">Done ✓</button>':'')+'</div></div>'; }).join("") : '<div class="dempty">No open requests. Tap someone on the Day tab to start one.</div>';
     return out; }
   function hManage(){ var pend=memList("pending"), act=memList("active");
     var out='<div class="setlbl">Pending approvals</div>';
@@ -3247,6 +3345,7 @@ var TEN_CODES=[
   function readSeg(id){ var on=document.querySelector("#"+id+" button.on"); return on?on.getAttribute(on.hasAttribute("data-rt")?"data-rt":"data-t"):""; }
   function hAct(act,el){ var who=el.getAttribute("data-who"), rid=el.getAttribute("data-rid");
     if(act==="tab"){ hview=el.getAttribute("data-v"); hMsg=""; renderHouse(); return; }
+    if(act==="rosttoggle"){ var g=el.closest(".hrgroup"); if(g){ g.classList.toggle("collapsed"); hRostOpen[el.getAttribute("data-co")]=!g.classList.contains("collapsed"); } return; }
     if(act==="pday"){ var p=shiftDate(hVY,hVM,hVD,-1); hVY=p[0];hVM=p[1];hVD=p[2]; renderHouse(); return; }
     if(act==="nday"){ var n=shiftDate(hVY,hVM,hVD,1); hVY=n[0];hVM=n[1];hVD=n[2]; renderHouse(); return; }
     if(act==="today"){ hVY=now.getFullYear();hVM=now.getMonth();hVD=now.getDate(); renderHouse(); return; }
@@ -3266,18 +3365,27 @@ var TEN_CODES=[
     if(act==="abcdoff"){ hReloadThen(hOp({type:"abcdPush",abcd:null})); return; }
     if(act==="rotatecode"){ appConfirm("Generate a new join code? The current code stops working right away — you'll need to re-share the new one.","New code",function(){ hReloadThen(hOp({type:"rotateCode"})); }); return; }
     if(act==="postevent"){ appPrompt("Event name:","",function(t){ if(!t)return; appPrompt("Date (YYYY-MM-DD):",isoLocal(hVY,hVM,hVD),function(dt){ appPrompt("Note (optional):","",function(nt){ hReloadThen(hOp({type:"postEvent",ev:{title:t,dates:[(dt||"").trim()],note:nt||""}})); },"text"); },"text"); },"text"); return; }
-    if(act==="newreq"){ var type=readSeg("hReqType"),dv=(document.getElementById("hReqDate")||{}).value,tv=readSeg("hReqTour"),wv=(document.getElementById("hWantDate")||{}).value,wt=readSeg("hWantTour"),note=(document.getElementById("hReqNote")||{}).value;
+    if(act==="dayreq"){ var mid=el.getAttribute("data-mid"),dt=parseInt(el.getAttribute("data-t"),10),mm=HD.members[mid]; if(!mm)return; var tour={y:hVY,m:hVM,d:hVD,t:dt};
+      if(mid===HS.m) hReqPre={type:"cover",myTour:tour,ctxLbl:hDateLabel(hVY,hVM,hVD)+" "+tourKeyLbl(tour)};
+      else hReqPre={type:"swap",wantTour:tour,toId:mid,toName:mm.name||"",ctxLbl:hDateLabel(hVY,hVM,hVD)+" "+tourKeyLbl(tour)};
+      hview="requests"; hMsg=""; renderHouse(); return; }
+    if(act==="clrctx"){ hReqPre=null; renderHouse(); return; }
+    if(act==="pickup"){ hReqPre={type:"pickup"}; hview="requests"; hMsg=""; renderHouse(); return; }
+    if(act==="newreq"){ var pre=hReqPre||{}; var type=readSeg("hReqType"),dv=(document.getElementById("hReqDate")||{}).value,tv=readSeg("hReqTour"),wv=(document.getElementById("hWantDate")||{}).value,wt=readSeg("hWantTour"),note=(document.getElementById("hReqNote")||{}).value;
       function iso2tour(iso,t){ if(!isRealDate(iso))return null; var p=iso.split("-"); return {y:+p[0],m:+p[1]-1,d:+p[2],t:+t}; }
       var req={type:type,note:note}; if(type!=="pickup"){req.tour=iso2tour(dv,tv); if(!req.tour){hMsg="Pick your tour's date.";renderHouse();return;}} if(type==="swap"){req.want=iso2tour(wv,wt); if(!req.want){hMsg="Pick the tour to swap for.";renderHouse();return;}}
-      hReloadThen(hOp({type:"createRequest",req:req})); return; }
+      if(pre.toId&&type!=="pickup")req.to=pre.toId;
+      hReqPre=null; hReloadThen(hOp({type:"createRequest",req:req})); return; }
     if(act==="take"){ hReloadThen(hOp({type:"takeRequest",rid:rid})); return; }
     if(act==="cancelreq"){ hReloadThen(hOp({type:"cancelRequest",rid:rid})); return; }
     if(act==="resolve"){ appConfirm("Mark this swap/cover done? It'll be added to both calendars.","Done",function(){ hReloadThen(hOp({type:"resolveRequest",rid:rid})); }); return; }
   }
+  function openHouseOnDate(y,mm,dd){ if(!HS)return; hVY=y;hVM=mm;hVD=dd; hview="day"; hMsg=""; hReqPre=null; renderHouse(); openSheet(houseSheet); hGet().then(function(r){ if(r&&r.doc)renderHouse(); }); }
   document.getElementById("openHouse").onclick=function(){ hMsg=""; renderHouse(); openSheet(houseSheet); if(HS)hGet().then(function(r){ if(r&&r.doc)pushMyProfile().then(function(){renderHouse();}); else renderHouse(); }); };
   document.getElementById("houseDone").onclick=closeSheets;
   document.getElementById("houseBody").addEventListener("click",function(e){ var b=e.target.closest("[data-act]"); if(!b)return; if(b.tagName==="A")return; e.preventDefault(); hAct(b.getAttribute("data-act"),b); });
   document.getElementById("houseBody").addEventListener("click",function(e){ var seg=e.target.closest(".hrseg button"); if(!seg)return; var p=seg.parentNode; Array.prototype.forEach.call(p.querySelectorAll("button"),function(x){x.classList.toggle("on",x===seg);}); if(p.id==="hReqType"){var wr=document.getElementById("hWantWrap"); if(wr)wr.style.display=(seg.getAttribute("data-rt")==="swap")?"":"none";} });
+  document.getElementById("houseBody").addEventListener("input",function(e){ if(e.target.id==="hRosterSearch"){ hRostQ=e.target.value; filterRoster(); } });
 
   document.getElementById("openRef").onclick=function(){renderRef();openSheet(refSheet);};
   document.getElementById("refDone").onclick=closeSheets;

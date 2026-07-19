@@ -94,16 +94,25 @@ function sanDuty(arr) {
   }
   return out;
 }
+function sanOt(arr) {   // member's upcoming scheduled-OT (RSOT) tours, so the crew can see + swap them
+  if (!Array.isArray(arr)) return [];
+  var out = [];
+  for (var i = 0; i < arr.length && out.length < 120; i++) {
+    var o = arr[i]; if (!o) continue; var d = clip(o.d, 10), t = parseInt(o.t, 10);
+    if (/^\d{4}-\d\d?-\d\d?$/.test(d) && (t === 9 || t === 6)) out.push({ d: d, t: t });
+  }
+  return out;
+}
 function sanProfile(op) {
   return { name: clip(op.name, NAME_MAX), company: co(op.company), group: grpOK(op.group),
            letter: /^[ABCD]$/.test(op.letter) ? op.letter : "",
            phone: clip(op.phone, PHONE_MAX), spouse: clip(op.spouse, NAME_MAX),
-           spousePhone: clip(op.spousePhone, PHONE_MAX), duty: sanDuty(op.duty) };
+           spousePhone: clip(op.spousePhone, PHONE_MAX), duty: sanDuty(op.duty), ot: sanOt(op.ot) };
 }
 function newMember(op, role, status) {
   var p = sanProfile(op);
   return { name: p.name, company: p.company, group: p.group, letter: p.letter, phone: p.phone, spouse: p.spouse,
-           spousePhone: p.spousePhone, duty: p.duty, role: role, status: status, at: Date.now() };
+           spousePhone: p.spousePhone, duty: p.duty, ot: p.ot, role: role, status: status, at: Date.now() };
 }
 function newHouseDoc(id, code, m, op) {
   return { id: id, name: clip(op.house, NAME_MAX) || "Firehouse", code: code, founder: m, createdAt: Date.now(), ver: 1,
@@ -130,7 +139,7 @@ function applyOp(doc, op, m) {
   function foundGuard(who) { if (isFounder(doc, who) && who !== m) throw { code: 403, error: "founder-protected" }; }  // only the founder can demote/remove themselves
   if (t === "updateProfile") {
     var p = sanProfile(op);   // NOTE: company + group are admin-owned (set at join/approve) — not overwritten here
-    me.name = p.name; me.letter = p.letter; me.phone = p.phone; me.spouse = p.spouse; me.spousePhone = p.spousePhone; me.duty = p.duty;
+    me.name = p.name; me.letter = p.letter; me.phone = p.phone; me.spouse = p.spouse; me.spousePhone = p.spousePhone; me.duty = p.duty; me.ot = p.ot;
   } else if (t === "leave") {
     if (isAdmin(doc, m) && doc.admins.length <= 1) throw { code: 409, error: "last-admin" };  // promote someone first
     delete doc.members[m]; doc.admins = doc.admins.filter(function (a) { return a !== m; });
@@ -166,7 +175,8 @@ function applyOp(doc, op, m) {
     var term = doc.requests.filter(function (r) { return r.status !== "open" && r.status !== "taken"; }).sort(function (a, b) { return a.at - b.at; });
     if (term.length > TERMINAL_KEEP) term = term.slice(term.length - TERMINAL_KEEP);
     doc.requests = live.concat(term);
-    doc.requests.push({ id: rid(6), type: rq.type, by: m, tour: tr, want: wt, note: clip(rq.note, NOTE_MAX), status: "open", takenBy: "", at: Date.now() });
+    var toId = (rq.to && doc.members[rq.to] && rq.to !== m) ? rq.to : "";   // optional: directed at a specific member
+    doc.requests.push({ id: rid(6), type: rq.type, by: m, to: toId, tour: tr, want: wt, note: clip(rq.note, NOTE_MAX), status: "open", takenBy: "", at: Date.now() });
   } else if (t === "cancelRequest") {
     var rc = findReq(doc, op.rid); if (!rc) throw { code: 404, error: "no-req" };
     if (rc.by !== m && !isAdmin(doc, m)) throw { code: 403, error: "not-yours" };
