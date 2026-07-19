@@ -380,8 +380,9 @@
   .tour .grps .hitp{color:var(--amber-soft-ink); font-weight:900;}
   /* settings */
   .set h3{margin:2px 0 16px; font-size:18px; font-weight:800;}
-  .field{margin-bottom:16px;}
-  .field label{font-size:12px; font-weight:800; color:var(--ink2); display:block; margin-bottom:7px;}
+  .field{margin-bottom:13px;}
+  .field label{font-size:12px; font-weight:800; color:var(--ink2); display:block; margin-bottom:5px;}
+  #setSheet .field{margin-bottom:10px;}
   .stepper{display:flex; align-items:center; gap:0; border:1px solid var(--line); border-radius:12px; overflow:hidden; width:fit-content;}
   .stepper button{width:46px;height:44px;border:none;background:var(--panel2);color:var(--ink);font-size:22px;cursor:pointer;}
   .stepper button:active{background:var(--line);}
@@ -389,9 +390,9 @@
   .stepper .v small{font-size:11px;color:var(--mut);font-weight:700;}
   .set .done{width:100%; margin-top:8px; padding:14px; border:none; border-radius:13px; background:var(--red-fill); color:#fff; font-size:15px; font-weight:800; cursor:pointer;}
   /* grouped settings list */
-  .setsec{margin-top:16px;}
-  .setlbl{font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:.05em; color:var(--ink2); margin:0 3px 8px;}
-  .setgrps{border:1px solid var(--line); border-radius:14px; background:var(--panel2); padding:14px;}
+  .setsec{margin-top:12px;}
+  .setlbl{font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:.05em; color:var(--ink2); margin:0 3px 6px;}
+  .setgrps{border:1px solid var(--line); border-radius:14px; background:var(--panel2); padding:11px;}
   .setgrps .field:last-child{margin-bottom:0;}
   .setgrps2{display:flex; gap:12px;}
   .setgrps2 .field{flex:1; min-width:0; margin-bottom:0;}
@@ -408,7 +409,7 @@
   .thmseg button{flex:1; padding:11px 6px; border:none; border-radius:9px; background:transparent; color:var(--ink2); font-size:13px; font-weight:800; cursor:pointer; font-family:inherit;}
   .thmseg button.on{background:var(--red-fill); color:#fff;}
   .setlist{border:1px solid var(--line); border-radius:14px; background:var(--panel2); overflow:hidden;}
-  .setrow{width:100%; display:flex; align-items:center; gap:13px; padding:13px; border:none; background:transparent; cursor:pointer; font-family:inherit; text-align:left;}
+  .setrow{width:100%; display:flex; align-items:center; gap:13px; padding:10px 13px; border:none; background:transparent; cursor:pointer; font-family:inherit; text-align:left;}
   .setrow+.setrow{border-top:1px solid var(--line);}
   .setrow:active{background:var(--line);}
   .setico{flex:none; font-size:18px; width:22px; text-align:center;}
@@ -875,9 +876,8 @@
     <div class="field"><label>Full name</label><input class="cevin" id="setName" type="text" autocomplete="name" placeholder="First Last — shown to your crew" style="margin-bottom:0"></div>
     <div class="field"><label>Company / assignment</label><input class="cevin" id="setCo" type="text" autocomplete="off" placeholder="e.g. E295, L144, Squad 1" style="margin-bottom:0"></div>
     <div class="field"><label>Cell phone <span class="opt">(optional)</span></label><input class="cevin" id="setPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="Shown to your house crew" style="margin-bottom:0"></div>
-    <div class="field"><label>Your ABCD letter <span class="opt">(only used if your house is pushed to the ABCD chart)</span></label><select class="cevin" id="setLetter" style="margin-bottom:0"><option value="">— none</option><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select></div>
-    <div class="setgrps setgrps2" style="margin-bottom:6px"><div class="field" style="margin-bottom:0"><label>Spouse / emergency name <span class="opt">(optional)</span></label><input class="cevin" id="setSpouse" type="text" autocomplete="off" placeholder="Name" style="margin-bottom:0"></div><div class="field" style="margin-bottom:0"><label>Their phone</label><input class="cevin" id="setSphone" type="tel" inputmode="tel" autocomplete="off" placeholder="Phone" style="margin-bottom:0"></div></div>
-    <p class="rsub" style="margin:0 3px">Used when you join a <b>House Calendar</b> so your crew sees who's who. Contact info is visible to your house members.</p>
+    <div class="setgrps setgrps2" style="margin-bottom:5px"><div class="field" style="margin-bottom:0"><label>Spouse / emergency name <span class="opt">(optional)</span></label><input class="cevin" id="setSpouse" type="text" autocomplete="off" placeholder="Name" style="margin-bottom:0"></div><div class="field" style="margin-bottom:0"><label>Their phone</label><input class="cevin" id="setSphone" type="tel" inputmode="tel" autocomplete="off" placeholder="Phone" style="margin-bottom:0"></div></div>
+    <p class="rsub" style="margin:0 3px; line-height:1.4">Shown to your crew when you join a <b>House Calendar</b>.</p>
   </div>
   <div class="setsec">
     <div class="setlbl">🔔 Notifications</div>
@@ -896,6 +896,7 @@
         <button class="ptclear" id="ptClear" type="button">✕ No partner</button>
       </div>
     </div>
+    <div class="field" style="margin:9px 0 0"><label>Your ABCD letter <span class="opt">(only for house ABCD pushes)</span></label><select class="cevin" id="setLetter" style="margin-bottom:0"><option value="">— none</option><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select></div>
     <button class="setrow gcrow" id="openGroups"><span class="setico">🔄</span><span class="settx"><span class="settl">Group change</span><span class="setsub">Reassigned? Set the start date &amp; your new groups</span></span><span class="setchev">›</span></button>
     <button class="setrow gcrow" id="openAbcd"><span class="setico">🔤</span><span class="settx"><span class="settl">ABCD Chart</span><span class="setsub">Switch to letter tours — set the dates &amp; your letter</span></span><span class="setchev">›</span></button>
   </div>
