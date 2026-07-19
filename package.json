@@ -1,0 +1,9 @@
+{
+  "name": "square-root-calendar",
+  "version": "1.0.0",
+  "private": true,
+  "description": "FDNY firehouse tour calendar — static PWA + serverless api/*",
+  "dependencies": {
+    "web-push": "^3.6.7"
+  }
+}

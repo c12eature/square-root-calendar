@@ -45,6 +45,55 @@ function redis(cmd) {
   }).then(function (r) { if (!r.ok) throw new Error("redis " + r.status); return r.json(); })
     .then(function (j) { return j.result; });
 }
+// ---- Web Push (VAPID) ----
+// Public key is embedded in the client (safe); the PRIVATE key is env-only, never committed.
+// Subscriptions are stored in a PRIVATE per-member key (never in the house doc), so no member
+// can see another's push endpoint. web-push is lazy-required + no-ops without keys/dep, so the
+// backend still runs locally without the package or env set.
+var VAPID_PUBLIC = process.env.VAPID_PUBLIC || "";
+var VAPID_PRIVATE = process.env.VAPID_PRIVATE || "";
+var VAPID_SUBJECT = process.env.VAPID_SUBJECT || "mailto:support@nyfirestudyapp.com";
+var PUSH_PREFIX = "sqrtcal:push:";
+// Only these real push-service origins are accepted as subscription endpoints — blocks SSRF via a hostile endpoint.
+var PUSH_HOSTS = ["fcm.googleapis.com", "android.googleapis.com", "web.push.apple.com", "updates.push.services.mozilla.com"];
+var PUSH_SUFFIX = [".push.services.mozilla.com", ".notify.windows.com", ".push.apple.com"];
+function validPushEndpoint(u) {
+  if (typeof u !== "string" || u.length > 1000) return false;
+  var url; try { url = new URL(u); } catch (e) { return false; }
+  if (url.protocol !== "https:") return false;
+  var h = url.hostname.toLowerCase();
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(h) || h.indexOf(":") >= 0) return false;   // no IP-literal hosts
+  if (PUSH_HOSTS.indexOf(h) >= 0) return true;
+  for (var i = 0; i < PUSH_SUFFIX.length; i++) { var suf = PUSH_SUFFIX[i]; if (h.length > suf.length && h.slice(-suf.length) === suf) return true; }
+  return false;
+}
+var _wp = null, _wpTried = false;
+function webpush() {
+  if (_wpTried) return _wp; _wpTried = true;
+  if (!VAPID_PUBLIC || !VAPID_PRIVATE) return null;
+  try { _wp = require("web-push"); _wp.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE); } catch (e) { _wp = null; }
+  return _wp;
+}
+function sendPush(mid, payload) {
+  var wp = webpush(); if (!wp || !mid) return Promise.resolve();
+  return redis(["GET", PUSH_PREFIX + mid]).then(function (raw) {
+    if (!raw) return; var sub; try { sub = JSON.parse(raw); } catch (e) { return; }
+    return wp.sendNotification(sub, JSON.stringify(payload), { timeout: 3000 }).catch(function (err) {
+      if (err && (err.statusCode === 404 || err.statusCode === 410)) redis(["DEL", PUSH_PREFIX + mid]).catch(function () {});   // dead subscription → drop it
+    });
+  }).catch(function () {});
+}
+function nameOf(doc, id) { return (doc.members[id] && doc.members[id].name) || "A crewmember"; }
+function reqVerb(r) { return r.type === "swap" ? "wants to swap a tour with you" : r.type === "cover" ? "needs a tour covered" : "is looking to pick up a tour"; }
+// Which members to notify after a request op (directed/personal only — the open board uses in-app badges, no push spam).
+function notifyForOp(doc, op, actor) {
+  var t = op && op.type, out = [];
+  if (t === "createRequest") { var r = doc.requests[doc.requests.length - 1]; if (r && r.to) out.push({ to: r.to, title: "🔁 " + nameOf(doc, actor), body: nameOf(doc, actor) + " " + reqVerb(r) }); }
+  else if (t === "takeRequest") { var rt = findReq(doc, op.rid); if (rt && rt.by && rt.by !== actor) out.push({ to: rt.by, title: "✅ Someone took your request", body: nameOf(doc, actor) + " picked it up — open to confirm." }); }
+  else if (t === "resolveRequest" && !op.cancel) { var rr = findReq(doc, op.rid); if (rr) [rr.by, rr.takenBy].forEach(function (p) { if (p && p !== actor) out.push({ to: p, title: "✔️ Swap confirmed", body: "It's done and on both calendars." }); }); }   // notify both sides (covers a 3rd-party admin confirming)
+  else if (t === "declineRequest") { var rd = findReq(doc, op.rid); if (rd && rd.by && rd.by !== actor && op._toWas) out.push({ to: rd.by, title: "↩︎ " + nameOf(doc, op._toWas) + " passed", body: "Your request is now open to the whole house." }); }   // only if it was directed; name the person who was asked, not the actor
+  return out;
+}
 // atomic compare-and-set: SET key=newVal (EX TTL) only if it currently equals oldRaw. Returns 1 on success, 0 on conflict.
 var CAS_LUA = "if redis.call('get',KEYS[1])==ARGV[1] then redis.call('set',KEYS[1],ARGV[2],'EX',ARGV[3]); return 1 else return 0 end";
 function casSet(key, oldRaw, newVal) {
@@ -175,7 +224,7 @@ function applyOp(doc, op, m) {
     var term = doc.requests.filter(function (r) { return r.status !== "open" && r.status !== "taken"; }).sort(function (a, b) { return a.at - b.at; });
     if (term.length > TERMINAL_KEEP) term = term.slice(term.length - TERMINAL_KEEP);
     doc.requests = live.concat(term);
-    var toId = (rq.to && doc.members[rq.to] && rq.to !== m) ? rq.to : "";   // optional: directed at a specific member
+    var toId = (rq.to && doc.members[rq.to] && doc.members[rq.to].status === "active" && rq.to !== m) ? rq.to : "";   // optional: directed at a specific ACTIVE member
     doc.requests.push({ id: rid(6), type: rq.type, by: m, to: toId, tour: tr, want: wt, note: clip(rq.note, NOTE_MAX), status: "open", takenBy: "", at: Date.now() });
   } else if (t === "cancelRequest") {
     var rc = findReq(doc, op.rid); if (!rc) throw { code: 404, error: "no-req" };
@@ -186,7 +235,13 @@ function applyOp(doc, op, m) {
     var rt = findReq(doc, op.rid); if (!rt) throw { code: 404, error: "no-req" };
     if (rt.by === m) throw { code: 400, error: "own-req" };
     if (rt.status !== "open") throw { code: 409, error: "not-open" };
+    if (rt.to && rt.to !== m) throw { code: 403, error: "directed" };   // while aimed at someone, only they can accept (until they decline → released to the house)
     rt.takenBy = m; rt.status = "taken";
+  } else if (t === "declineRequest") {
+    var rdc = findReq(doc, op.rid); if (!rdc) throw { code: 404, error: "no-req" };
+    if (rdc.to !== m && !isAdmin(doc, m)) throw { code: 403, error: "not-for-you" };
+    if (rdc.status !== "open") throw { code: 409, error: "not-open" };
+    op._toWas = rdc.to; rdc.to = "";   // release to the open house board — anyone can take it now (_toWas lets notify name who was asked)
   } else if (t === "resolveRequest") {
     var rr = findReq(doc, op.rid); if (!rr) throw { code: 404, error: "no-req" };
     if (rr.by !== m && rr.takenBy !== m && !isAdmin(doc, m)) throw { code: 403, error: "not-involved" };
@@ -240,6 +295,19 @@ async function handler(req, res) {
     if (!body) { res.status(400).json({ error: "bad-body" }); return; }
     var m = clip(body.m, 64), s = String(body.s || "");
     if (!authOK(m, s)) { res.status(401).json({ error: "bad-auth" }); return; }   // prove you own this memberId
+
+    if (a === "savepush") {   // store this device's push subscription in a PRIVATE per-member key (never in the house doc)
+      var sub = body.sub, k = sub && sub.keys;
+      if (!validPushEndpoint(sub && sub.endpoint) || !k || typeof k.p256dh !== "string" || typeof k.auth !== "string" || k.p256dh.length > 200 || k.auth.length > 100) { res.status(400).json({ error: "bad-sub" }); return; }
+      var pRaw = await redis(["GET", HOUSE_PREFIX + clip(body.id, 64)]);   // only an ACTIVE member of the named house may store a subscription (no anonymous storage abuse)
+      var pDoc = pRaw ? (function () { try { return JSON.parse(pRaw); } catch (e) { return null; } })() : null;
+      if (!pDoc || !pDoc.members[m] || pDoc.members[m].status !== "active") { res.status(403).json({ error: "not-active" }); return; }
+      var clean = { endpoint: sub.endpoint, keys: { p256dh: k.p256dh, auth: k.auth } };   // rebuild a whitelisted, size-bounded object
+      await redis(["SET", PUSH_PREFIX + m, JSON.stringify(clean), "EX", String(TTL)]);
+      res.status(200).json({ ok: true });
+      return;
+    }
+    if (a === "clearpush") { await redis(["DEL", PUSH_PREFIX + m]); res.status(200).json({ ok: true }); return; }
 
     if (a === "create") {
       var code = code6(), tries = 0;
@@ -316,6 +384,15 @@ async function handler(req, res) {
     catch (e) { sendErr(res, e); return; }
     if (await casSet(HOUSE_PREFIX + pid, raw3, JSON.stringify(doc3))) {
       redis(["EXPIRE", CODE_PREFIX + doc3.code, String(TTL)]).catch(function () {});
+      var notes = notifyForOp(doc3, op, m);   // directed/personal push (open-board requests use in-app badges only)
+      if (notes.length) {
+        var sends = notes.map(function (n) {
+          return redis(["SET", PUSH_PREFIX + "rl:" + m + ":" + n.to, "1", "NX", "EX", "30"]).then(function (r) {   // one push per actor→target per 30s (anti notification-bomb; survives identity rotation)
+            if (r === null) return; return sendPush(n.to, { title: n.title, body: n.body, url: "/?house=1", tag: n.tag || "house" });
+          }).catch(function () {});
+        });
+        try { await Promise.race([Promise.all(sends), new Promise(function (rz) { setTimeout(rz, 4000); })]); } catch (e2) {}   // never let a slow endpoint stall the response
+      }
       res.status(200).json({ doc: doc3 });
       return;
     }
@@ -333,3 +410,4 @@ module.exports.applyOp = applyOp;
 module.exports.isAdmin = isAdmin;
 module.exports.sanProfile = sanProfile;
 module.exports.newMember = newMember;
+module.exports.notifyForOp = notifyForOp;
