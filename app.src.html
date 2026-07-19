@@ -709,6 +709,15 @@
   /* notification enable row */
   .hpushrow{display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:700; color:#166534; background:color-mix(in srgb,#22c55e 10%,var(--panel)); border:1px solid color-mix(in srgb,#22c55e 34%,var(--line)); border-radius:10px; padding:9px 11px; margin-bottom:10px;}
   .hpxbtn{margin-left:auto; border:none; background:transparent; color:var(--mut); font-family:inherit; font-size:11.5px; font-weight:800; cursor:pointer;}
+  .hprefs{display:flex; flex-direction:column; gap:1px; border:1px solid var(--line); border-radius:12px; overflow:hidden; margin-bottom:11px; background:var(--panel2);}
+  .hprefrow{display:flex; align-items:center; gap:12px; width:100%; padding:11px 13px; border:none; border-top:1px solid var(--line2); background:transparent; color:var(--ink); font-family:inherit; text-align:left; cursor:pointer;}
+  .hprefrow:first-child{border-top:none;}
+  .hprefl{flex:1; min-width:0; font-size:13.5px; font-weight:800; display:flex; flex-direction:column; gap:2px;}
+  .hprefsub{font-size:11px; font-weight:600; color:var(--mut);}
+  .htgl{flex:none; width:40px; height:23px; border-radius:23px; background:var(--line); position:relative; transition:background .15s;}
+  .htgl.on{background:var(--accent);}
+  .htglk{position:absolute; top:2px; left:2px; width:19px; height:19px; border-radius:50%; background:#fff; transition:left .15s; box-shadow:0 1px 3px rgba(0,0,0,.3);}
+  .htgl.on .htglk{left:19px;}
   .raddbtn.ghost{background:var(--panel2); color:var(--accent); border:1px solid color-mix(in srgb,var(--accent) 30%,var(--line));}
   .hoffrow{font-size:11.5px; color:var(--mut); margin-top:7px; padding-top:7px; border-top:1px dashed var(--line); line-height:1.5;}
   .hoffrow.warn{color:#b45309;}
@@ -3194,6 +3203,7 @@ var TEN_CODES=[
   var hqapplied=load("hqapplied",{});   // request ids already applied to my personal calendar
   var hseen=load("hseen",{});           // request ids I've already seen (drives the unread badge)
   var hpushOn=load("hpush",false);      // web-push enabled on this device
+  var hpushPrefs=load("hpushprefs",{personal:true,general:false,tours:true});   // per-category notification toggles
   var VAPID_PUB="BDcPsixcRRapSmss7LoUwIWsTKyeUtk4jLBzyOJMSgsD5cT0zq2qC1d1uzuTm48O7BOFE7DHXe09Kfr6e-08DUc";   // public VAPID key (safe to embed); private key is server env only
   var hview="day", hVY=now.getFullYear(), hVM=now.getMonth(), hVD=now.getDate(), hMsg="", hRostOpen={}, hRostQ="", hReqPre=null;
   function houseUnread(){ if(!HD||!HS)return {n:0,forme:0}; var n=0,fm=0; (HD.requests||[]).forEach(function(r){ if(r.status!=="open"||r.by===HS.m||hseen[r.id])return; n++; if(r.to===HS.m)fm++; }); return {n:n,forme:fm}; }
@@ -3263,7 +3273,7 @@ var TEN_CODES=[
   function enablePush(){ if(!HS||!pushSupported()){ appConfirm(pushSupported()?"Join a house first.":"This device can't do notifications. On iPhone, add the app to your Home Screen first, then try again.","OK",function(){}); return; }
     Notification.requestPermission().then(function(perm){ if(perm!=="granted"){ appConfirm("Notifications are turned off. Enable them for this site in your browser/phone settings, then try again.","OK",function(){}); return; }
       navigator.serviceWorker.ready.then(function(reg){ return reg.pushManager.getSubscription().then(function(sub){ return sub||reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlB64ToU8(VAPID_PUB)}); }); })
-        .then(function(sub){ return hFetch("POST","?a=savepush",{id:HS.id,m:HS.m,s:HS.s,sub:(sub.toJSON?sub.toJSON():sub)}); })
+        .then(function(sub){ return hFetch("POST","?a=savepush",{id:HS.id,m:HS.m,s:HS.s,sub:(sub.toJSON?sub.toJSON():sub),prefs:hpushPrefs}); })
         .then(function(r){ if(r&&r.status===200){ hpushOn=true; save("hpush",true); renderHouse(); } else { appConfirm("Couldn't turn on notifications right now — try again in a bit.","OK",function(){}); } })
         .catch(function(){ appConfirm("Couldn't set up notifications on this device.","OK",function(){}); });
     }).catch(function(){ appConfirm("Couldn't request notification permission.","OK",function(){}); }); }
@@ -3342,8 +3352,14 @@ var TEN_CODES=[
     var nh=document.getElementById("hRostNoHits"); if(nh)nh.style.display=(q&&!total)?"":"none"; }
   function pushSupported(){ return ("Notification" in window) && ("serviceWorker" in navigator) && ("PushManager" in window); }
   function pushRow(){ if(!pushSupported())return '';
-    if(hpushOn) return '<div class="hpushrow on">🔔 Notifications are on for this device <button class="hpxbtn" data-act="pushoff">Turn off</button></div>';
-    return '<button class="raddbtn ghost" data-act="pushon" style="width:100%;margin-bottom:10px">🔔 Turn on notifications for requests</button>'; }
+    if(!hpushOn) return '<button class="raddbtn ghost" data-act="pushon" style="width:100%;margin-bottom:10px">🔔 Turn on push notifications</button>';
+    var tog=function(k,lbl,sub){ return '<button class="hprefrow" data-act="pref" data-k="'+k+'"><span class="hprefl">'+lbl+'<span class="hprefsub">'+sub+'</span></span><span class="htgl'+(hpushPrefs[k]?" on":"")+'"><span class="htglk"></span></span></button>'; };
+    return '<div class="hpushrow on">🔔 Push notifications on <button class="hpxbtn" data-act="pushoff">Turn off</button></div>'+
+      '<div class="hprefs">'+
+      tog("personal","Personal requests","when someone picks you for a swap/cover")+
+      tog("general","General requests","any open tour posted to the house")+
+      tog("tours","Tour reminders","before each tour you're scheduled to work")+
+      '</div>'; }
   function reqCard(r){ var mine=r.by===HS.m,tookIt=r.takenBy===HS.m,forMe=(r.to===HS.m&&r.status==="open");
     var acts='';
     if(mine)acts+='<button class="ldbtn sm" data-act="cancelreq" data-rid="'+r.id+'">Cancel</button>';
@@ -3424,6 +3440,7 @@ var TEN_CODES=[
     if(act==="resolve"){ appConfirm("Mark this swap/cover done? It'll be added to both calendars.","Done",function(){ hReloadThen(hOp({type:"resolveRequest",rid:rid})); }); return; }
     if(act==="pushon"){ enablePush(); return; }
     if(act==="pushoff"){ disablePush(); return; }
+    if(act==="pref"){ var k=el.getAttribute("data-k"); hpushPrefs[k]=!hpushPrefs[k]; save("hpushprefs",hpushPrefs); if(HS)hFetch("POST","?a=setprefs",{m:HS.m,s:HS.s,prefs:hpushPrefs}).catch(function(){}); renderHouse(); return; }
   }
   function openHouseOnDate(y,mm,dd){ if(!HS)return; hVY=y;hVM=mm;hVD=dd; hview="day"; hMsg=""; hReqPre=null; renderHouse(); openSheet(houseSheet); hGet().then(function(r){ if(r&&r.doc)renderHouse(); }); }
   document.getElementById("openHouse").onclick=function(){ hMsg=""; renderHouse(); openSheet(houseSheet); if(HS)hGet().then(function(r){ if(r&&r.doc)pushMyProfile().then(function(){renderHouse();}); else renderHouse(); }); };

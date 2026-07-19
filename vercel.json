@@ -1,4 +1,8 @@
 {
+  "crons": [
+    { "path": "/api/house?a=tourcron&tour=9", "schedule": "0 12 * * *" },
+    { "path": "/api/house?a=tourcron&tour=6", "schedule": "0 21 * * *" }
+  ],
   "headers": [
     {
       "source": "/sw.js",
