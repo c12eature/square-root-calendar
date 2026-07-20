@@ -9,10 +9,10 @@
 >
 > ### To bring the app back
 > 1. `python3 build.py`  → regenerates the real `index.html` from `app.src.html`.
-> 2. Restore the real caching service worker and bump its version:
->    `git show HEAD~1:sw.js > sw.js` (grab the pre-kill v8), then bump `CACHE` to `sqrtcal-v9` in `sw.js`.
->    *(Adjust `HEAD~1` if other commits landed since the kill switch — it's the last commit whose `sw.js` starts with `var CACHE =`.)*
+> 2. Restore the real service worker: **`cp sw.real.js sw.js`**
+>    (`sw.real.js` is the caching **+ Web Push** worker, already at `CACHE = sqrtcal-v9`; bump `CACHE` only if you changed cached assets since. Do **not** `git show HEAD~1:sw.js` — that history now points at the kill-switch SW, which has no push handler and self-unregisters.)
 > 3. Commit + push → Vercel redeploys the real app. Returning users re-register the fresh SW on next online visit.
+> 4. **House Calendar (multi-user) also needs, in the Vercel env:** `HOUSE_ENABLED=1`, `CRON_SECRET`, and `VAPID_PUBLIC` / `VAPID_PRIVATE` (the private key is **not** in the repo — it lives in the local `scratchpad/vapid.txt`). Without these, `/api/house` stays 503 and tour/swap Web Push is off.
 
 Free firehouse tour-tracking calendar. Single self-contained page, works fully offline,
 stores everything in the browser (`localStorage`, `sqrt:*` keys). Target URL: **calendar.nyfirestudyapp.com**.

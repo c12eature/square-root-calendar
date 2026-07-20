@@ -1,0 +1,11 @@
+# Source & build-only files — never serve these publicly (the built index.html is what ships).
+# NOTE: do NOT add boxdata.js here — the built index.html references /boxdata.js at runtime.
+app.src.html
+build.py
+sw.real.js
+_preview.html
+app.src.html.bak
+README.md
+package.json
+package-lock.json
+scratchpad/

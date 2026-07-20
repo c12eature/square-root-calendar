@@ -51,12 +51,26 @@ function memberOffOn(mem, t) { var ds = mem.duty || []; for (var i = 0; i < ds.l
 function memberWorksTour(doc, mem, y, m, d, tour) {   // mirrors the client memberWorks + memberRSOT − memberOff
   var t = Date.UTC(y, m, d);
   if (memberOffOn(mem, t)) return false;
+  var iso = y + "-" + (m + 1 < 10 ? "0" : "") + (m + 1) + "-" + (d < 10 ? "0" : "") + d, ot = mem.ot || [];
+  for (var i = 0; i < ot.length; i++) if (ot[i].t === tour && ot[i].d === iso) return true;   // RSOT pickup counts on ANY chart (mirrors the client's independent memberRSOT, incl. during an ABCD window)
   if (houseAbcdOn(doc, t)) return !!(mem.letter && abcdLetter(y, m, d) === mem.letter);
   if (mem.group && hasGrp(tour === 9 ? dayStart(y, m, d) : nightStart(y, m, d), mem.group)) return true;
-  var iso = y + "-" + (m + 1 < 10 ? "0" : "") + (m + 1) + "-" + (d < 10 ? "0" : "") + d, ot = mem.ot || [];
-  for (var i = 0; i < ot.length; i++) if (ot[i].t === tour && ot[i].d === iso) return true;   // RSOT pickup
   return false;
 }
+function isoOf(t) { return t.y + "-" + (t.m + 1 < 10 ? "0" : "") + (t.m + 1) + "-" + (t.d < 10 ? "0" : "") + t.d; }
+function hasRSOT(mem, tour) {   // does this member hold an RSOT (scheduled OT) on this exact tour? tour = {y,m,d,t}
+  if (!mem || !tour) return false;
+  var iso = isoOf(tour), ot = mem.ot || [];
+  for (var i = 0; i < ot.length; i++) if (ot[i].t === tour.t && ot[i].d === iso) return true;
+  return false;
+}
+// FDNY rule: an RSOT (overtime) tour may only be swapped for another RSOT — never a regular tour.
+// A swap is valid only when BOTH sides are RSOT, or BOTH sides are non-RSOT.
+function rsotSwapOK(giver, giveTour, taker, wantTour) { return hasRSOT(giver, giveTour) === hasRSOT(taker, wantTour); }
+// give side of a swap = the RSOT status the poster stamped at create time (unbounded, not the ±130d .ot window); falls back to the live .ot for legacy requests
+function giveSideRsot(doc, req) { return (typeof req.giveRsot === "boolean") ? req.giveRsot : hasRSOT(doc.members[req.by], req.tour); }
+// when a member leaves/is removed, retire the requests they authored or took so no request references a non-member
+function cancelMemberReqs(doc, who) { (doc.requests || []).forEach(function (r) { if ((r.by === who || r.takenBy === who) && (r.status === "open" || r.status === "taken")) { r.status = "cancelled"; r.takenBy = ""; } }); }
 function etParts() {   // current wall-clock date + hour in America/New_York (DST handled by Intl)
   var f = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", hour12: false });
   var p = {}; f.formatToParts(new Date()).forEach(function (x) { p[x.type] = x.value; });
@@ -65,6 +79,7 @@ function etParts() {   // current wall-clock date + hour in America/New_York (DS
 var RL_PREFIX = "sqrtcal:hrl:";
 var RL_WINDOW = 60, RL_MAX = 150;        // requests / IP / minute (clients poll + mutate)
 var MAX_MEMBERS = 400, MAX_PENDING = 30, MAX_CO = 24, MAX_EVENTS = 300, MAX_REQ = 500, TERMINAL_KEEP = 100, MAX_BANNED = 500;
+var MAX_CRON_HOUSES = 5000, MAX_CREATE_PER_DAY = 20;   // bound cron per-run cost; cap house creation per IP/day (anti-abuse)
 var NAME_MAX = 60, CO_MAX = 24, PHONE_MAX = 40, DUTY_MAX = 24, NOTE_MAX = 240, EV_DATES_MAX = 60;
 
 function redis(cmd) {
@@ -222,14 +237,15 @@ function ban(doc, who) { doc.banned = doc.banned || []; if (who && doc.banned.in
 // in the handler (needs Redis), not here.
 function applyOp(doc, op, m) {
   var t = op && op.type, me = doc.members[m];
+  if (op && op.who != null && !validId(op.who)) throw { code: 400, error: "bad-who" };   // never index doc.members with a non-memberId (blocks "__proto__"/"constructor" prototype pollution)
   function admin() { if (!isAdmin(doc, m)) throw { code: 403, error: "admins-only" }; }
-  function foundGuard(who) { if (isFounder(doc, who) && who !== m) throw { code: 403, error: "founder-protected" }; }  // only the founder can demote/remove themselves
+  function foundGuard(who) { if (isFounder(doc, who) && isAdmin(doc, who) && who !== m) throw { code: 403, error: "founder-protected" }; }  // protect the founder only while they still hold admin (a rejoined/self-demoted founder is a plain, removable member)
   if (t === "updateProfile") {
     var p = sanProfile(op);   // NOTE: company + group are admin-owned (set at join/approve) — not overwritten here
     me.name = p.name; me.letter = p.letter; me.phone = p.phone; me.spouse = p.spouse; me.spousePhone = p.spousePhone; me.duty = p.duty; me.ot = p.ot;
   } else if (t === "leave") {
     if (isAdmin(doc, m) && doc.admins.length <= 1) throw { code: 409, error: "last-admin" };  // promote someone first
-    delete doc.members[m]; doc.admins = doc.admins.filter(function (a) { return a !== m; });
+    delete doc.members[m]; doc.admins = doc.admins.filter(function (a) { return a !== m; }); cancelMemberReqs(doc, m);
   } else if (t === "approve") {
     admin(); var w = doc.members[op.who]; if (!w) throw { code: 404, error: "no-such-member" };
     w.status = "active"; if (op.company != null) w.company = co(op.company); var g = grpOK(op.group); if (g) w.group = g;
@@ -238,7 +254,7 @@ function applyOp(doc, op, m) {
     foundGuard(op.who);
     if (!doc.members[op.who]) throw { code: 404, error: "no-such-member" };
     ban(doc, op.who);   // removed/rejected members can't silently re-join with the same identity
-    delete doc.members[op.who]; doc.admins = doc.admins.filter(function (a) { return a !== op.who; });
+    delete doc.members[op.who]; doc.admins = doc.admins.filter(function (a) { return a !== op.who; }); cancelMemberReqs(doc, op.who);
   } else if (t === "promote") {
     admin(); var pm = doc.members[op.who]; if (!pm || pm.status !== "active") throw { code: 400, error: "not-active" };
     if (doc.admins.indexOf(op.who) < 0) doc.admins.push(op.who); pm.role = "admin";
@@ -263,7 +279,9 @@ function applyOp(doc, op, m) {
     if (term.length > TERMINAL_KEEP) term = term.slice(term.length - TERMINAL_KEEP);
     doc.requests = live.concat(term);
     var toId = (rq.to && doc.members[rq.to] && doc.members[rq.to].status === "active" && rq.to !== m) ? rq.to : "";   // optional: directed at a specific ACTIVE member
-    doc.requests.push({ id: rid(6), type: rq.type, by: m, to: toId, tour: tr, want: wt, note: clip(rq.note, NOTE_MAX), status: "open", takenBy: "", at: Date.now() });
+    var gRsot = (typeof rq.giveRsot === "boolean") ? rq.giveRsot : hasRSOT(doc.members[m], tr);   // stamp: the poster's own RSOT status, computed from their full calendar (not the ±130d sync window)
+    if (rq.type === "swap" && toId && gRsot !== hasRSOT(doc.members[toId], wt)) throw { code: 400, error: "rsot-mismatch" };   // RSOT swaps only trade against another RSOT
+    doc.requests.push({ id: rid(6), type: rq.type, by: m, to: toId, tour: tr, want: wt, giveRsot: (rq.type === "swap" ? gRsot : false), note: clip(rq.note, NOTE_MAX), status: "open", takenBy: "", at: Date.now() });
   } else if (t === "cancelRequest") {
     var rc = findReq(doc, op.rid); if (!rc) throw { code: 404, error: "no-req" };
     if (rc.by !== m && !isAdmin(doc, m)) throw { code: 403, error: "not-yours" };
@@ -274,7 +292,12 @@ function applyOp(doc, op, m) {
     if (rt.by === m) throw { code: 400, error: "own-req" };
     if (rt.status !== "open") throw { code: 409, error: "not-open" };
     if (rt.to && rt.to !== m) throw { code: 403, error: "directed" };   // while aimed at someone, only they can accept (until they decline → released to the house)
+    if (rt.type === "swap" && giveSideRsot(doc, rt) !== hasRSOT(doc.members[m], rt.want)) throw { code: 400, error: "rsot-mismatch" };   // taker can only fulfill an RSOT swap with their own RSOT (and vice versa)
     rt.takenBy = m; rt.status = "taken";
+    if (rt.tour) doc.requests.forEach(function (r) {   // a give-tour can be committed only once: retire the poster's OTHER open requests that give away this same tour (the multi-"want" alternatives)
+      if (r !== rt && r.by === rt.by && r.status === "open" && r.tour &&
+          r.tour.y === rt.tour.y && r.tour.m === rt.tour.m && r.tour.d === rt.tour.d && r.tour.t === rt.tour.t) { r.status = "cancelled"; r.takenBy = ""; }
+    });
   } else if (t === "declineRequest") {
     var rdc = findReq(doc, op.rid); if (!rdc) throw { code: 404, error: "no-req" };
     if (rdc.to !== m && !isAdmin(doc, m)) throw { code: 403, error: "not-for-you" };
@@ -320,7 +343,7 @@ async function handler(req, res) {
       var et = etParts();
       var tour = (q.tour === "9" || q.tour === "6") ? parseInt(q.tour, 10) : (et.hour >= 16 ? 6 : 9);   // explicit, else infer (evening→night tour)
       var ids = (await redis(["SMEMBERS", HOUSES_SET])) || [], sends = [], reminded = 0, checked = 0;
-      for (var ci = 0; ci < ids.length; ci++) {
+      for (var ci = 0; ci < ids.length && ci < MAX_CRON_HOUSES; ci++) {   // bound per-run cost so the cron can't exceed the function timeout as the registry grows
         var hraw = await redis(["GET", HOUSE_PREFIX + ids[ci]]);
         if (!hraw) { redis(["SREM", HOUSES_SET, ids[ci]]).catch(function () {}); continue; }   // expired house → deregister
         var hdoc; try { hdoc = JSON.parse(hraw); } catch (e) { continue; }
@@ -338,8 +361,8 @@ async function handler(req, res) {
     }
 
     if (req.method === "GET") {
-      // credentials ride in headers (X-House-M / X-House-S), NOT the URL, so they don't land in access logs.
-      var gid = clip(q.id, 64), gm = clip(H["x-house-m"] || q.m, 64), gs = String(H["x-house-s"] || q.s || "");
+      // credentials ride in headers (X-House-M / X-House-S) ONLY, NEVER the URL, so the secret never lands in access logs / history / Referer.
+      var gid = clip(q.id, 64), gm = clip(H["x-house-m"], 64), gs = String(H["x-house-s"] || "");
       if (!authOK(gm, gs)) { res.status(401).json({ error: "bad-auth" }); return; }
       var raw = await redis(["GET", HOUSE_PREFIX + gid]);
       if (!raw) { res.status(404).json({ error: "not-found" }); return; }
@@ -376,6 +399,10 @@ async function handler(req, res) {
     if (a === "clearpush") { await redis(["DEL", PUSH_PREFIX + m]); res.status(200).json({ ok: true }); return; }
 
     if (a === "create") {
+      var ipk = "sqrtcal:hcreate:" + clientIp(req);   // cap house creation per IP/day so one source can't flood the registry
+      var nCreated = await redis(["INCR", ipk]);
+      if (nCreated === 1) redis(["EXPIRE", ipk, "86400"]).catch(function () {});
+      if (nCreated > MAX_CREATE_PER_DAY) { res.status(429).json({ error: "create-limit" }); return; }
       var code = code6(), tries = 0;
       while ((await redis(["SET", CODE_PREFIX + code, "0", "NX", "EX", "60"]) === null) && tries++ < 6) code = code6();   // reserve the code atomically
       var id = rid(12), ndoc = newHouseDoc(id, code, m, body);

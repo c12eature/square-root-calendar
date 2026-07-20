@@ -1,4 +1,7 @@
 {
+  "functions": {
+    "api/house.js": { "maxDuration": 60 }
+  },
   "crons": [
     { "path": "/api/house?a=tourcron&tour=9", "schedule": "0 12 * * *" },
     { "path": "/api/house?a=tourcron&tour=6", "schedule": "0 21 * * *" }

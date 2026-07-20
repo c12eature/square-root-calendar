@@ -5,6 +5,7 @@
     --mut:#736a5b; --line:#e7e0d3; --line2:#efe9dd;
     --red:#d21f2d; --red-fill:#d21f2d; --red-ink:#fff; --red-soft:#f8e3e1; --red-soft-ink:#a51b25; --red-ring:#e4404c;
     --amber:#e0930f; --amber-soft:#f7ecd2; --amber-soft-ink:#8a5c07; --cyan:#0e7490; --orange:#c2410c; --blue:#2563eb; --violet:#6d4ae0; --teal:#0f766e;
+    --accent:var(--amber);   /* app-wide primary accent (follows --amber per theme; var() resolves lazily at use) */
     --off:#efeadf; --off-ink:#6d6455;
     --pay:#1e9e5a; --wknd:#f0ebe0;
     --shadow:0 1px 2px rgba(30,20,10,.05),0 8px 30px rgba(30,20,10,.06);
@@ -532,6 +533,38 @@
   .botbar{display:flex; align-items:center; justify-content:space-between; gap:10px; margin:9px 4px 0;}
   .keybtn{flex:none; display:inline-flex; align-items:center; gap:5px; padding:7px 13px; border:1px solid var(--line); border-radius:99px; background:var(--panel); color:var(--ink2); font-size:12px; font-weight:800; cursor:pointer; font-family:inherit;}
   .keybtn:active{background:var(--line);}
+  /* long-press swap/cover request builder */
+  /* cyan inset ring (clip-safe under .chalf overflow:hidden; pops against red/amber pills) — give pulses, want is static */
+  .chalf.reqgive{border-radius:8px; background:color-mix(in srgb,var(--cyan) 16%,transparent); box-shadow:inset 0 0 0 2.5px var(--cyan); animation:reqpulse 1.15s ease-in-out infinite;}
+  .chalf.reqwant{border-radius:8px; background:color-mix(in srgb,var(--cyan) 11%,transparent); box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--cyan) 80%,transparent);}
+  @keyframes reqpulse{0%,100%{box-shadow:inset 0 0 0 2.5px var(--cyan);}50%{box-shadow:inset 0 0 0 2.5px color-mix(in srgb,var(--cyan) 38%,transparent);}}
+  @media (prefers-reduced-motion:reduce){.chalf.reqgive{animation:none;}}
+  .reqbar{position:fixed; left:50%; bottom:calc(12px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%) translateY(150%); z-index:58; width:min(94vw,460px); background:var(--panel); border:1px solid var(--line); border-radius:16px; box-shadow:0 14px 44px rgba(0,0,0,.42); padding:11px 13px; transition:transform .22s cubic-bezier(.2,.8,.2,1); display:flex; flex-direction:column; gap:9px;}
+  .reqbar.show{transform:translateX(-50%) translateY(0);}
+  .reqbarmsg{font-size:12.5px; font-weight:700; color:var(--ink); line-height:1.45;} .reqbarmsg b{color:var(--accent);}
+  .reqrsot{display:inline-block; font-size:9px; font-weight:900; letter-spacing:.04em; color:#fff; background:var(--blue); border-radius:5px; padding:1px 5px; vertical-align:1px; margin-left:3px;}
+  /* swap-partner picker (pick a crewmate to ask, or post open) */
+  .swpick{position:fixed; inset:0; z-index:60; display:flex; align-items:flex-end; justify-content:center; background:var(--sheet); opacity:0; visibility:hidden; transition:opacity .18s, visibility .18s;}
+  .swpick.show{opacity:1; visibility:visible;}
+  .swpickcard{width:min(100%,480px); max-height:82dvh; display:flex; flex-direction:column; background:var(--panel); border:1px solid var(--line); border-radius:20px 20px 0 0; box-shadow:0 -8px 40px rgba(0,0,0,.4); transform:translateY(100%); transition:transform .24s cubic-bezier(.2,.8,.2,1); padding:14px 14px calc(14px + env(safe-area-inset-bottom,0px));}
+  .swpick.show .swpickcard{transform:translateY(0);}
+  .swpickhd{display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:15px; font-weight:800; color:var(--ink); margin-bottom:10px;} .swpickhd b{color:var(--accent);}
+  .swpickclose{width:30px; height:30px; border-radius:8px; border:1px solid var(--line); background:var(--panel2); color:var(--ink2); font-size:13px; cursor:pointer; flex:none;}
+  .swpickbody{overflow-y:auto; -webkit-overflow-scrolling:touch; display:flex; flex-direction:column; gap:8px; margin-bottom:10px;}
+  .swpicklbl{font-size:11px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; color:var(--mut); margin:4px 2px 0;}
+  .swpickrow{display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; text-align:left; background:var(--panel2); border:1px solid var(--line); border-radius:12px; padding:11px 12px; font-family:inherit; color:var(--ink); cursor:pointer; transition:transform .08s;}
+  .swpickrow:active{transform:scale(.98);}
+  .swpickwho{display:flex; flex-direction:column; gap:1px; min-width:0;} .swpickwho .swpickname{font-size:14px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;} .swpicksub{font-size:11.5px; font-weight:600; color:var(--mut);}
+  .swpickgo{font-size:12px; font-weight:800; color:var(--accent); white-space:nowrap; flex:none;}
+  .swpicknone{font-size:12.5px; color:var(--mut); padding:4px 2px 2px; line-height:1.4;}
+  .swpickopen{width:100%; padding:12px; border-radius:12px; border:1px solid color-mix(in srgb,var(--accent) 34%,var(--line)); background:color-mix(in srgb,var(--accent) 12%,var(--panel)); color:var(--accent); font-family:inherit; font-size:14px; font-weight:800; cursor:pointer; flex:none;}
+  .reqbarsub{font-weight:600; color:var(--mut);}
+  .reqbaracts{display:flex; gap:8px;}
+  .reqbaracts button{flex:1; padding:11px 8px; border:1px solid var(--line); border-radius:11px; background:var(--panel2); color:var(--ink); font-family:inherit; font-size:13px; font-weight:800; cursor:pointer;}
+  .reqbaracts button.rcover{color:var(--accent); border-color:color-mix(in srgb,var(--accent) 34%,var(--line));}
+  .reqbaracts button.rswap{background:var(--accent); color:#fff; border-color:var(--accent);}
+  .reqbaracts button:disabled{opacity:.45;}
+  .reqbaracts button.reqx{flex:none; width:44px; color:var(--mut);}
   /* dot-key popup — floats centered over the calendar */
   .lgpop{position:fixed; left:50%; top:50%; transform:translate(-50%,-50%) scale(.96); z-index:55; width:min(92vw,420px); max-height:84dvh; display:flex; flex-direction:column;
     background:var(--panel); border:1px solid var(--line); border-radius:20px; box-shadow:0 24px 70px rgba(0,0,0,.45); opacity:0; visibility:hidden; transition:opacity .18s, transform .18s, visibility .18s;}
@@ -856,6 +889,22 @@
   </div>
 
   <div class="tapnote">Free calendar app from <a href="https://nyfirestudyapp.com" target="_blank" rel="noopener">NYFireStudyApp.com</a></div>
+</div>
+<div class="reqbar" id="reqbar">
+  <div class="reqbarmsg" id="reqbarMsg"></div>
+  <div class="reqbaracts">
+    <button class="rcover" data-ra="cover">🤝 Get covered</button>
+    <button class="rswap" data-ra="swap">🔁 Swap</button>
+    <button class="reqx" data-ra="cancel" aria-label="Cancel">✕</button>
+  </div>
+</div>
+
+<div class="swpick" id="swpick" role="dialog" aria-modal="true">
+  <div class="swpickcard">
+    <div class="swpickhd"><span id="swpickTitle">Swap</span><button class="swpickclose" data-swp="cancel" aria-label="Close">✕</button></div>
+    <div class="swpickbody" id="swpickBody"></div>
+    <button class="swpickopen" data-swp="open">📢 Post to the whole house</button>
+  </div>
 </div>
 
 <div class="scrim" id="scrim"></div>
@@ -1499,14 +1548,14 @@
     if(o==="sin")return "smxin"; if(o==="sout")return "smxout";
     if(o==="comp")return "comp";
     return "base";}
-  function setState(y,m,d,tour,st){var k=K(y,m,d,tour);delete ov[k];delete ot[k];
+  function setState(y,m,d,tour,st,quiet){var k=K(y,m,d,tour);delete ov[k];delete ot[k];
     if(st==="mxin")ov[k]="in";else if(st==="mxout")ov[k]="out";
     else if(st==="pmxin")ov[k]="pin";else if(st==="pmxout")ov[k]="pout";
     else if(st==="smxin")ov[k]="sin";else if(st==="smxout")ov[k]="sout";
     else if(st==="comp")ov[k]="comp";
     else if(st==="ot")ot[k]="m";else if(st==="rsot")ot[k]="r";else if(st==="oot")ot[k]="o";
     if(st!=="mxin"&&st!=="mxout")delete mx[k];         // partner name only relevant for regular (counting) mutuals
-    save("ov",ov);save("ot",ot);save("mx",mx);render();openDay(y,m,d);}
+    save("ov",ov);save("ot",ot);save("mx",mx);if(quiet)return;render();openDay(y,m,d);}   // quiet: background sync mutates state without popping the day sheet
   function mxName(y,m,d,tour){return mx[K(y,m,d,tour)]||"";}
   // persist only — the name shows in the day-sheet status text + ledger (both recomputed on next open),
   // never on a calendar chip, so we must NOT rebuild the sheet here (that would drop the user's next tap / focus).
@@ -1766,6 +1815,70 @@
 
   // ---- render calendar ----
   var grid=document.getElementById("grid");
+  // ---- long-press swap/cover request builder (posts to the House Calendar) ----
+  var reqMode=null, lpTs=0;
+  function sameT(a,b){return a&&b&&a.y===b.y&&a.m===b.m&&a.d===b.d&&a.t===b.t;}
+  function reqTourLbl(t){return DOWF[new Date(t.y,t.m,t.d).getDay()].slice(0,3)+" "+MON[t.m].slice(0,3)+" "+t.d+" "+(t.t===9?"9×":"6×");}
+  function applyReqMark(cell,y,m,d){ if(!reqMode)return; [9,6].forEach(function(t){ var h=cell.querySelector(t===9?".c9":".c6"); if(!h)return; var tt={y:y,m:m,d:d,t:t};
+    if(sameT(reqMode.give,tt))h.classList.add("reqgive"); else if(reqMode.wants.some(function(w){return sameT(w,tt);}))h.classList.add("reqwant"); }); }
+  function startReq(y,m,d,t){ lpTs=Date.now();
+    if(!HS){appConfirm("Join a House Calendar (🏠) first — then long-press a tour to swap it or get it covered with your crew.","OK",function(){});return;}
+    if(!worked(y,m,d,t)){appConfirm("Long-press a tour you’re actually working to swap it or get it covered.","OK",function(){});return;}
+    if(navigator.vibrate){try{navigator.vibrate(15);}catch(e){}}
+    reqMode={give:{y:y,m:m,d:d,t:t},wants:[]}; render(); renderReqBar(); }
+  function giveIsRsot(){ return !!reqMode && curState(reqMode.give.y,reqMode.give.m,reqMode.give.d,reqMode.give.t)==="rsot"; }
+  function houseHasRsot(y,m,d,t){ if(!HD||!HD.members||!HS)return false; for(var id in HD.members){ if(id===HS.m)continue; var mm=HD.members[id]; if(!mm||mm.status!=="active")continue; if(memberRSOT(mm,y,m,d,t))return true; } return false; }   // is any crewmate holding an RSOT on this tour?
+  var reqHint=null, reqHintTmr=null;
+  function flashReqHint(msg){ reqHint=msg; if(reqHintTmr)clearTimeout(reqHintTmr); reqHintTmr=setTimeout(function(){reqHint=null;renderReqBar();},2800); renderReqBar(); }
+  function reqTapTour(y,m,d,t){ if(!reqMode)return; var tour={y:y,m:m,d:d,t:t}; if(sameT(tour,reqMode.give))return;
+    var i=-1; reqMode.wants.forEach(function(w,idx){if(sameT(w,tour))i=idx;});
+    if(i<0 && giveIsRsot() && HD && HD.members && !houseHasRsot(y,m,d,t)){ flashReqHint("🔁 RSOT trades only for another RSOT — nobody holds an RSOT on "+reqTourLbl(tour)+"."); return; }   // an RSOT can't be swapped for a regular tour (fail-open if the roster isn't loaded — server still enforces)
+    if(i>=0)reqMode.wants.splice(i,1); else if(reqMode.wants.length<12)reqMode.wants.push(tour);
+    render(); renderReqBar(); }
+  function exitReq(){ reqMode=null; reqHint=null; render(); renderReqBar(); }
+  function renderReqBar(){ var bar=document.getElementById("reqbar"); if(!bar)return;
+    if(!reqMode){ bar.classList.remove("show"); return; }
+    var n=reqMode.wants.length, gR=giveIsRsot();
+    var sub = reqHint ? reqHint
+      : gR ? (n?("Swapping RSOT for "+n+" RSOT tour"+(n>1?"s":"")+" — tap more to add"):"RSOT — tap another RSOT tour to trade, or Get covered")
+           : (n?("Swapping for "+n+" tour"+(n>1?"s":"")+" — tap more to add"):"Tap the tour(s) you’d take in return to swap — or just Get covered");
+    document.getElementById("reqbarMsg").innerHTML="Your tour <b>"+reqTourLbl(reqMode.give)+(gR?' <span class="reqrsot">RSOT</span>':'')+"</b><br><span class=\"reqbarsub\">"+sub+"</span>";
+    var sw=bar.querySelector('[data-ra="swap"]'); if(sw)sw.disabled=!n;            // Swap needs at least one return tour
+    var cv=bar.querySelector('[data-ra="cover"]'); if(cv)cv.disabled=n>0;           // once you've picked return tours it's a swap, not a cover
+    bar.classList.add("show"); }
+  function postReqs(reqs,doneMsg){ exitReq(); var i=0,okc=0,fail=null; (function nx(){ if(i>=reqs.length){ setHouseBadge();   // swap reqs carry a stamped giveRsot, so no pre-sync needed
+      if(okc===reqs.length){ appConfirm(doneMsg,"Done",function(){}); }
+      else if(okc===0){ appConfirm("Couldn’t post"+(fail?" ("+hErrMsg(fail)+")":"")+". Check your connection and try again.","Not posted",function(){}); }
+      else { appConfirm("Posted "+okc+" of "+reqs.length+" — the rest didn’t go through. Try again.","Partly posted",function(){}); }
+      return; }
+    hOp({type:"createRequest",req:reqs[i]}).then(function(r){ if(r&&r.err)fail=r.err; else okc++; i++; nx(); }); })(); }
+  function doCover(){ if(!reqMode||reqMode.wants.length)return; var g=reqMode.give; postReqs([{type:"cover",tour:g}],"🤝 Posted — your crew can pick up "+reqTourLbl(g)+"."); }
+  function swapCandidates(w){ var rsot=giveIsRsot(), out=[]; if(!HD||!HD.members||!HS)return out;   // crewmates who could take this swap (they work the tour you want)
+    for(var id in HD.members){ if(id===HS.m)continue; var mm=HD.members[id]; if(!mm||mm.status!=="active")continue;
+      if(memberOff(mm,w.y,w.m,w.d))continue;
+      var elig=rsot?memberRSOT(mm,w.y,w.m,w.d,w.t):(memberWorks(mm,w.y,w.m,w.d,w.t)&&!memberRSOT(mm,w.y,w.m,w.d,w.t));   // RSOT give → only RSOT holders; regular give → only regular workers
+      if(elig)out.push({id:id,name:mm.name||"—",co:mm.company||""}); }
+    out.sort(function(a,b){return (a.name||"").localeCompare(b.name||"");}); return out; }
+  function doSwap(){ if(!reqMode||!reqMode.wants.length)return; renderSwapPicker(); document.getElementById("swpick").classList.add("show"); }
+  function closeSwapPicker(){ var s=document.getElementById("swpick"); if(s)s.classList.remove("show"); }
+  function renderSwapPicker(){ if(!reqMode)return; var g=reqMode.give, wants=reqMode.wants, rsot=giveIsRsot();
+    document.getElementById("swpickTitle").innerHTML="Swap your <b>"+reqTourLbl(g)+"</b>"+(rsot?' <span class="reqrsot">RSOT</span>':'');
+    var body="";
+    wants.forEach(function(w,wi){ var cands=swapCandidates(w);
+      body+='<div class="swpicklbl">'+(wants.length>1?"↔ ":"Take ")+reqTourLbl(w)+'</div>';
+      body+= cands.length ? cands.map(function(c){ return '<button class="swpickrow" data-swp="ask" data-wi="'+wi+'" data-mid="'+escA(c.id)+'"><span class="swpickwho"><span class="swpickname">'+esc(c.name)+'</span>'+(c.co?'<span class="swpicksub">'+esc(c.co)+'</span>':'')+'</span><span class="swpickgo">Ask →</span></button>'; }).join("")
+                          : '<div class="swpicknone">No one’s '+(rsot?"on RSOT":"scheduled")+' for that tour right now — post it open so anyone can grab it.</div>'; });
+    document.getElementById("swpickBody").innerHTML=body; }
+  function sendDirectedSwap(wi,toId){ if(!reqMode)return; var g=reqMode.give, w=reqMode.wants[wi], gR=curState(g.y,g.m,g.d,g.t)==="rsot"; if(!w)return; var toM=HD&&HD.members&&HD.members[toId]; if(!toM){closeSwapPicker();return;}
+    if(gR!==memberRSOT(toM,w.y,w.m,w.d,w.t)){ flashReqHint("🔁 RSOT trades only for another RSOT."); closeSwapPicker(); return; }   // server backstops this too
+    var nm=toM.name||"them"; closeSwapPicker(); exitReq();
+    hOp({type:"createRequest",req:{type:"swap",tour:g,want:w,to:toId,giveRsot:gR}}).then(function(r){ setHouseBadge();
+      appConfirm(r&&r.err?("Couldn’t send — "+hErrMsg(r.err)+".") : ("🔁 Sent your swap request to "+nm+" — only they’ll see it."), r&&r.err?"Not sent":"Sent", function(){}); }); }
+  function doSwapOpen(){ if(!reqMode||!reqMode.wants.length)return; var g=reqMode.give, gR=giveIsRsot(), reqs=reqMode.wants.map(function(w){return {type:"swap",tour:g,want:w,giveRsot:gR};}); closeSwapPicker(); postReqs(reqs,"📢 Posted "+(reqs.length>1?reqs.length+" open swap requests":"your open swap request")+" — the whole house can see it."); }
+  function attachLongPress(el,cb){ var tmr=null,sx=0,sy=0,mv=false; function clr(){ if(tmr){clearTimeout(tmr);tmr=null;} }
+    el.addEventListener("pointerdown",function(e){ if(e.button&&e.button!==0)return; mv=false; sx=e.clientX; sy=e.clientY; clr(); tmr=setTimeout(function(){tmr=null; if(!mv)cb();},480); },{passive:true});
+    el.addEventListener("pointermove",function(e){ if(tmr&&(Math.abs(e.clientX-sx)>10||Math.abs(e.clientY-sy)>10)){mv=true;clr();} },{passive:true});
+    el.addEventListener("pointerup",clr); el.addEventListener("pointercancel",clr); el.addEventListener("pointerleave",clr); }
   function render(){
     document.getElementById("mtitle").innerHTML=MON[view.m]+" <span>"+view.y+"</span>";
     document.getElementById("app").classList.toggle("spot",spot);
@@ -1802,9 +1915,13 @@
         '<div class="chalf c6">'+chipHTML(y,m,d,6)+'</div>';     // 6× night tour — bottom half
       cell.setAttribute("role","button");cell.setAttribute("tabindex","0");   // keyboard/AT reachable — the day cell is the app's core control
       cell.setAttribute("aria-label",DOWF[dow]+", "+MON[m]+" "+d+", "+y+(isTdy?" — today":"")+(pd?", payday":"")+(hol&&!ces.length?", "+hol:"")+(ces.length?", "+ces.map(function(e){return e.n;}).join(", "):""));
-      (function(y,m,d){function op(){if(Date.now()-swipeTs<350)return;openDay(y,m,d);}
+      applyReqMark(cell,y,m,d);
+      (function(y,m,d){function op(){if(Date.now()-swipeTs<350||Date.now()-lpTs<450||reqMode)return;openDay(y,m,d);}
         cell.addEventListener("click",op);
-        cell.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "||e.key==="Spacebar"){e.preventDefault();op();}});})(y,m,d);
+        cell.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "||e.key==="Spacebar"){e.preventDefault();op();}});
+        [9,6].forEach(function(t){var half=cell.querySelector(t===9?".c9":".c6");if(!half)return;
+          half.addEventListener("click",function(e){if(reqMode){e.stopPropagation();if(Date.now()-lpTs<450)return;reqTapTour(y,m,d,t);}});
+          attachLongPress(half,function(){startReq(y,m,d,t);});});})(y,m,d);
       grid.appendChild(cell);
     }
     renderBakRem();
@@ -2183,6 +2300,12 @@
       if(Date.now()-st2<700&&Math.abs(dy)>55&&Math.abs(dy)>Math.abs(dx)){swipeTs=Date.now();if(dy<0)goNext();else goPrev();}   // natural scroll: swipe up=next month, swipe down=previous
     },{passive:true});
   })();
+  document.getElementById("reqbar").addEventListener("click",function(e){ var b=e.target.closest("[data-ra]"); if(!b)return; var ra=b.getAttribute("data-ra"); if(ra==="cover")doCover(); else if(ra==="swap")doSwap(); else exitReq(); });
+  document.getElementById("swpick").addEventListener("click",function(e){ if(e.target.id==="swpick"){closeSwapPicker();return;}   // tap backdrop to close
+    var b=e.target.closest("[data-swp]"); if(!b)return; var a=b.getAttribute("data-swp");
+    if(a==="ask")sendDirectedSwap(parseInt(b.getAttribute("data-wi"),10),b.getAttribute("data-mid"));
+    else if(a==="open")doSwapOpen();
+    else closeSwapPicker(); });
   document.getElementById("mtitle").onclick=function(){var n=new Date();view={y:n.getFullYear(),m:n.getMonth()};render();};
   document.querySelector(".toggle").onclick=function(){spot=!spot;save("spot",spot);render();};
 
@@ -3212,7 +3335,7 @@ var TEN_CODES=[
   var hpushPrefs=load("hpushprefs",{personal:true,general:false,tours:true});   // per-category notification toggles
   var VAPID_PUB="BDcPsixcRRapSmss7LoUwIWsTKyeUtk4jLBzyOJMSgsD5cT0zq2qC1d1uzuTm48O7BOFE7DHXe09Kfr6e-08DUc";   // public VAPID key (safe to embed); private key is server env only
   var hview="day", hVY=now.getFullYear(), hVM=now.getMonth(), hVD=now.getDate(), hMsg="", hRostOpen={}, hRostQ="", hReqPre=null;
-  function houseUnread(){ if(!HD||!HS)return {n:0,forme:0}; var n=0,fm=0; (HD.requests||[]).forEach(function(r){ if(r.status!=="open"||r.by===HS.m||hseen[r.id])return; n++; if(r.to===HS.m)fm++; }); return {n:n,forme:fm}; }
+  function houseUnread(){ if(!HD||!HS)return {n:0,forme:0}; var n=0,fm=0; (HD.requests||[]).forEach(function(r){ if(r.status!=="open"||r.by===HS.m||hseen[r.id])return; if(r.to&&r.to!==HS.m&&r.takenBy!==HS.m)return; n++; if(r.to===HS.m)fm++; }); return {n:n,forme:fm}; }   // count only what I can actually see (open board or directed at/taken by me) — no phantom count / directed-existence leak
   function markReqsSeen(){ if(!HD)return; var ch=false; (HD.requests||[]).forEach(function(r){ if(!hseen[r.id]){hseen[r.id]=1;ch=true;} }); if(ch)save("hseen",hseen); setHouseBadge(); }
   function setHouseBadge(){ var b=document.getElementById("openHouse"); if(!b)return;
     if(HD&&HD.requests){ var live={}; HD.requests.forEach(function(r){live[r.id]=1;});   // prune seen/applied ids the server no longer keeps → no unbounded localStorage growth
@@ -3251,15 +3374,17 @@ var TEN_CODES=[
   function houseAbcdActive(y,m,d){ if(!HD||!HD.abcd)return false; var t=Date.UTC(y,m,d),s=vacMs(HD.abcd.s),e=HD.abcd.e?vacMs(HD.abcd.e):Infinity; return !isNaN(s)&&t>=s&&t<=e; }
   function memberOff(mem,y,m,d){ var t=Date.UTC(y,m,d),ds=mem.duty||[]; for(var i=0;i<ds.length;i++){var s=vacMs(ds[i].s),e=ds[i].e?vacMs(ds[i].e):Infinity; if(!isNaN(s)&&t>=s&&t<=e)return ds[i].t;} return null; }
   function memberWorks(mem,y,m,d,tour){ if(houseAbcdActive(y,m,d)){return mem.letter&&abcdLetter(y,m,d)===mem.letter;} return mem.group?has(startOf(y,m,d,tour),mem.group):false; }
-  function memberRSOT(mem,y,m,d,tour){ var iso=isoLocal(y,m,d),ot=mem.ot||[]; for(var i=0;i<ot.length;i++)if(ot[i].t===tour&&ot[i].d===iso)return true; return false; }   // scheduled OT (RSOT) — extra body on this tour, swappable
+  function memberRSOT(mem,y,m,d,tour){ var iso=isoLocal(y,m,d),ot=(mem&&mem.ot)||[]; for(var i=0;i<ot.length;i++)if(ot[i].t===tour&&ot[i].d===iso)return true; return false; }   // scheduled OT (RSOT) — extra body on this tour, swappable (mem may be undefined if its author left)
   function memList(status){ if(!HD)return []; return Object.keys(HD.members).map(function(k){return [k,HD.members[k]];}).filter(function(x){return !status||x[1].status===status;}); }
   function amAdmin(){ return HD&&HS&&HD.admins.indexOf(HS.m)>=0; }
   // --- apply completed swap/cover requests to my personal calendar ---
   function applyDoneRequests(){ if(!HD||!HS)return; var changed=false;
     HD.requests.forEach(function(r){ if(r.status!=="done"||hqapplied[r.id])return; if(r.by!==HS.m&&r.takenBy!==HS.m)return;
       var otherId=(r.by===HS.m)?r.takenBy:r.by, other=(HD.members[otherId]&&HD.members[otherId].name)||"House swap";
-      function set(t,st){ if(!t)return; setState(t.y,t.m,t.d,t.t,st); if(st==="mxin"||st==="mxout")setMxName(t.y,t.m,t.d,t.t,other); }
-      if(r.type==="swap"){ if(r.by===HS.m){set(r.want,"mxin");set(r.tour,"mxout");} else {set(r.tour,"mxin");set(r.want,"mxout");} }
+      function set(t,st){ if(!t)return; setState(t.y,t.m,t.d,t.t,st,true); if(st==="mxin"||st==="mxout")setMxName(t.y,t.m,t.d,t.t,other); }   // quiet — never pop the day sheet from a boot/foreground sync
+      if(r.type==="swap"){
+        if(r.giveRsot){ if(r.by===HS.m){set(r.want,"rsot");set(r.tour,"base");} else {set(r.tour,"rsot");set(r.want,"base");} }   // RSOT↔RSOT: the tour you pick up is genuine OT; the one you give away goes off (so OT stats stay right)
+        else { if(r.by===HS.m){set(r.want,"mxin");set(r.tour,"mxout");} else {set(r.tour,"mxin");set(r.want,"mxout");} } }
       else if(r.type==="cover"){ if(r.by===HS.m){set(r.tour,"mxout");} else {set(r.tour,"mxin");} }
       hqapplied[r.id]=1; changed=true; });
     if(changed){save("hqapplied",hqapplied);render();} }
@@ -3378,8 +3503,11 @@ var TEN_CODES=[
     return '<div class="hreq'+(forMe?" forme":"")+'"><div class="hreqtxt">'+(forMe?'<span class="hreqfor">📩 for you</span> ':'')+reqLine(r)+(r.note?'<div class="hreqnote">'+esc(r.note)+'</div>':'')+(r.status==="taken"?'<div class="hreqst">✓ taken'+(tookIt?" by you":(r.takenBy?" by "+esc((HD.members[r.takenBy]&&HD.members[r.takenBy].name)||"someone"):""))+'</div>':'')+'</div><div class="hreqact">'+acts+'</div></div>'; }
   function hRequests(){ var pre=hReqPre||{}, typ=pre.type||"swap";
     var opens=HD.requests.filter(function(r){return r.status==="open"||r.status==="taken";});
-    var forMe=opens.filter(function(r){return r.to===HS.m&&r.status==="open";});
-    var rest=opens.filter(function(r){return !(r.to===HS.m&&r.status==="open");}).sort(function(a,b){return b.at-a.at;});
+    var visible=opens.filter(function(r){return !r.to||r.to===HS.m||r.by===HS.m||r.takenBy===HS.m;});   // open board → whole house; a directed request → only the two people involved
+    var forMe=visible.filter(function(r){return r.to===HS.m&&r.status==="open";});
+    var rest=visible.filter(function(r){return !(r.to===HS.m&&r.status==="open");});
+    var mineReq=rest.filter(function(r){return r.by===HS.m;}).sort(function(a,b){return b.at-a.at;});
+    var board=rest.filter(function(r){return r.by!==HS.m;}).sort(function(a,b){return b.at-a.at;});
     var myIso=pre.myTour?isoLocal(pre.myTour.y,pre.myTour.m,pre.myTour.d):"", myT=pre.myTour?pre.myTour.t:9;
     var wIso=pre.wantTour?isoLocal(pre.wantTour.y,pre.wantTour.m,pre.wantTour.d):"", wT=pre.wantTour?pre.wantTour.t:9;
     var banner=(pre.toName||pre.ctxLbl)?'<div class="hctx">'+(pre.toName?'🔁 With <b>'+esc(pre.toName)+'</b>':'🤝 Your tour')+(pre.ctxLbl?' · '+esc(pre.ctxLbl):'')+'<button class="hclr" data-act="clrctx">✕</button></div>':'';
@@ -3391,8 +3519,9 @@ var TEN_CODES=[
       '<div class="ldrow"><div class="vfield"><label>'+myLbl+'</label><input type="date" id="hReqDate" value="'+escA(myIso)+'"></div><div class="vfield"><label>&nbsp;</label><div class="hrseg" id="hReqTour"><button data-t="9" class="'+(myT===9?"on":"")+'">9×</button><button data-t="6" class="'+(myT===6?"on":"")+'">6×</button></div></div></div>'+
       '<div id="hWantWrap" style="'+(typ==="swap"?"":"display:none")+'"><div class="ldrow"><div class="vfield"><label>Swap for</label><input type="date" id="hWantDate" value="'+escA(wIso)+'"></div><div class="vfield"><label>&nbsp;</label><div class="hrseg" id="hWantTour"><button data-t="9" class="'+(wT===9?"on":"")+'">9×</button><button data-t="6" class="'+(wT===6?"on":"")+'">6×</button></div></div></div></div>'+
       '<input class="cevin" id="hReqNote" placeholder="Note (optional)" style="margin-bottom:6px"><button class="raddbtn" data-act="newreq" style="width:100%">Post request</button></div>';
-    out+='<div class="setlbl" style="margin-top:14px">Open requests</div>';
-    out+= rest.length? rest.map(reqCard).join("") : '<div class="dempty">No open requests. Tap someone on the Day tab to start one.</div>';
+    if(mineReq.length){ out+='<div class="setlbl" style="margin-top:14px">🗒️ Your requests</div>'+mineReq.map(reqCard).join(""); }
+    out+='<div class="setlbl" style="margin-top:14px">📢 Open requests</div>';
+    out+= board.length? board.map(reqCard).join("") : '<div class="dempty">Nothing open right now — long-press a tour on your calendar, or tap someone on the Day tab.</div>';
     return out; }
   function hManage(){ var pend=memList("pending"), act=memList("active");
     var out='<div class="setlbl">Pending approvals</div>';
@@ -3407,7 +3536,9 @@ var TEN_CODES=[
   function isoLocal(y,m,d){return y+"-"+(m+1<10?"0":"")+(m+1)+"-"+(d<10?"0":"")+d;}
 
   // --- action dispatcher ---
-  function hReloadThen(p){ hBusyMsg("Working…"); Promise.resolve(p).then(function(res){ hMsg=(res&&res.err)?("⚠ "+res.err):""; renderHouse(); }); }
+  function hErrMsg(e){ return e==="rsot-mismatch"?"an RSOT can only be swapped for another RSOT":e==="sync-failed"?"couldn’t sync your schedule — check your connection and try again":e==="author-gone"?"the person who posted this has left the house":e; }
+  var hBusy=false;
+  function hReloadThen(p){ if(hBusy)return; hBusy=true; hBusyMsg("Working…"); Promise.resolve(p).then(function(res){ hBusy=false; hMsg=(res&&res.err)?("⚠ "+hErrMsg(res.err)):""; renderHouse(); }).catch(function(){ hBusy=false; renderHouse(); }); }   // drop a second tap while a write is in flight (no duplicate crew-visible requests)
   function hBusyMsg(t){ hMsg=t; var b=document.getElementById("houseBody"); if(b&&HS){/* keep current view, just note */} }
   function readSeg(id){ var on=document.querySelector("#"+id+" button.on"); return on?on.getAttribute(on.hasAttribute("data-rt")?"data-rt":"data-t"):""; }
   function hAct(act,el){ var who=el.getAttribute("data-who"), rid=el.getAttribute("data-rid");
@@ -3417,7 +3548,7 @@ var TEN_CODES=[
     if(act==="nday"){ var n=shiftDate(hVY,hVM,hVD,1); hVY=n[0];hVM=n[1];hVD=n[2]; renderHouse(); return; }
     if(act==="today"){ hVY=now.getFullYear();hVM=now.getMonth();hVD=now.getDate(); renderHouse(); return; }
     if(act==="create"){ var nm=(document.getElementById("hCreateName")||{}).value||""; if(!nm.trim()){hMsg="Name your house first.";renderHouse();return;} hReloadThen(houseCreate(nm.trim())); return; }
-    if(act==="join"){ var cd=((document.getElementById("hJoinCode")||{}).value||"").trim(); if(!cd){hMsg="Enter the join code.";renderHouse();return;} houseJoin(cd).then(function(res){ hMsg=res.err?("⚠ "+res.err):(res.pending?"Request sent — waiting for approval.":""); renderHouse(); }); return; }
+    if(act==="join"){ var cd=((document.getElementById("hJoinCode")||{}).value||"").trim(); if(!cd){hMsg="Enter the join code.";renderHouse();return;} if(hBusy)return; hBusy=true; houseJoin(cd).then(function(res){ hBusy=false; hMsg=res.err?("⚠ "+res.err):(res.pending?"Request sent — waiting for approval.":""); renderHouse(); }).catch(function(){ hBusy=false; renderHouse(); }); return; }
     if(act==="refresh"){ hGet().then(function(){renderHouse();}); return; }
     if(act==="forget"){ HS=null;HD=null;hSave(); renderHouse(); return; }
     if(act==="sharecode"){ copyText(HD.code,el); appConfirm("Share this join code with your crew:\n\n"+HD.code+"\n\nThey enter it in House Calendar → Join.","Got it",function(){}); return; }
@@ -3442,8 +3573,15 @@ var TEN_CODES=[
       function iso2tour(iso,t){ if(!isRealDate(iso))return null; var p=iso.split("-"); return {y:+p[0],m:+p[1]-1,d:+p[2],t:+t}; }
       var req={type:type,note:note}; if(type!=="pickup"){req.tour=iso2tour(dv,tv); if(!req.tour){hMsg="Pick your tour's date.";renderHouse();return;}} if(type==="swap"){req.want=iso2tour(wv,wt); if(!req.want){hMsg="Pick the tour to swap for.";renderHouse();return;}}
       if(pre.toId&&type!=="pickup")req.to=pre.toId;
+      if(type==="swap"){ var gR=curState(req.tour.y,req.tour.m,req.tour.d,req.tour.t)==="rsot"; req.giveRsot=gR;   // stamp give-side RSOT from my full calendar (server trusts this)
+        if(req.to){ var toM=HD.members[req.to], wR=toM?memberRSOT(toM,req.want.y,req.want.m,req.want.d,req.want.t):false;   // directed: your tour & theirs must match on RSOT
+          if(gR!==wR){ hMsg=gR?("🔁 RSOT trades only for another RSOT — "+((toM&&toM.name)||"that")+"’s tour isn’t an RSOT."):("🔁 That’s an RSOT tour — only an RSOT of yours can swap for it."); renderHouse(); return; } }
+        else if(gR&&HD&&HD.members&&!houseHasRsot(req.want.y,req.want.m,req.want.d,req.want.t)){ hMsg="🔁 That’s an RSOT — it can only swap for another RSOT, and nobody holds an RSOT on "+reqTourLbl(req.want)+"."; renderHouse(); return; } }   // open swap: same guard as the long-press path (fail-open if roster unknown)
       hReqPre=null; hReloadThen(hOp({type:"createRequest",req:req})); return; }
-    if(act==="take"){ hReloadThen(hOp({type:"takeRequest",rid:rid})); return; }
+    if(act==="take"){ var rq=(HD&&HD.requests||[]).filter(function(x){return x.id===rid;})[0];
+      if(rq&&rq.type==="swap"&&rq.tour&&rq.want){ var giveR=(typeof rq.giveRsot==="boolean")?rq.giveRsot:memberRSOT(HD.members[rq.by],rq.tour.y,rq.tour.m,rq.tour.d,rq.tour.t), mineR=curState(rq.want.y,rq.want.m,rq.want.d,rq.want.t)==="rsot";
+        if(giveR!==mineR){ appConfirm(giveR?("🔁 This is an RSOT swap — you can only take it if you hold an RSOT on "+reqTourLbl(rq.want)+"."):("🔁 This is a regular-tour swap — it can’t be taken with your RSOT."),"OK",function(){}); return; } }
+      hReloadThen(pushMyProfile().then(function(pr){ if(pr&&pr.err)return {err:"sync-failed"}; return hOp({type:"takeRequest",rid:rid}); })); return; }
     if(act==="decline"){ hReloadThen(hOp({type:"declineRequest",rid:rid})); return; }
     if(act==="cancelreq"){ hReloadThen(hOp({type:"cancelRequest",rid:rid})); return; }
     if(act==="resolve"){ appConfirm("Mark this swap/cover done? It'll be added to both calendars.","Done",function(){ hReloadThen(hOp({type:"resolveRequest",rid:rid})); }); return; }
@@ -3452,7 +3590,7 @@ var TEN_CODES=[
     if(act==="pref"){ togglePref(el.getAttribute("data-k")); return; }
   }
   function openHouseOnDate(y,mm,dd){ if(!HS)return; hVY=y;hVM=mm;hVD=dd; hview="day"; hMsg=""; hReqPre=null; renderHouse(); openSheet(houseSheet); hGet().then(function(r){ if(r&&r.doc)renderHouse(); }); }
-  document.getElementById("openHouse").onclick=function(){ hMsg=""; renderHouse(); openSheet(houseSheet); if(HS)hGet().then(function(r){ if(r&&r.doc)pushMyProfile().then(function(){renderHouse();}); else renderHouse(); }); };
+  document.getElementById("openHouse").onclick=function(){ hReqPre=null; hview="day"; hMsg=""; renderHouse(); openSheet(houseSheet); if(HS)hGet().then(function(r){ if(r&&r.doc)pushMyProfile().then(function(){renderHouse();}); else renderHouse(); }); };   // reset compose context (like openHouseOnDate) so a stale directed target doesn't misdirect a later request
   document.getElementById("houseDone").onclick=closeSheets;
   document.getElementById("houseBody").addEventListener("click",function(e){ var b=e.target.closest("[data-act]"); if(!b)return; if(b.tagName==="A")return; e.preventDefault(); hAct(b.getAttribute("data-act"),b); });
   document.getElementById("houseBody").addEventListener("click",function(e){ var seg=e.target.closest(".hrseg button"); if(!seg)return; var p=seg.parentNode; Array.prototype.forEach.call(p.querySelectorAll("button"),function(x){x.classList.toggle("on",x===seg);}); if(p.id==="hReqType"){var wr=document.getElementById("hWantWrap"); if(wr)wr.style.display=(seg.getAttribute("data-rt")==="swap")?"":"none";} });
