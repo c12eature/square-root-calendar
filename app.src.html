@@ -449,7 +449,9 @@
   .cmsg{font-size:14.5px; font-weight:700; color:var(--ink); line-height:1.5;}
   .cfield{margin-top:14px; display:none;}
   .cfield.show{display:block;}
-  .cfield input{width:100%; box-sizing:border-box; padding:12px 14px; border:1px solid var(--line); border-radius:11px; background:var(--panel2); color:var(--ink); font-size:16px; font-family:inherit;}
+  .cfield input,.cfield select{width:100%; box-sizing:border-box; padding:12px 14px; border:1px solid var(--line); border-radius:11px; background:var(--panel2); color:var(--ink); font-size:16px; font-family:inherit;}
+  .cflab{display:block; font-size:11px; font-weight:800; letter-spacing:.03em; text-transform:uppercase; color:var(--mut); margin-bottom:5px;}
+  .cflab:empty{display:none;}
   .cbtns{display:flex; gap:9px; margin-top:18px;}
   .cbtns button{flex:1; padding:12px; border-radius:11px; font-size:14px; font-weight:800; cursor:pointer; font-family:inherit; border:1px solid var(--line);}
   .cno{background:var(--panel2); color:var(--ink2);}
@@ -699,6 +701,8 @@
   .hgmems{flex:1; min-width:0; display:flex; flex-direction:column; gap:9px;}
   .hmline{min-width:0;} .hmline.pend{opacity:.72;}
   .hmltop{display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
+  .hmedit{margin-left:auto; flex:none; font-size:10.5px; font-weight:800; color:var(--accent); background:color-mix(in srgb,var(--accent) 12%,var(--panel)); border:1px solid color-mix(in srgb,var(--accent) 34%,var(--line)); border-radius:7px; padding:2px 8px; cursor:pointer; font-family:inherit; touch-action:manipulation;}
+  .hrgoff{font-size:9px; font-weight:900; letter-spacing:.02em; text-transform:uppercase; color:#b45309; background:color-mix(in srgb,#f59e0b 15%,var(--panel)); border:1px solid color-mix(in srgb,#f59e0b 38%,var(--line)); border-radius:5px; padding:1px 5px; margin-left:6px;}
   .hmline .hrname{font-size:13.5px;} .hmline .hrcontact{margin-top:3px;}
   .hdutyp{font-size:10px; font-weight:800; color:#b45309; background:color-mix(in srgb,#f59e0b 12%,var(--panel)); border:1px solid color-mix(in srgb,#f59e0b 35%,var(--line)); border-radius:6px; padding:1px 6px; white-space:nowrap;}
   .hmsg{font-size:12.5px; font-weight:700; color:var(--ink2); background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-bottom:11px;}
@@ -1413,7 +1417,8 @@
 <div class="cmodal" id="cmodal">
   <div class="cbox">
     <div class="cmsg" id="cmsg"></div>
-    <div class="cfield" id="cfield"><input type="number" id="cinput" inputmode="numeric" min="0"></div>
+    <div class="cfield" id="cselwrap"><span class="cflab" id="csellab"></span><select id="cselect"></select></div>
+    <div class="cfield" id="cfield"><span class="cflab" id="cinlab"></span><input type="number" id="cinput" inputmode="numeric" min="0"></div>
     <div class="cbtns"><button class="cno" id="cno">Cancel</button><button class="cyes" id="cyes">OK</button></div>
   </div>
 </div>
@@ -2018,13 +2023,16 @@
   }
   [sheet,setSheet,rsotSheet,statSheet,mxSheet,dirSheet,statsSheet,refSheet,bakSheet,evSheet,cevSheet,instSheet,groupSheet,tenSheet,abcdSheet,cfrSheet,boxSheet,houseSheet].forEach(initSheetDrag);
   // ---- in-app confirm/prompt (the artifact sandbox blocks window.confirm/prompt/alert) ----
-  var cmodal=document.getElementById("cmodal"),cmsg=document.getElementById("cmsg"),cfield=document.getElementById("cfield"),cinput=document.getElementById("cinput"),cyes=document.getElementById("cyes"),cno=document.getElementById("cno"),cCB=null;
+  var cmodal=document.getElementById("cmodal"),cmsg=document.getElementById("cmsg"),cfield=document.getElementById("cfield"),cinput=document.getElementById("cinput"),cinlab=document.getElementById("cinlab"),cselwrap=document.getElementById("cselwrap"),cselect=document.getElementById("cselect"),csellab=document.getElementById("csellab"),cyes=document.getElementById("cyes"),cno=document.getElementById("cno"),cCB=null,cMode="confirm";
   function appHideModal(){cmodal.classList.remove("show");cCB=null;}
-  function appConfirm(msg,yesLabel,cb){cCB=cb;cmsg.textContent=msg;cfield.classList.remove("show");cyes.textContent=yesLabel||"OK";cmodal.classList.add("show");}
-  function appPrompt(msg,value,cb,itype){cCB=cb;cmsg.textContent=msg;cfield.classList.add("show");var it=itype||"number";cinput.type=it;if(it==="number"){cinput.setAttribute("inputmode","numeric");}else{cinput.removeAttribute("inputmode");}cinput.value=(value!=null?value:"");cyes.textContent="Set";cmodal.classList.add("show");setTimeout(function(){cinput.focus();cinput.select();},60);}
+  function coOpts(options,current){var has=false,html='<option value=""'+(current?"":" selected")+'>— Unassigned —</option>';(options||[]).forEach(function(o){if(o===current)has=true;html+='<option value="'+escA(o)+'"'+(o===current?" selected":"")+'>'+esc(o)+'</option>';});if(current&&!has)html+='<option value="'+escA(current)+'" selected>'+esc(current)+' — not in your list</option>';return html;}   // always offer Unassigned (selected when the member has no company) so we never silently auto-pick the first company
+  function appConfirm(msg,yesLabel,cb){cCB=cb;cMode="confirm";cmsg.textContent=msg;cfield.classList.remove("show");cselwrap.classList.remove("show");cyes.textContent=yesLabel||"OK";cmodal.classList.add("show");}
+  function appPrompt(msg,value,cb,itype){cCB=cb;cMode="prompt";cmsg.textContent=msg;cselwrap.classList.remove("show");cinlab.textContent="";cfield.classList.add("show");var it=itype||"number";cinput.type=it;if(it==="number"){cinput.setAttribute("inputmode","numeric");}else{cinput.removeAttribute("inputmode");}cinput.value=(value!=null?value:"");cyes.textContent="Set";cmodal.classList.add("show");setTimeout(function(){cinput.focus();cinput.select();},60);}
+  function appChoose(msg,options,current,cb){cCB=cb;cMode="choose";cmsg.textContent=msg;cfield.classList.remove("show");csellab.textContent="";cselect.innerHTML=coOpts(options,current);cselwrap.classList.add("show");cyes.textContent="Set";cmodal.classList.add("show");}
+  function appAssign(msg,companies,curCo,curGroup,cb){cCB=cb;cMode="assign";cmsg.textContent=msg;csellab.textContent="Company";cselect.innerHTML=coOpts(companies,curCo);cselwrap.classList.add("show");cinlab.textContent="Group (1–25)";cinput.type="number";cinput.setAttribute("inputmode","numeric");cinput.value=(curGroup!=null?curGroup:"");cfield.classList.add("show");cyes.textContent="Save";cmodal.classList.add("show");}
   cno.onclick=appHideModal;
   cmodal.onclick=function(e){if(e.target===cmodal)appHideModal();};
-  cyes.onclick=function(){var cb=cCB,isP=cfield.classList.contains("show"),v=isP?cinput.value:true;appHideModal();if(cb)cb(v);};
+  cyes.onclick=function(){var cb=cCB,v=cMode==="assign"?{company:cselect.value,group:cinput.value}:cMode==="choose"?cselect.value:cMode==="prompt"?cinput.value:true;appHideModal();if(cb)cb(v);};
   cinput.onkeydown=function(e){if(e.key==="Enter")cyes.onclick();};
 
   function grpHTML(y,m,d,s){var eg=effGroups(y,m,d);
@@ -2502,7 +2510,7 @@
   // every save() runs this: keep the on-device mirror fresh + queue a cloud push.
   // NOTE: pure sync-metadata keys must NOT re-trigger a push, or cloudPush's own
   // save("cloudts") would loop forever (push → save cloudts → push → …).
-  var _mirrorT=null, NOSYNC={cloudts:1,cbase:1,cdirty:1,cconf:1,bakts:1,baksnooze:1,cfrsnooze:1};   // sync-metadata keys never re-trigger a push
+  var _mirrorT=null, NOSYNC={cloudts:1,cbase:1,cdirty:1,cconf:1,bakts:1,baksnooze:1,cfrsnooze:1,hgack:1};   // sync-metadata keys never re-trigger a push
   // NOSYNC-guard is null-safe: during module init (before the var above is assigned) NOSYNC is
   // undefined, so an early save() (e.g. mutual-name seeding) must NOT throw here.
   function afterWrite(k){ if(NOSYNC&&NOSYNC[k])return;
@@ -3384,8 +3392,28 @@ var TEN_CODES=[
   function hFetch(method,qs,body,hdrs){ var h=body?{"Content-Type":"application/json"}:{}; if(hdrs){for(var k in hdrs)h[k]=hdrs[k];} return fetch("/api/house"+(qs||""),{method:method,headers:h,body:body?JSON.stringify(body):undefined})
     .then(function(r){ return r.json().catch(function(){return {};}).then(function(j){ return {status:r.status,j:j}; }); })
     .catch(function(){ return {status:0,j:{error:"offline"}}; }); }
+  function myHouseGroup(){ return (HD&&HD.members&&HS&&HD.members[HS.m]&&parseInt(HD.members[HS.m].group,10))||0; }
+  function applyHouseGroup(N){   // adopt the house-assigned group into MY personal calendar — non-destructively
+    var t=new Date(), tiso=isoLocal(t.getFullYear(),t.getMonth(),t.getDate()), ce=curEpoch();
+    var keepPt=(ce&&ce.pt&&ce.pt!==N)?ce.pt:0;   // drop the mutual partner group if it now collides with the new group
+    var past=groups.filter(function(g){return isoToNum(g.s)<isoToNum(tiso);});   // strictly-past epochs (before today)
+    if(hasData()&&past.length){ groups=past.concat([{s:tiso,my:N,pt:keepPt}]); }   // keep history; the house group owns today→onward (drops any future-dated change that would otherwise re-diverge the roster)
+    else { groups=[{s:"1970-01-01",my:N,pt:keepPt}]; }   // fresh member (nothing logged) → whole calendar = the assigned group
+    groups.sort(function(a,b){return isoToNum(a.s)-isoToNum(b.s);}); save("groups",groups); syncCurGroups(); save("my",my); save("pt",pt); render();
+  }
+  function maybePromptHouseGroup(){   // prompt ONCE when the house's group for me differs — keyed on the last house value SEEN, so my own group edits never trigger it and it never nags
+    if(!HS||!HD||hBusy) return;
+    if(document.querySelector(".cmodal.show,.onb.show,.swpick.show,.lgpop.show")) return;   // don't stack over a modal / onboarding / picker
+    var hg=myHouseGroup(); if(!hg) return;
+    var ack=load("hgack",null); ack=(ack&&ack.h===HS.id)?ack:null;
+    if(ack&&hg===ack.g) return;   // this exact house value was already handled → don't re-prompt (a member's own group edit leaves hg unchanged → stays silent)
+    save("hgack",{h:HS.id,g:hg});   // mark seen → prompt at most once per house value
+    var cur=(curEpoch()&&curEpoch().my)||my;
+    if(hg===cur) return;   // house already matches my calendar → nothing to offer
+    appConfirm("🏠 "+((HD&&HD.name)||"Your house")+" has you in group "+hg+", but your calendar shows group "+cur+". Update your calendar to group "+hg+", starting today?","Update to group "+hg,function(){ applyHouseGroup(hg); });
+  }
   function hGet(){ if(!HS)return Promise.resolve({none:true}); return hFetch("GET","?id="+encodeURIComponent(HS.id),null,{"X-House-M":HS.m,"X-House-S":HS.s}).then(function(r){
-    if(r.status===200&&r.j.doc){HD=r.j.doc;hSave();applyDoneRequests();setHouseBadge();return {doc:HD};}
+    if(r.status===200&&r.j.doc){HD=r.j.doc;hSave();applyDoneRequests();setHouseBadge();maybePromptHouseGroup();return {doc:HD};}
     if(r.status===200&&r.j.pending){return {pending:true};}
     if(r.status===403||r.status===404){HS=null;HD=null;hSave();return {gone:true};}
     return {err:(r.j&&r.j.error)||("http "+r.status)}; }); }
@@ -3514,10 +3542,10 @@ var TEN_CODES=[
     if(off.length)out+='<div class="hoffrow">🚫 Off today: '+off.map(function(x){return esc(x[1].name||"?")+' ('+esc(dutyLabel(memberOff(x[1],y,m,d)))+')';}).join(", ")+'</div>';
     if(ab){var noltr=mems.filter(function(x){return !memberOff(x[1],y,m,d)&&!x[1].letter;}); if(noltr.length)out+='<div class="hoffrow warn">🔤 no ABCD letter set: '+noltr.map(function(x){return esc(x[1].name||"?");}).join(", ")+'</div>';}
     return out; }
-  function memberLine(id,mem){ var pend=mem.status!=="active", ad=HD.admins.indexOf(id)>=0, duty=memberOff(mem,hVY,hVM,hVD);
+  function memberLine(id,mem){ var pend=mem.status!=="active", ad=HD.admins.indexOf(id)>=0, duty=memberOff(mem,hVY,hVM,hVD), canEdit=amAdmin()&&!pend;
     var s=((mem.name||"")+" "+(mem.company||"")+" g"+(mem.group||"")+" "+(mem.phone||"")).toLowerCase();
     var contact=(mem.phone?'<a href="'+escA("tel:"+mem.phone.replace(/[^0-9+]/g,""))+'">📞 '+esc(mem.phone)+'</a>':'')+(mem.spouse?'<span class="hrsp">💛 '+esc(mem.spouse)+(mem.spousePhone?' <a href="'+escA("tel:"+mem.spousePhone.replace(/[^0-9+]/g,""))+'">'+esc(mem.spousePhone)+'</a>':'')+'</span>':'');
-    return '<div class="hmline'+(pend?" pend":"")+'" data-s="'+escA(s)+'"><div class="hmltop"><span class="hrname">'+esc(mem.name||"—")+'</span>'+(ad?'<span class="hadmin">admin</span>':'')+(pend?'<span class="hpend">pending</span>':'')+(duty?'<span class="hdutyp">'+dutyEmoji(duty)+' '+esc(dutyLabel(duty))+'</span>':'')+'</div>'+(contact?'<div class="hrcontact">'+contact+'</div>':'')+'</div>'; }
+    return '<div class="hmline'+(pend?" pend":"")+'" data-s="'+escA(s)+'"><div class="hmltop"><span class="hrname">'+esc(mem.name||"—")+'</span>'+(ad?'<span class="hadmin">admin</span>':'')+(pend?'<span class="hpend">pending</span>':'')+(duty?'<span class="hdutyp">'+dutyEmoji(duty)+' '+esc(dutyLabel(duty))+'</span>':'')+(canEdit?'<button class="hmedit" data-act="editmember" data-who="'+escA(id)+'" title="Reassign company or group">✎ Reassign</button>':'')+'</div>'+(contact?'<div class="hrcontact">'+contact+'</div>':'')+'</div>'; }
   function sortPpl(a){ a.sort(function(p,q){ var pa=p[1].status!=="active"?1:0,qa=q[1].status!=="active"?1:0; if(pa!==qa)return pa-qa; var pd=HD.admins.indexOf(p[0])>=0?0:1,qd=HD.admins.indexOf(q[0])>=0?0:1; if(pd!==qd)return pd-qd; return (p[1].name||"").localeCompare(q[1].name||""); }); return a; }
   function hRoster(){ var mems=memList();
     var order=HD.companies.slice(); mems.forEach(function(x){var c=x[1].company||"";if(order.indexOf(c)<0)order.push(c);});
@@ -3529,8 +3557,8 @@ var TEN_CODES=[
         rows+= ppl.length ? '<div class="hgrow"><span class="hgnum">'+g+'</span><div class="hgmems">'+sortPpl(ppl).map(function(x){return memberLine(x[0],x[1]);}).join("")+'</div></div>'
                           : '<div class="hgrow empty"><span class="hgnum">'+g+'</span><span class="hgdash">—</span></div>'; }
       if(byG[0]&&byG[0].length) rows+='<div class="hgrow"><span class="hgnum nog" title="No group set yet">?</span><div class="hgmems">'+sortPpl(byG[0]).map(function(x){return memberLine(x[0],x[1]);}).join("")+'</div></div>';
-      var collapsed=hRostOpen[co]===false;
-      return '<div class="hrgroup'+(collapsed?" collapsed":"")+'" data-co="'+escA(co)+'"><button class="hrghead" data-act="rosttoggle" data-co="'+escA(co)+'"><span class="hrgttl">'+(co?esc(co):"Unassigned")+' <span class="hrgn">'+inco.length+'</span></span><span class="hrgchev">▾</span></button><div class="hrgbody">'+rows+'</div></div>'; }).join("");
+      var collapsed=hRostOpen[co]===false, off=co&&HD.companies.indexOf(co)<0;   // a company on a member but not in the house's list (e.g. inherited from their personal Settings) → flag it
+      return '<div class="hrgroup'+(collapsed?" collapsed":"")+'" data-co="'+escA(co)+'"><button class="hrghead" data-act="rosttoggle" data-co="'+escA(co)+'"><span class="hrgttl">'+(co?esc(co):"Unassigned")+' <span class="hrgn">'+inco.length+'</span>'+(off?'<span class="hrgoff" title="Not in your company list — Reassign these members, or add this company in Manage">not in list</span>':'')+'</span><span class="hrgchev">▾</span></button><div class="hrgbody">'+rows+'</div></div>'; }).join("");
     return bar+'<div class="hrlist" id="hRosterList">'+(groups||'<div class="hrempty">No members yet — share your join code to get the crew in.</div>')+'<div class="hrempty" id="hRostNoHits" style="display:none">No members match your search.</div></div>'; }
   function filterRoster(){ var list=document.getElementById("hRosterList"); if(!list)return; var q=(hRostQ||"").trim().toLowerCase();
     list.classList.toggle("searching",!!q); var total=0;
@@ -3600,6 +3628,11 @@ var TEN_CODES=[
   function hReloadThen(p){ if(hBusy)return; hBusy=true; hBusyMsg("Working…"); Promise.resolve(p).then(function(res){ hBusy=false; hMsg=(res&&res.err)?("⚠ "+hErrMsg(res.err)):""; renderHouse(); }).catch(function(){ hBusy=false; renderHouse(); }); }   // drop a second tap while a write is in flight (no duplicate crew-visible requests)
   function hBusyMsg(t){ hMsg=t; var b=document.getElementById("houseBody"); if(b&&HS){/* keep current view, just note */} }
   function readSeg(id){ var on=document.querySelector("#"+id+" button.on"); return on?on.getAttribute(on.hasAttribute("data-rt")?"data-rt":"data-t"):""; }
+  function assignMember(who){ var mm=(HD&&HD.members&&HD.members[who])||{}, cos=(HD&&HD.companies||[]).slice(), nm=mm.name||"this member";   // approve a pending member OR reassign an active one: company (from the HOUSE list) AND group in one dialog
+    appAssign((mm.status==="active"?"Reassign ":"Assign ")+nm, cos, mm.company||"", mm.group||"", function(r){
+      var op={type:"approve",who:who,company:r.company}, gs=String(r.group||"").trim();
+      if(gs!==""){ var gi=parseInt(gs,10); if(!(gi>=1&&gi<=25)){ hMsg="Group must be a number from 1 to 25."; renderHouse(); return; } op.group=gi; }
+      hReloadThen(hOp(op)); }); }
   function hAct(act,el){ var who=el.getAttribute("data-who"), rid=el.getAttribute("data-rid");
     if(act==="tab"){ hview=el.getAttribute("data-v"); hMsg=""; renderHouse(); return; }
     if(act==="rosttoggle"){ var g=el.closest(".hrgroup"); if(g){ g.classList.toggle("collapsed"); hRostOpen[el.getAttribute("data-co")]=!g.classList.contains("collapsed"); } return; }
@@ -3618,7 +3651,7 @@ var TEN_CODES=[
     if(act==="forget"){ HS=null;HD=null;hSave(); renderHouse(); return; }
     if(act==="sharecode"){ copyText(HD.code,el); appConfirm("Share this join code with your crew:\n\n"+HD.code+"\n\nThey enter it in House Calendar → Join.","Got it",function(){}); return; }
     if(act==="leave"){ appConfirm("Leave this house? Your tours stay on your own calendar.","Leave",function(){ hOp({type:"leave"}).then(function(){HS=null;HD=null;hSave();renderHouse();}); }); return; }
-    if(act==="approve"){ appPrompt("Company for this member (e.g. E295):",(HD.members[who]&&HD.members[who].company)||"",function(c){ appPrompt("Their group (1-25):",(HD.members[who]&&HD.members[who].group)||"",function(g){ hReloadThen(hOp({type:"approve",who:who,company:c,group:parseInt(g,10)})); }); },"text"); return; }
+    if(act==="approve"||act==="editmember"){ assignMember(who); return; }
     if(act==="reject"){ hReloadThen(hOp({type:"reject",who:who})); return; }
     if(act==="removem"){ appConfirm("Remove this member from the house?","Remove",function(){ hReloadThen(hOp({type:"remove",who:who})); }); return; }
     if(act==="promote"){ hReloadThen(hOp({type:"promote",who:who})); return; }
