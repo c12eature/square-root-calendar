@@ -703,9 +703,19 @@
   .hdutyp{font-size:10px; font-weight:800; color:#b45309; background:color-mix(in srgb,#f59e0b 12%,var(--panel)); border:1px solid color-mix(in srgb,#f59e0b 35%,var(--line)); border-radius:6px; padding:1px 6px; white-space:nowrap;}
   .hmsg{font-size:12.5px; font-weight:700; color:var(--ink2); background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-bottom:11px;}
   .hmsg.warn{color:#b45309; border-color:color-mix(in srgb,#f59e0b 45%,var(--line)); background:color-mix(in srgb,#f59e0b 10%,var(--panel));}
-  .hdaynav{display:flex; align-items:center; gap:8px; margin-bottom:11px;}
-  .hnavb{flex:none; width:40px; height:40px; border:1px solid var(--line); border-radius:10px; background:var(--panel2); color:var(--ink); font-size:20px; font-weight:900; cursor:pointer; font-family:inherit;}
-  .hdate{flex:1; padding:11px; border:1px solid var(--line); border-radius:10px; background:var(--panel2); color:var(--ink); font-size:13.5px; font-weight:800; cursor:pointer; font-family:inherit;}
+  .hdaynav{display:flex; align-items:center; gap:6px; margin-bottom:11px;}
+  .hnavb{flex:none; width:38px; height:44px; border:1px solid var(--line); border-radius:10px; background:var(--panel2); color:var(--ink); font-size:20px; font-weight:900; cursor:pointer; font-family:inherit; touch-action:manipulation;}
+  .hnavb.mon{width:34px; font-size:15px; color:var(--mut);}
+  .hnavb:active,.htoday:active{transform:scale(.94);}
+  .hdate{position:relative; flex:1 1 auto; min-width:0; height:44px; padding:0 8px; display:flex; align-items:center; justify-content:center; gap:5px; border:1px solid var(--line); border-radius:10px; background:var(--panel2); color:var(--ink); font-size:13px; font-weight:800; cursor:pointer; font-family:inherit; white-space:nowrap; touch-action:manipulation;}
+  .hdate:focus-within{outline:2px solid var(--accent); outline-offset:2px;}
+  .hdate .hdow{flex:none;}
+  .hdate .hdnum{flex:none; min-width:0; overflow:hidden; text-overflow:ellipsis;}
+  @media (max-width:359px){ .hdate .hdow{display:none;} }   /* on tiny phones drop the weekday first so the date itself stays fully readable */
+  .hdate .hdcal{flex:none; opacity:.65; font-size:13px;}
+  .hdate input[type=date]{position:absolute; inset:0; width:100%; height:100%; margin:0; padding:0; border:0; opacity:0; cursor:pointer; font-family:inherit; -webkit-appearance:none; appearance:none;}
+  .htodayrow{display:flex; justify-content:center; margin:-4px 0 11px;}
+  .htoday{border:1px solid var(--line); background:var(--panel2); color:var(--accent); font-weight:800; font-size:12px; padding:5px 13px; border-radius:999px; cursor:pointer; font-family:inherit; touch-action:manipulation;}
   .habanner{background:color-mix(in srgb,var(--accent) 13%,var(--panel)); border:1px solid color-mix(in srgb,var(--accent) 34%,var(--line)); color:var(--accent); font-weight:800; font-size:12.5px; border-radius:10px; padding:8px 11px; margin-bottom:10px;}
   .hevent{background:color-mix(in srgb,#db2777 11%,var(--panel)); border:1px solid color-mix(in srgb,#db2777 32%,var(--line)); color:var(--ink); font-size:12.5px; border-radius:10px; padding:8px 11px; margin-bottom:8px;}
   .hco{border:1px solid var(--line); border-radius:12px; padding:11px; margin-bottom:9px; background:var(--panel2);}
@@ -1764,6 +1774,7 @@
     if(addAlive(o))add[k]=o;else delete add[k];
     save("ot",ot);save("add",add);render();openDay(y,m,d);}
   function shiftDate(y,m,d,n){var t=new Date(y,m,d+n);return[t.getFullYear(),t.getMonth(),t.getDate()];}
+  function shiftMonth(y,m,d,n){var tm=m+n,ty=y+Math.floor(tm/12);tm=((tm%12)+12)%12;var last=new Date(ty,tm+1,0).getDate();return[ty,tm,Math.min(d,last)];}   // ±n months, clamping the day to the target month's length (Jan 31 → Feb 28/29)
   function fmtT12(hm){var s=fmtT(hm);if(!s)return "";var p=s.split(" ");return p[0].replace(":00","")+(p[1]==="AM"?"a":"p");}   // "09:00" → "9a", "18:30" → "6:30p"
   function fmtRange(sh){return fmtT12(sh.s)+(sh.e?"–"+fmtT12(sh.e):"");}
   // The calendar pill for a light-duty day (schedule overrides the normal tour pills).
@@ -3476,7 +3487,15 @@ var TEN_CODES=[
     if(amAdmin())t.push(["manage","⚙️","Manage",badge(pend,true)]);
     return '<div class="htabs">'+t.map(function(x){return '<button class="htab'+(hview===x[0]?" on":"")+'" data-act="tab" data-v="'+x[0]+'"><span>'+x[1]+'</span><span>'+x[2]+'</span>'+x[3]+'</button>';}).join("")+'</div>'; }
   function hDay(){ var y=hVY,m=hVM,d=hVD,ab=houseAbcdActive(y,m,d),mems=memList("active");
-    var out='<div class="hdaynav"><button class="hnavb" data-act="pday">‹</button><button class="hdate" data-act="today">'+DOWF[new Date(y,m,d).getDay()]+" · "+MON[m]+" "+d+", "+y+'</button><button class="hnavb" data-act="nday">›</button></div>';
+    var tdy=new Date(), isToday=(y===tdy.getFullYear()&&m===tdy.getMonth()&&d===tdy.getDate());   // fresh Date, not the module-level `now` (stale in a PWA left open across midnight)
+    var out='<div class="hdaynav">'+
+      '<button class="hnavb mon" data-act="pmon" aria-label="Previous month">«</button>'+
+      '<button class="hnavb" data-act="pday" aria-label="Previous day">‹</button>'+
+      '<label class="hdate"><span class="hdow">'+DOWF[new Date(y,m,d).getDay()].slice(0,3)+' · </span><span class="hdnum">'+MON[m].slice(0,3)+" "+d+", "+y+'</span><span class="hdcal">📅</span><input type="date" id="hDayPick" value="'+escA(isoLocal(y,m,d))+'" aria-label="Jump to a date"></label>'+
+      '<button class="hnavb" data-act="nday" aria-label="Next day">›</button>'+
+      '<button class="hnavb mon" data-act="nmon" aria-label="Next month">»</button>'+
+      '</div>';
+    if(!isToday)out+='<div class="htodayrow"><button class="htoday" data-act="today">↩︎ Jump to today</button></div>';
     out+='<div class="hdayhint">👆 Tap anyone to swap, get covered, or pick up their tour · <button class="hpickup" data-act="pickup">✋ I want a tour</button></div>';
     if(ab)out+='<div class="habanner">🔤 On the ABCD chart'+(hletter?' · your letter '+esc(hletter):'')+'</div>';
     var evs=(HD.events||[]).filter(function(e){return e.dates&&e.dates.some(function(x){return vacMs(x)===Date.UTC(y,m,d);});});
@@ -3586,7 +3605,9 @@ var TEN_CODES=[
     if(act==="rosttoggle"){ var g=el.closest(".hrgroup"); if(g){ g.classList.toggle("collapsed"); hRostOpen[el.getAttribute("data-co")]=!g.classList.contains("collapsed"); } return; }
     if(act==="pday"){ var p=shiftDate(hVY,hVM,hVD,-1); hVY=p[0];hVM=p[1];hVD=p[2]; renderHouse(); return; }
     if(act==="nday"){ var n=shiftDate(hVY,hVM,hVD,1); hVY=n[0];hVM=n[1];hVD=n[2]; renderHouse(); return; }
-    if(act==="today"){ hVY=now.getFullYear();hVM=now.getMonth();hVD=now.getDate(); renderHouse(); return; }
+    if(act==="today"){ var tdy=new Date(); hVY=tdy.getFullYear();hVM=tdy.getMonth();hVD=tdy.getDate(); renderHouse(); return; }   // fresh Date so "today" is really today even in a long-lived PWA
+    if(act==="pmon"){ var pm=shiftMonth(hVY,hVM,hVD,-1); hVY=pm[0];hVM=pm[1];hVD=pm[2]; renderHouse(); return; }
+    if(act==="nmon"){ var nm=shiftMonth(hVY,hVM,hVD,1); hVY=nm[0];hVM=nm[1];hVD=nm[2]; renderHouse(); return; }
     if(act==="addnewco"){ var nci=document.getElementById("hNewCoAdd"), nv=((nci&&nci.value)||"").trim(); if(!nv){hMsg="Type a company name first.";renderHouse();return;}
       if(hNewCos.some(function(c){return c.toLowerCase()===nv.toLowerCase();})){hMsg="“"+nv+"” is already in the list.";renderHouse();return;}
       if(hNewCos.length>=24){hMsg="That’s plenty of companies for now.";renderHouse();return;} hNewCos.push(nv); hMsg=""; renderHouse(); setTimeout(function(){var f=document.getElementById("hNewCoAdd");if(f)f.focus();},0); return; }   // stage a company for the new house (no server yet)
@@ -3644,6 +3665,7 @@ var TEN_CODES=[
   document.getElementById("houseBody").addEventListener("click",function(e){ var b=e.target.closest("[data-act]"); if(!b)return; if(b.tagName==="A")return; e.preventDefault(); hAct(b.getAttribute("data-act"),b); });
   document.getElementById("houseBody").addEventListener("click",function(e){ var seg=e.target.closest(".hrseg button"); if(!seg)return; var p=seg.parentNode; Array.prototype.forEach.call(p.querySelectorAll("button"),function(x){x.classList.toggle("on",x===seg);}); if(p.id==="hReqType"){var wr=document.getElementById("hWantWrap"); if(wr)wr.style.display=(seg.getAttribute("data-rt")==="swap")?"":"none";} });
   document.getElementById("houseBody").addEventListener("input",function(e){ if(e.target.id==="hRosterSearch"){ hRostQ=e.target.value; filterRoster(); } });
+  document.getElementById("houseBody").addEventListener("blur",function(e){ if(e.target.id==="hDayPick"&&isRealDate(e.target.value)){ var p=e.target.value.split("-"); hVY=+p[0];hVM=+p[1]-1;hVD=+p[2]; hMsg=""; renderHouse(); } },true);   // commit the picked date when the native picker CLOSES (blur, capture-phase since blur doesn't bubble) — re-rendering on "change" would destroy the still-open iOS-wheel / Android-spinner picker mid-selection
   document.getElementById("houseBody").addEventListener("keydown",function(e){ if(e.key!=="Enter")return; if(e.target.id==="hCoAdd"){ e.preventDefault(); hAct("addco",e.target); } else if(e.target.id==="hNewCoAdd"){ e.preventDefault(); hAct("addnewco",e.target); } });   // Enter adds the company
 
   document.getElementById("openRef").onclick=function(){renderRef();openSheet(refSheet);};
