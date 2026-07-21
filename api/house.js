@@ -69,8 +69,27 @@ function hasRSOT(mem, tour) {   // does this member hold an RSOT (scheduled OT) 
 function rsotSwapOK(giver, giveTour, taker, wantTour) { return hasRSOT(giver, giveTour) === hasRSOT(taker, wantTour); }
 // give side of a swap = the RSOT status the poster stamped at create time (unbounded, not the ±130d .ot window); falls back to the live .ot for legacy requests
 function giveSideRsot(doc, req) { return (typeof req.giveRsot === "boolean") ? req.giveRsot : hasRSOT(doc.members[req.by], req.tour); }
-// when a member leaves/is removed, retire the requests they authored or took so no request references a non-member
-function cancelMemberReqs(doc, who) { (doc.requests || []).forEach(function (r) { if ((r.by === who || r.takenBy === who) && (r.status === "open" || r.status === "taken")) { r.status = "cancelled"; r.takenBy = ""; } }); }
+// when a member leaves/is removed: retire their live requests + drop any partner link pointing at them (no dangling refs)
+function cancelMemberReqs(doc, who) {
+  (doc.requests || []).forEach(function (r) { if ((r.by === who || r.takenBy === who) && (r.status === "open" || r.status === "taken")) { r.status = "cancelled"; r.takenBy = ""; } });
+  Object.keys(doc.members || {}).forEach(function (id) { if (doc.members[id].partner === who) delete doc.members[id].partner; });
+}
+function sameTour(a, b) { return !!a && !!b && a.y === b.y && a.m === b.m && a.d === b.d && a.t === b.t; }
+function gaveAway(r, mid, tour) { return (r.by === mid && sameTour(r.tour, tour)) || (r.takenBy === mid && sameTour(r.want, tour)); }   // mid handed this tour OFF in r (poster's give, or taker's hand-back)
+function reGained(r, mid, tour) { return (r.by === mid && sameTour(r.want, tour)) || (r.takenBy === mid && sameTour(r.tour, tour)); }   // mid RECEIVED this tour in r
+// Does `mid` currently NOT hold `tour` because it's spoken for? NET ownership: any in-flight (taken) hand-off blocks; otherwise the LATEST completed (done) action on this exact tour decides — a hand-off keeps it committed, but a later re-gain frees it so the tour can be swapped onward again.
+function tourCommitted(doc, mid, tour, exceptId) {
+  if (!tour) return false;
+  var reqs = doc.requests || [], latest = null;
+  for (var i = 0; i < reqs.length; i++) { var r = reqs[i];
+    if (r.id === exceptId) continue;
+    if (r.status === "taken" && gaveAway(r, mid, tour)) return true;   // a pending deal already committed this tour
+    if (r.status === "done" && (gaveAway(r, mid, tour) || reGained(r, mid, tour)) && (!latest || r.at > latest.at)) latest = r;
+  }
+  return !!latest && gaveAway(latest, mid, tour);
+}
+function tourFuture(t) { if (!t) return false; var et = etParts(); return Date.UTC(t.y, t.m, t.d) >= Date.UTC(et.y, et.m, et.d); }
+function reqTouchesFuture(r) { return tourFuture(r.tour) || tourFuture(r.want); }
 function etParts() {   // current wall-clock date + hour in America/New_York (DST handled by Intl)
   var f = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", hour12: false });
   var p = {}; f.formatToParts(new Date()).forEach(function (x) { p[x.type] = x.value; });
@@ -141,9 +160,9 @@ function notifyForOp(doc, op, actor) {
     if (r.to) out.push({ to: r.to, category: "personal", title: "🔁 " + nameOf(doc, actor), body: nameOf(doc, actor) + " " + reqVerbTo(r) });
     else Object.keys(doc.members).forEach(function (k) { if (k !== actor && doc.members[k].status === "active") out.push({ to: k, category: "general", title: "🔁 New tour request", body: nameOf(doc, actor) + " " + reqVerbGen(r) }); });   // open board → fan out to opted-in members
   }
-  else if (t === "takeRequest") { var rt = findReq(doc, op.rid); if (rt && rt.by && rt.by !== actor) out.push({ to: rt.by, category: "personal", title: "✅ Someone took your request", body: nameOf(doc, actor) + " picked it up — open to confirm." }); }
+  else if (t === "takeRequest") { var rt = findReq(doc, op.rid); if (rt && rt.by && rt.by !== actor) out.push({ to: rt.by, category: "personal", title: rt.even ? "🤝 Partner swap confirmed" : "✅ Someone took your request", body: rt.even ? (nameOf(doc, actor) + " approved it — it's on both your calendars.") : (nameOf(doc, actor) + " picked it up — open to confirm.") }); }
   else if (t === "resolveRequest" && !op.cancel) { var rr = findReq(doc, op.rid); if (rr) [rr.by, rr.takenBy].forEach(function (p) { if (p && p !== actor) out.push({ to: p, category: "personal", title: "✔️ Swap confirmed", body: "It's done and on both calendars." }); }); }
-  else if (t === "declineRequest") { var rd = findReq(doc, op.rid); if (rd && rd.by && rd.by !== actor && op._toWas) out.push({ to: rd.by, category: "personal", title: "↩︎ " + nameOf(doc, op._toWas) + " passed", body: "Your request is now open to the whole house." }); }
+  else if (t === "declineRequest") { var rd = findReq(doc, op.rid); if (rd && rd.by && rd.by !== actor) { if (op._evenDeclined) out.push({ to: rd.by, category: "personal", title: "↩︎ Partner passed", body: nameOf(doc, actor) + " declined the even swap — nothing changed on either calendar." }); else if (op._toWas) out.push({ to: rd.by, category: "personal", title: "↩︎ " + nameOf(doc, op._toWas) + " passed", body: "Your request is now open to the whole house." }); } }
   return out;
 }
 function sanPrefs(p) { p = p || {}; return { personal: p.personal !== false, general: p.general === true, tours: p.tours !== false }; }   // personal/tours default on, general opt-in
@@ -216,9 +235,14 @@ function newMember(op, role, status) {
   return { name: p.name, company: p.company, group: p.group, letter: p.letter, phone: p.phone, spouse: p.spouse,
            spousePhone: p.spousePhone, duty: p.duty, ot: p.ot, role: role, status: status, at: Date.now() };
 }
+function sanCompanies(arr) {   // sanitize + dedup (case-insensitive via co()) + cap a company list
+  var seen = {}, cs = [];
+  (Array.isArray(arr) ? arr : []).forEach(function (c) { c = co(c); if (c && !seen[c] && cs.length < MAX_CO) { seen[c] = 1; cs.push(c); } });
+  return cs;
+}
 function newHouseDoc(id, code, m, op) {
   return { id: id, name: clip(op.house, NAME_MAX) || "Firehouse", code: code, founder: m, createdAt: Date.now(), ver: 1,
-           admins: [m], companies: [], banned: [], members: (function () { var o = {}; o[m] = newMember(op, "admin", "active"); return o; })(),
+           admins: [m], companies: sanCompanies(op.companies), banned: [], members: (function () { var o = {}; o[m] = newMember(op, "admin", "active"); return o; })(),
            abcd: null, events: [], requests: [] };
 }
 function isAdmin(doc, m) { return doc.admins.indexOf(m) >= 0; }
@@ -243,6 +267,9 @@ function applyOp(doc, op, m) {
   if (t === "updateProfile") {
     var p = sanProfile(op);   // NOTE: company + group are admin-owned (set at join/approve) — not overwritten here
     me.name = p.name; me.letter = p.letter; me.phone = p.phone; me.spouse = p.spouse; me.spousePhone = p.spousePhone; me.duty = p.duty; me.ot = p.ot;
+  } else if (t === "setPartner") {   // declare your mutual partner (a specific active member); "confirmed" once they name you back. Omit `who` to clear.
+    if (op.who != null) { if (op.who === m || !doc.members[op.who] || doc.members[op.who].status !== "active") throw { code: 400, error: "bad-partner" }; me.partner = op.who; }
+    else delete me.partner;
   } else if (t === "leave") {
     if (isAdmin(doc, m) && doc.admins.length <= 1) throw { code: 409, error: "last-admin" };  // promote someone first
     delete doc.members[m]; doc.admins = doc.admins.filter(function (a) { return a !== m; }); cancelMemberReqs(doc, m);
@@ -263,9 +290,7 @@ function applyOp(doc, op, m) {
     foundGuard(op.who);
     doc.admins = doc.admins.filter(function (a) { return a !== op.who; }); if (doc.members[op.who]) doc.members[op.who].role = "member";
   } else if (t === "setCompanies") {
-    admin(); var seen = {}, cs = [];
-    (Array.isArray(op.companies) ? op.companies : []).forEach(function (c) { c = co(c); if (c && !seen[c] && cs.length < MAX_CO) { seen[c] = 1; cs.push(c); } });
-    doc.companies = cs;
+    admin(); doc.companies = sanCompanies(op.companies);
   } else if (t === "createRequest") {
     var rq = op.req || {};
     if (!/^(swap|cover|pickup)$/.test(rq.type)) throw { code: 400, error: "bad-req" };
@@ -275,13 +300,18 @@ function applyOp(doc, op, m) {
     if (rq.type === "swap" && !wt) throw { code: 400, error: "bad-want" };
     // bound growth: keep all open/taken, plus only the most recent TERMINAL_KEEP done/cancelled
     var live = doc.requests.filter(function (r) { return r.status === "open" || r.status === "taken"; });
-    var term = doc.requests.filter(function (r) { return r.status !== "open" && r.status !== "taken"; }).sort(function (a, b) { return a.at - b.at; });
+    var keepDone = doc.requests.filter(function (r) { return r.status === "done" && reqTouchesFuture(r); });   // keep completed swaps on still-future tours so the commitment guard can't be defeated by pruning
+    var term = doc.requests.filter(function (r) { return r.status !== "open" && r.status !== "taken" && !(r.status === "done" && reqTouchesFuture(r)); }).sort(function (a, b) { return a.at - b.at; });
     if (term.length > TERMINAL_KEEP) term = term.slice(term.length - TERMINAL_KEEP);
-    doc.requests = live.concat(term);
+    doc.requests = live.concat(keepDone, term);
     var toId = (rq.to && doc.members[rq.to] && doc.members[rq.to].status === "active" && rq.to !== m) ? rq.to : "";   // optional: directed at a specific ACTIVE member
     var gRsot = (typeof rq.giveRsot === "boolean") ? rq.giveRsot : hasRSOT(doc.members[m], tr);   // stamp: the poster's own RSOT status, computed from their full calendar (not the ±130d sync window)
+    if ((rq.type === "swap" || rq.type === "cover") && tourCommitted(doc, m, tr)) throw { code: 409, error: "tour-taken" };   // you've already swapped/covered this exact tour — can't give it away twice
+    if (rq.type === "swap" && toId && tourCommitted(doc, toId, wt)) throw { code: 409, error: "tour-taken" };   // directed: they've already committed the tour you want
     if (rq.type === "swap" && toId && gRsot !== hasRSOT(doc.members[toId], wt)) throw { code: 400, error: "rsot-mismatch" };   // RSOT swaps only trade against another RSOT
-    doc.requests.push({ id: rid(6), type: rq.type, by: m, to: toId, tour: tr, want: wt, giveRsot: (rq.type === "swap" ? gRsot : false), note: clip(rq.note, NOTE_MAX), status: "open", takenBy: "", at: Date.now() });
+    var even = rq.even === true && (rq.type === "swap" || rq.type === "cover");   // "even" = ledger-neutral PARTNER swap; only between two CONFIRMED mutual partners
+    if (even && !(toId && doc.members[m].partner === toId && doc.members[toId] && doc.members[toId].partner === m)) throw { code: 400, error: "not-partners" };
+    doc.requests.push({ id: rid(6), type: rq.type, by: m, to: toId, tour: tr, want: wt, giveRsot: (rq.type === "swap" ? gRsot : false), even: even, note: clip(rq.note, NOTE_MAX), status: "open", takenBy: "", at: Date.now() });
   } else if (t === "cancelRequest") {
     var rc = findReq(doc, op.rid); if (!rc) throw { code: 404, error: "no-req" };
     if (rc.by !== m && !isAdmin(doc, m)) throw { code: 403, error: "not-yours" };
@@ -292,17 +322,23 @@ function applyOp(doc, op, m) {
     if (rt.by === m) throw { code: 400, error: "own-req" };
     if (rt.status !== "open") throw { code: 409, error: "not-open" };
     if (rt.to && rt.to !== m) throw { code: 403, error: "directed" };   // while aimed at someone, only they can accept (until they decline → released to the house)
+    if (rt.tour && tourCommitted(doc, rt.by, rt.tour, rt.id)) throw { code: 409, error: "tour-taken" };   // the poster already committed this tour to another swap since posting
+    if (rt.type === "swap" && rt.want && tourCommitted(doc, m, rt.want, rt.id)) throw { code: 409, error: "tour-taken" };   // you've already given away the tour you'd hand back
     if (rt.type === "swap" && giveSideRsot(doc, rt) !== hasRSOT(doc.members[m], rt.want)) throw { code: 400, error: "rsot-mismatch" };   // taker can only fulfill an RSOT swap with their own RSOT (and vice versa)
-    rt.takenBy = m; rt.status = "taken";
-    if (rt.tour) doc.requests.forEach(function (r) {   // a give-tour can be committed only once: retire the poster's OTHER open requests that give away this same tour (the multi-"want" alternatives)
-      if (r !== rt && r.by === rt.by && r.status === "open" && r.tour &&
-          r.tour.y === rt.tour.y && r.tour.m === rt.tour.m && r.tour.d === rt.tour.d && r.tour.t === rt.tour.t) { r.status = "cancelled"; r.takenBy = ""; }
+    if (rt.even && !(rt.to === m && doc.members[m].partner === rt.by && doc.members[rt.by] && doc.members[rt.by].partner === m)) throw { code: 400, error: "not-partners" };   // an even swap can only be accepted by the confirmed partner it was sent to
+    rt.takenBy = m; rt.status = rt.even ? "done" : "taken";   // a partner even-swap is settled the instant your partner approves it — no separate "Done" step, both calendars sync at once
+    if (rt.tour) doc.requests.forEach(function (r) {   // poster side: a give-tour commits once — retire the poster's OTHER open requests giving away this same tour (the multi-"want" alternatives)
+      if (r !== rt && r.by === rt.by && r.status === "open" && sameTour(r.tour, rt.tour)) { r.status = "cancelled"; r.takenBy = ""; }
+    });
+    if (rt.type === "swap" && rt.want) doc.requests.forEach(function (r) {   // taker side: the taker just handed back rt.want — retire THEIR open requests giving that tour away (no zombie, un-takeable request left behind)
+      if (r !== rt && r.by === m && r.status === "open" && sameTour(r.tour, rt.want)) { r.status = "cancelled"; r.takenBy = ""; }
     });
   } else if (t === "declineRequest") {
     var rdc = findReq(doc, op.rid); if (!rdc) throw { code: 404, error: "no-req" };
     if (rdc.to !== m && !isAdmin(doc, m)) throw { code: 403, error: "not-for-you" };
     if (rdc.status !== "open") throw { code: 409, error: "not-open" };
-    op._toWas = rdc.to; rdc.to = "";   // release to the open house board — anyone can take it now (_toWas lets notify name who was asked)
+    if (rdc.even) { op._evenDeclined = rdc.by; rdc.status = "cancelled"; rdc.takenBy = ""; }   // an even (partner-only) request is meaningless to the house — declining cancels it (never leave a board zombie only the ex-partner could take)
+    else { op._toWas = rdc.to; rdc.to = ""; }   // release to the open house board — anyone can take it now (_toWas lets notify name who was asked)
   } else if (t === "resolveRequest") {
     var rr = findReq(doc, op.rid); if (!rr) throw { code: 404, error: "no-req" };
     if (rr.by !== m && rr.takenBy !== m && !isAdmin(doc, m)) throw { code: 403, error: "not-involved" };

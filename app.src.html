@@ -565,6 +565,12 @@
   .reqbaracts button.rswap{background:var(--accent); color:#fff; border-color:var(--accent);}
   .reqbaracts button:disabled{opacity:.45;}
   .reqbaracts button.reqx{flex:none; width:44px; color:var(--mut);}
+  .rpartner{width:100%; padding:11px; border-radius:11px; border:1px solid var(--amber); background:var(--amber); color:#3a2600; font-family:inherit; font-size:13px; font-weight:800; cursor:pointer; margin-bottom:8px;}
+  .hpartner{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-bottom:12px;}
+  .hpartok{font-size:13px; font-weight:700; color:var(--ink); background:color-mix(in srgb,var(--amber) 12%,var(--panel2)); border:1px solid color-mix(in srgb,var(--amber) 30%,var(--line)); border-radius:9px; padding:8px 10px; margin-bottom:8px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;} .hpartok b{color:var(--amber-soft-ink);}
+  .hpartpend{font-size:12.5px; font-weight:600; color:var(--ink2); background:var(--panel2); border:1px solid var(--line); border-radius:9px; padding:8px 10px; margin-bottom:8px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .hpartok .ldbtn,.hpartpend .ldbtn{margin-left:auto;} .hpartsub{font-size:11.5px; color:var(--mut); margin-top:7px; line-height:1.45;}
+  .reqeven{display:inline-block; font-size:9px; font-weight:900; letter-spacing:.03em; color:#3a2600; background:var(--amber); border-radius:5px; padding:1px 5px; vertical-align:1px; margin-right:3px;}
   /* dot-key popup — floats centered over the calendar */
   .lgpop{position:fixed; left:50%; top:50%; transform:translate(-50%,-50%) scale(.96); z-index:55; width:min(92vw,420px); max-height:84dvh; display:flex; flex-direction:column;
     background:var(--panel); border:1px solid var(--line); border-radius:20px; box-shadow:0 24px 70px rgba(0,0,0,.45); opacity:0; visibility:hidden; transition:opacity .18s, transform .18s, visibility .18s;}
@@ -771,7 +777,11 @@
   .hreqact{flex:none; display:flex; flex-direction:column; gap:5px;}
   .hpendrow{display:flex; justify-content:space-between; align-items:center; gap:8px; padding:9px 2px; border-bottom:1px solid var(--line2);}
   .hpendrow>span:last-child{display:flex; gap:5px; flex:none;}
-  .hchips{display:flex; flex-wrap:wrap; gap:6px;} .hchip{background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:5px 9px; font-size:12px; font-weight:800; color:var(--ink2);} .hchip.add{cursor:pointer; color:var(--accent);}
+  .hchips{display:flex; flex-wrap:wrap; gap:6px; align-items:center;} .hchip{background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:5px 9px; font-size:12px; font-weight:800; color:var(--ink2);} .hchip.add{cursor:pointer; color:var(--accent);}
+  .hchip.co{display:inline-flex; align-items:center; gap:5px; padding:5px 5px 5px 9px;}
+  .hcx{border:0; background:none; color:var(--mut); font-family:inherit; font-size:12px; line-height:1; cursor:pointer; padding:2px 4px; border-radius:5px;} .hcx:hover{color:var(--red); background:var(--red-soft);}
+  .hcoempty{font-size:12.5px; color:var(--mut);}
+  .hcoadd{display:flex; gap:8px; margin-top:8px;} .hcoadd .cevin{flex:1; margin-bottom:0;} .hcoadd .raddbtn{flex:none; white-space:nowrap;}
   .raddbtn.sm,.ldbtn.sm{padding:7px 11px; font-size:12px; min-height:0;}
   .tcsub{font-size:12px; line-height:1.5; color:var(--ink2); padding:7px 10px; background:var(--panel2); border:1px solid var(--line); border-radius:9px;}
   .tcsub b{color:var(--red); font-weight:800;}
@@ -892,6 +902,7 @@
 </div>
 <div class="reqbar" id="reqbar">
   <div class="reqbarmsg" id="reqbarMsg"></div>
+  <button class="rpartner" data-ra="partner" id="reqPartnerBtn" style="display:none"></button>
   <div class="reqbaracts">
     <button class="rcover" data-ra="cover">🤝 Get covered</button>
     <button class="rswap" data-ra="swap">🔁 Swap</button>
@@ -1845,6 +1856,8 @@
     document.getElementById("reqbarMsg").innerHTML="Your tour <b>"+reqTourLbl(reqMode.give)+(gR?' <span class="reqrsot">RSOT</span>':'')+"</b><br><span class=\"reqbarsub\">"+sub+"</span>";
     var sw=bar.querySelector('[data-ra="swap"]'); if(sw)sw.disabled=!n;            // Swap needs at least one return tour
     var cv=bar.querySelector('[data-ra="cover"]'); if(cv)cv.disabled=n>0;           // once you've picked return tours it's a swap, not a cover
+    var pb=document.getElementById("reqPartnerBtn");   // one-tap even swap/cover with your confirmed partner (no debt)
+    if(pb){ if(partnerConfirmed()){ pb.style.display=""; pb.textContent=n?("🤝 Even swap with "+memName(myPartner())):("🤝 "+memName(myPartner())+" covers this — even"); } else pb.style.display="none"; }
     bar.classList.add("show"); }
   function postReqs(reqs,doneMsg){ exitReq(); var i=0,okc=0,fail=null; (function nx(){ if(i>=reqs.length){ setHouseBadge();   // swap reqs carry a stamped giveRsot, so no pre-sync needed
       if(okc===reqs.length){ appConfirm(doneMsg,"Done",function(){}); }
@@ -1875,6 +1888,11 @@
     hOp({type:"createRequest",req:{type:"swap",tour:g,want:w,to:toId,giveRsot:gR}}).then(function(r){ setHouseBadge();
       appConfirm(r&&r.err?("Couldn’t send — "+hErrMsg(r.err)+".") : ("🔁 Sent your swap request to "+nm+" — only they’ll see it."), r&&r.err?"Not sent":"Sent", function(){}); }); }
   function doSwapOpen(){ if(!reqMode||!reqMode.wants.length)return; var g=reqMode.give, gR=giveIsRsot(), reqs=reqMode.wants.map(function(w){return {type:"swap",tour:g,want:w,giveRsot:gR};}); closeSwapPicker(); postReqs(reqs,"📢 Posted "+(reqs.length>1?reqs.length+" open swap requests":"your open swap request")+" — the whole house can see it."); }
+  function doPartnerReq(){ if(!reqMode||!partnerConfirmed())return; var g=reqMode.give, gR=curState(g.y,g.m,g.d,g.t)==="rsot", pid=myPartner(), pn=memName(pid), wants=reqMode.wants.slice(); closeSwapPicker(); exitReq();   // one directed EVEN request to your partner → they approve → both calendars sync as a ledger-neutral PARTNER swap
+    if(wants.length){ var reqs=wants.map(function(w){return {type:"swap",tour:g,want:w,to:pid,even:true,giveRsot:gR};}), i=0,okc=0,fail=null;
+      (function nx(){ if(i>=reqs.length){ setHouseBadge(); appConfirm(okc?("🤝 Sent "+(okc>1?okc+" even swaps":"an even swap")+" to "+esc(pn)+" — once they approve, you're both in sync (no debt)."):("Couldn't send"+(fail?" ("+hErrMsg(fail)+")":"")+"."), okc?"Sent":"Not sent", function(){}); return; }
+        hOp({type:"createRequest",req:reqs[i]}).then(function(r){ if(r&&r.err)fail=r.err; else okc++; i++; nx(); }); })(); }
+    else { hOp({type:"createRequest",req:{type:"cover",tour:g,to:pid,even:true}}).then(function(r){ setHouseBadge(); appConfirm(r&&r.err?("Couldn't send — "+hErrMsg(r.err)+"."):("🤝 Asked "+esc(pn)+" to cover "+reqTourLbl(g)+" — even, no debt. They approve → you're in sync."), r&&r.err?"Not sent":"Sent", function(){}); }); } }
   function attachLongPress(el,cb){ var tmr=null,sx=0,sy=0,mv=false; function clr(){ if(tmr){clearTimeout(tmr);tmr=null;} }
     el.addEventListener("pointerdown",function(e){ if(e.button&&e.button!==0)return; mv=false; sx=e.clientX; sy=e.clientY; clr(); tmr=setTimeout(function(){tmr=null; if(!mv)cb();},480); },{passive:true});
     el.addEventListener("pointermove",function(e){ if(tmr&&(Math.abs(e.clientX-sx)>10||Math.abs(e.clientY-sy)>10)){mv=true;clr();} },{passive:true});
@@ -2300,7 +2318,7 @@
       if(Date.now()-st2<700&&Math.abs(dy)>55&&Math.abs(dy)>Math.abs(dx)){swipeTs=Date.now();if(dy<0)goNext();else goPrev();}   // natural scroll: swipe up=next month, swipe down=previous
     },{passive:true});
   })();
-  document.getElementById("reqbar").addEventListener("click",function(e){ var b=e.target.closest("[data-ra]"); if(!b)return; var ra=b.getAttribute("data-ra"); if(ra==="cover")doCover(); else if(ra==="swap")doSwap(); else exitReq(); });
+  document.getElementById("reqbar").addEventListener("click",function(e){ var b=e.target.closest("[data-ra]"); if(!b)return; var ra=b.getAttribute("data-ra"); if(ra==="cover")doCover(); else if(ra==="swap")doSwap(); else if(ra==="partner")doPartnerReq(); else exitReq(); });
   document.getElementById("swpick").addEventListener("click",function(e){ if(e.target.id==="swpick"){closeSwapPicker();return;}   // tap backdrop to close
     var b=e.target.closest("[data-swp]"); if(!b)return; var a=b.getAttribute("data-swp");
     if(a==="ask")sendDirectedSwap(parseInt(b.getAttribute("data-wi"),10),b.getAttribute("data-mid"));
@@ -3334,7 +3352,7 @@ var TEN_CODES=[
   var hpushOn=load("hpush",false);      // web-push enabled on this device
   var hpushPrefs=load("hpushprefs",{personal:true,general:false,tours:true});   // per-category notification toggles
   var VAPID_PUB="BDcPsixcRRapSmss7LoUwIWsTKyeUtk4jLBzyOJMSgsD5cT0zq2qC1d1uzuTm48O7BOFE7DHXe09Kfr6e-08DUc";   // public VAPID key (safe to embed); private key is server env only
-  var hview="day", hVY=now.getFullYear(), hVM=now.getMonth(), hVD=now.getDate(), hMsg="", hRostOpen={}, hRostQ="", hReqPre=null;
+  var hview="day", hVY=now.getFullYear(), hVM=now.getMonth(), hVD=now.getDate(), hMsg="", hRostOpen={}, hRostQ="", hReqPre=null, hNewCos=[];   // hNewCos = companies staged while creating a house
   function houseUnread(){ if(!HD||!HS)return {n:0,forme:0}; var n=0,fm=0; (HD.requests||[]).forEach(function(r){ if(r.status!=="open"||r.by===HS.m||hseen[r.id])return; if(r.to&&r.to!==HS.m&&r.takenBy!==HS.m)return; n++; if(r.to===HS.m)fm++; }); return {n:n,forme:fm}; }   // count only what I can actually see (open board or directed at/taken by me) — no phantom count / directed-existence leak
   function markReqsSeen(){ if(!HD)return; var ch=false; (HD.requests||[]).forEach(function(r){ if(!hseen[r.id]){hseen[r.id]=1;ch=true;} }); if(ch)save("hseen",hseen); setHouseBadge(); }
   function setHouseBadge(){ var b=document.getElementById("openHouse"); if(!b)return;
@@ -3366,15 +3384,23 @@ var TEN_CODES=[
       if(r.status===409){ if(r.j.doc){HD=r.j.doc;hSave();} return post().then(function(r2){ if(r2.status===200&&r2.j.doc){HD=r2.j.doc;hSave();applyDoneRequests();return {doc:HD};} return {err:(r2.j&&r2.j.error)||("http "+r2.status)}; }); }
       return {err:(r.j&&r.j.error)||("http "+r.status)}; }); }
   function hIdentity(){ if(HS&&HS.m&&HS.s)return Promise.resolve({m:HS.m,s:HS.s}); var s=genCode()+"-"+genCode(); return hex256(s).then(function(m){return {m:m,s:s};}); }
-  function houseCreate(name){ return hIdentity().then(function(id){ var b=myProfile(); b.m=id.m;b.s=id.s;b.house=name;
-    return hFetch("POST","?a=create",b).then(function(r){ if(r.status===200&&r.j.doc){HS={id:r.j.doc.id,code:r.j.doc.code,m:id.m,s:id.s};HD=r.j.doc;hSave();return {ok:true};} return {err:(r.j&&r.j.error)||("http "+r.status)}; }); }); }
+  function houseCreate(name,companies){ return hIdentity().then(function(id){ var b=myProfile(); b.m=id.m;b.s=id.s;b.house=name; b.companies=companies||[];
+    return hFetch("POST","?a=create",b).then(function(r){ if(r.status===200&&r.j.doc){HS={id:r.j.doc.id,code:r.j.doc.code,m:id.m,s:id.s};HD=r.j.doc;hSave();hNewCos=[];return {ok:true};} return {err:(r.j&&r.j.error)||("http "+r.status)}; }); }); }
   function houseJoin(code){ return hIdentity().then(function(id){ var b=myProfile(); b.m=id.m;b.s=id.s;b.code=code;
     return hFetch("POST","?a=join",b).then(function(r){ if(r.status===200){HS={id:(r.j.doc?r.j.doc.id:r.j.id),code:code.toUpperCase(),m:id.m,s:id.s};HD=r.j.doc||null;hSave();return {ok:true,pending:!r.j.doc};} return {err:(r.j&&r.j.error)||("http "+r.status)}; }); }); }
   // --- attendance engine (reuse has()/startOf()/abcdLetter) ---
   function houseAbcdActive(y,m,d){ if(!HD||!HD.abcd)return false; var t=Date.UTC(y,m,d),s=vacMs(HD.abcd.s),e=HD.abcd.e?vacMs(HD.abcd.e):Infinity; return !isNaN(s)&&t>=s&&t<=e; }
   function memberOff(mem,y,m,d){ var t=Date.UTC(y,m,d),ds=mem.duty||[]; for(var i=0;i<ds.length;i++){var s=vacMs(ds[i].s),e=ds[i].e?vacMs(ds[i].e):Infinity; if(!isNaN(s)&&t>=s&&t<=e)return ds[i].t;} return null; }
   function memberWorks(mem,y,m,d,tour){ if(houseAbcdActive(y,m,d)){return mem.letter&&abcdLetter(y,m,d)===mem.letter;} return mem.group?has(startOf(y,m,d,tour),mem.group):false; }
+  function myPartner(){ return (HD&&HD.members&&HD.members[HS.m]&&HD.members[HS.m].partner)||""; }   // the member I named as my mutual partner
+  function partnerConfirmed(){ var p=myPartner(); return !!(p&&HD.members[p]&&HD.members[p].status==="active"&&HD.members[p].partner===HS.m); }   // both of us named each other
+  function memName(id){ return (HD&&HD.members&&HD.members[id]&&HD.members[id].name)||"—"; }
   function memberRSOT(mem,y,m,d,tour){ var iso=isoLocal(y,m,d),ot=(mem&&mem.ot)||[]; for(var i=0;i<ot.length;i++)if(ot[i].t===tour&&ot[i].d===iso)return true; return false; }   // scheduled OT (RSOT) — extra body on this tour, swappable (mem may be undefined if its author left)
+  function houseTourCommitted(id,y,m,d,t){ if(!HD||!HD.requests)return false; var tour={y:y,m:m,d:d,t:t},reqs=HD.requests,latest=null;   // mirrors the server: has this member swapped/covered this exact tour away (and not re-gained it)?
+    function away(r){return (r.by===id&&sameT(r.tour,tour))||(r.takenBy===id&&sameT(r.want,tour));}
+    function gain(r){return (r.by===id&&sameT(r.want,tour))||(r.takenBy===id&&sameT(r.tour,tour));}
+    for(var i=0;i<reqs.length;i++){ var r=reqs[i]; if(r.status==="taken"&&away(r))return true; if(r.status==="done"&&(away(r)||gain(r))&&(!latest||r.at>latest.at))latest=r; }
+    return !!latest&&away(latest); }
   function memList(status){ if(!HD)return []; return Object.keys(HD.members).map(function(k){return [k,HD.members[k]];}).filter(function(x){return !status||x[1].status===status;}); }
   function amAdmin(){ return HD&&HS&&HD.admins.indexOf(HS.m)>=0; }
   // --- apply completed swap/cover requests to my personal calendar ---
@@ -3384,8 +3410,9 @@ var TEN_CODES=[
       function set(t,st){ if(!t)return; setState(t.y,t.m,t.d,t.t,st,true); if(st==="mxin"||st==="mxout")setMxName(t.y,t.m,t.d,t.t,other); }   // quiet — never pop the day sheet from a boot/foreground sync
       if(r.type==="swap"){
         if(r.giveRsot){ if(r.by===HS.m){set(r.want,"rsot");set(r.tour,"base");} else {set(r.tour,"rsot");set(r.want,"base");} }   // RSOT↔RSOT: the tour you pick up is genuine OT; the one you give away goes off (so OT stats stay right)
+        else if(r.even){ if(r.by===HS.m){set(r.want,"pmxin");set(r.tour,"pmxout");} else {set(r.tour,"pmxin");set(r.want,"pmxout");} }   // partner even-swap → ledger-neutral PARTNER swap (no debt)
         else { if(r.by===HS.m){set(r.want,"mxin");set(r.tour,"mxout");} else {set(r.tour,"mxin");set(r.want,"mxout");} } }
-      else if(r.type==="cover"){ if(r.by===HS.m){set(r.tour,"mxout");} else {set(r.tour,"mxin");} }
+      else if(r.type==="cover"){ if(r.even){ if(r.by===HS.m)set(r.tour,"pmxout"); else set(r.tour,"pmxin"); } else { if(r.by===HS.m){set(r.tour,"mxout");} else {set(r.tour,"mxin");} } }
       hqapplied[r.id]=1; changed=true; });
     if(changed){save("hqapplied",hqapplied);render();} }
 
@@ -3393,9 +3420,9 @@ var TEN_CODES=[
   function hDateLabel(y,m,d){return DOWF[new Date(y,m,d).getDay()].slice(0,3)+" "+MON[m].slice(0,3)+" "+d;}
   function tourKeyLbl(t){return t.t===9?"9× Day":"6× Night";}
   function reqLine(r){var by=(HD.members[r.by]&&HD.members[r.by].name)||"?", toN=(r.to&&HD.members[r.to])?(HD.members[r.to].name||"?"):"";
-    var tt=r.tour?hDateLabel(r.tour.y,r.tour.m,r.tour.d)+" "+tourKeyLbl(r.tour):"", dir=toN?' <span class="reqto">→ '+esc(toN)+'</span>':'';
-    if(r.type==="swap")return esc(by)+" wants to swap "+tt+" for "+(r.want?hDateLabel(r.want.y,r.want.m,r.want.d)+" "+tourKeyLbl(r.want):"?")+dir;
-    if(r.type==="cover")return esc(by)+" needs "+tt+" covered"+dir;
+    var tt=r.tour?hDateLabel(r.tour.y,r.tour.m,r.tour.d)+" "+tourKeyLbl(r.tour):"", dir=toN?' <span class="reqto">→ '+esc(toN)+'</span>':'', ev=r.even?'<span class="reqeven">🤝 partner · even</span> ':'';
+    if(r.type==="swap")return ev+esc(by)+" wants to swap "+tt+" for "+(r.want?hDateLabel(r.want.y,r.want.m,r.want.d)+" "+tourKeyLbl(r.want):"?")+dir;
+    if(r.type==="cover")return ev+esc(by)+" needs "+tt+" covered"+dir;
     return esc(by)+" is looking to pick up tours"; }
   function memberCard(mem){ var call=mem.phone?'<a class="hmcall" href="'+escA("tel:"+mem.phone.replace(/[^0-9+]/g,""))+'">📞</a>':'';
     return '<span class="hmem"><span class="hmname">'+esc(mem.name||"—")+'</span>'+(mem.group?'<span class="hmg">g'+mem.group+'</span>':'')+(mem.letter&&houseAbcdActive(hVY,hVM,hVD)?'<span class="hmg">'+mem.letter+'</span>':'')+call+'</span>'; }
@@ -3432,7 +3459,12 @@ var TEN_CODES=[
   function hGate(){ var ready=(uname&&uco);
     return '<h3>🏠 House Calendar</h3><p class="rsub">Sync your firehouse — see who’s reporting for each tour, swap &amp; cover tours, and keep the crew in one place.</p>'+
       (ready?'':'<div class="hmsg warn">Set your <b>full name</b> and <b>company</b> in Settings first — that’s how your crew finds you.</div>')+
-      '<div class="cfrsec" style="border-top:none;padding-top:0"><div class="setlbl">Create a house</div><input class="cevin" id="hCreateName" placeholder="House name (e.g. Ladder 144 / Engine 295)" '+(ready?'':'disabled')+'><button class="raddbtn" data-act="create" style="width:100%;margin-top:4px" '+(ready?'':'disabled')+'>Create &amp; become admin</button></div>'+
+      '<div class="cfrsec" style="border-top:none;padding-top:0"><div class="setlbl">Create a house</div>'+
+        '<input class="cevin" id="hCreateName" placeholder="House name (e.g. Ladder 144 / Engine 295)" '+(ready?'':'disabled')+'>'+
+        '<div class="setlbl" style="font-size:11px;letter-spacing:.02em;margin:2px 0 6px">Companies <span style="color:var(--mut);font-weight:600">— optional, add now or later</span></div>'+
+        '<div class="hchips">'+(hNewCos.length?hNewCos.map(function(c){return '<span class="hchip co">'+esc(c)+'<button class="hcx" data-act="delnewco" data-co="'+escA(c)+'" aria-label="Remove" title="Remove">✕</button></span>';}).join(""):'<span class="hcoempty">None yet.</span>')+'</div>'+
+        '<div class="hcoadd"><input class="cevin" id="hNewCoAdd" type="text" autocomplete="off" placeholder="Add a company — e.g. E295" '+(ready?'':'disabled')+'><button class="raddbtn" data-act="addnewco" '+(ready?'':'disabled')+'>＋ Add</button></div>'+
+        '<button class="raddbtn" data-act="create" style="width:100%;margin-top:8px" '+(ready?'':'disabled')+'>Create &amp; become admin</button></div>'+
       '<div class="cfrsec"><div class="setlbl">Join a house</div><input class="cevin" id="hJoinCode" placeholder="6-letter join code" autocapitalize="characters" style="text-transform:uppercase" '+(ready?'':'disabled')+'><button class="raddbtn" data-act="join" style="width:100%;margin-top:4px" '+(ready?'':'disabled')+'>Request to join</button></div>'; }
   function hPending(){ return '<h3>🏠 '+esc((HD&&HD.name)||"House")+'</h3><div class="hmsg">⏳ Waiting for an admin to approve you. Refresh once they do.</div><div class="cfrbtns"><button class="raddbtn" data-act="refresh">Refresh</button><button class="ldbtn" data-act="leave">Cancel request</button></div>'; }
   function hHeader(){ var admin=amAdmin();
@@ -3454,8 +3486,8 @@ var TEN_CODES=[
     [9,6].forEach(function(t){
       out+='<div class="htsec '+(t===9?"t9":"t6")+'"><div class="htshd">'+(t===9?'<span class="hticon">☀️</span> 9× · Day tour':'<span class="hticon">🌙</span> 6× · Night tour')+'</div>';
       cos.forEach(function(co){ var inco=mems.filter(function(x){return (x[1].company||"")===co;}); if(!inco.length&&co)return;
-        var reg=inco.filter(function(x){return !memberOff(x[1],y,m,d)&&memberWorks(x[1],y,m,d,t);});
-        var rs=inco.filter(function(x){return !memberOff(x[1],y,m,d)&&!memberWorks(x[1],y,m,d,t)&&memberRSOT(x[1],y,m,d,t);});
+        var reg=inco.filter(function(x){return !memberOff(x[1],y,m,d)&&memberWorks(x[1],y,m,d,t)&&!houseTourCommitted(x[0],y,m,d,t);});   // hide anyone who already swapped/covered this exact tour away
+        var rs=inco.filter(function(x){return !memberOff(x[1],y,m,d)&&!memberWorks(x[1],y,m,d,t)&&memberRSOT(x[1],y,m,d,t)&&!houseTourCommitted(x[0],y,m,d,t);});
         var chips=reg.map(function(x){return chip(x[0],x[1],t,false);}).join("")+rs.map(function(x){return chip(x[0],x[1],t,true);}).join("");
         out+='<div class="htco"><span class="htconame">'+(co?esc(co):"Unassigned")+'</span><div class="htchips">'+(chips||'<span class="hnone">—</span>')+'</div></div>'; });
       out+='</div>'; });
@@ -3501,6 +3533,13 @@ var TEN_CODES=[
     else if(r.status==="open")acts+='<button class="raddbtn sm" data-act="take" data-rid="'+r.id+'">I’ll take it</button>';
     if((mine||tookIt)&&r.status==="taken")acts+='<button class="raddbtn sm" data-act="resolve" data-rid="'+r.id+'">Done ✓</button>';
     return '<div class="hreq'+(forMe?" forme":"")+'"><div class="hreqtxt">'+(forMe?'<span class="hreqfor">📩 for you</span> ':'')+reqLine(r)+(r.note?'<div class="hreqnote">'+esc(r.note)+'</div>':'')+(r.status==="taken"?'<div class="hreqst">✓ taken'+(tookIt?" by you":(r.takenBy?" by "+esc((HD.members[r.takenBy]&&HD.members[r.takenBy].name)||"someone"):""))+'</div>':'')+'</div><div class="hreqact">'+acts+'</div></div>'; }
+  function hPartnerCard(){ var p=myPartner(), conf=partnerConfirmed(),
+      act=memList("active").filter(function(x){return x[0]!==HS.m;}),
+      pick='<select class="cevin" id="hPartnerSel" style="margin-bottom:0"><option value="">— pick a crewmate —</option>'+act.map(function(x){return '<option value="'+escA(x[0])+'"'+(x[0]===p?" selected":"")+'>'+esc(x[1].name||"?")+(x[1].company?" · "+esc(x[1].company):"")+'</option>';}).join("")+'</select>',
+      status = conf ? '<div class="hpartok">🤝 Partnered with <b>'+esc(memName(p))+'</b> · even swaps, no debt <button class="ldbtn sm" data-act="unpartner">Unlink</button></div>'
+             : p    ? '<div class="hpartpend">⏳ You picked <b>'+esc(memName(p))+'</b> — waiting for them to pick you back. <button class="ldbtn sm" data-act="unpartner">Cancel</button></div>'
+                    : '';
+    return '<div class="hpartner"><div class="setlbl">🤝 Mutual partner</div>'+status+'<div class="hcoadd">'+pick+'<button class="raddbtn" data-act="setpartner">'+(p?"Change":"Set")+'</button></div><div class="hpartsub">Link with your regular partner to send <b>even swaps you both approve</b> — always in sync, no debt tracked.</div></div>'; }
   function hRequests(){ var pre=hReqPre||{}, typ=pre.type||"swap";
     var opens=HD.requests.filter(function(r){return r.status==="open"||r.status==="taken";});
     var visible=opens.filter(function(r){return !r.to||r.to===HS.m||r.by===HS.m||r.takenBy===HS.m;});   // open board → whole house; a directed request → only the two people involved
@@ -3512,7 +3551,7 @@ var TEN_CODES=[
     var wIso=pre.wantTour?isoLocal(pre.wantTour.y,pre.wantTour.m,pre.wantTour.d):"", wT=pre.wantTour?pre.wantTour.t:9;
     var banner=(pre.toName||pre.ctxLbl)?'<div class="hctx">'+(pre.toName?'🔁 With <b>'+esc(pre.toName)+'</b>':'🤝 Your tour')+(pre.ctxLbl?' · '+esc(pre.ctxLbl):'')+'<button class="hclr" data-act="clrctx">✕</button></div>':'';
     var myLbl=typ==="swap"?(pre.toName?"Your tour to give them":"Your tour to give"):"Your tour";
-    var out=pushRow();
+    var out=pushRow()+hPartnerCard();
     if(forMe.length){ out+='<div class="setlbl">📩 For you</div>'+forMe.map(reqCard).join(""); }
     out+='<div class="hnewreq">'+banner+'<div class="setlbl">'+((pre.toName||pre.ctxLbl)?"Finish this request":"Post a request")+'</div>'+
       '<div class="hrseg big" id="hReqType"><button data-rt="swap" class="'+(typ==="swap"?"on":"")+'">🔁 Swap</button><button data-rt="cover" class="'+(typ==="cover"?"on":"")+'">🤝 Cover</button><button data-rt="pickup" class="'+(typ==="pickup"?"on":"")+'">✋ Pick up</button></div>'+
@@ -3527,7 +3566,8 @@ var TEN_CODES=[
     var out='<div class="setlbl">Pending approvals</div>';
     out+= pend.length? pend.map(function(x){var mem=x[1];
       return '<div class="hpendrow"><span class="hrname">'+esc(mem.name||"?")+' <span class="hrco">'+esc(mem.company||"—")+(mem.group?" · g"+mem.group:"")+'</span></span><span><button class="raddbtn sm" data-act="approve" data-who="'+escA(x[0])+'">Approve</button><button class="ldbtn" data-act="reject" data-who="'+escA(x[0])+'">✕</button></span></div>'; }).join("") : '<div class="dempty">No one waiting.</div>';
-    out+='<div class="setlbl" style="margin-top:14px">Companies</div><div class="hchips">'+HD.companies.map(function(c){return '<span class="hchip">'+esc(c)+'</span>';}).join("")+'<button class="hchip add" data-act="editco">✎ Edit</button></div>';
+    out+='<div class="setlbl" style="margin-top:14px">Companies</div><div class="hchips">'+(HD.companies.length?HD.companies.map(function(c){return '<span class="hchip co">'+esc(c)+'<button class="hcx" data-act="delco" data-co="'+escA(c)+'" aria-label="Remove '+escA(c)+'" title="Remove">✕</button></span>';}).join(""):'<span class="hcoempty">No companies yet — add your first below.</span>')+'</div>';
+    out+='<div class="hcoadd"><input class="cevin" id="hCoAdd" type="text" inputmode="text" autocomplete="off" placeholder="Add a company — e.g. E295 or L144"><button class="raddbtn" data-act="addco">＋ Add</button></div>';
     out+='<div class="setlbl" style="margin-top:14px">Whole-house controls</div><div class="cfrbtns"><button class="raddbtn" data-act="abcdpush">🔤 '+(HD.abcd?"Update":"Push")+' ABCD</button>'+(HD.abcd?'<button class="ldbtn" data-act="abcdoff">End ABCD</button>':'')+'</div><div class="cfrbtns" style="margin-top:6px"><button class="raddbtn" data-act="postevent">📌 Post company event</button></div>';
     out+='<div class="setlbl" style="margin-top:14px">Join code</div><div class="hchips"><span class="hchip">'+esc(HD.code)+'</span><button class="hchip add" data-act="rotatecode" title="Generate a new code — the old one stops working">🔄 New code</button></div>';
     out+='<div class="setlbl" style="margin-top:14px">Members</div>'+act.map(function(x){var mem=x[1],isMe=x[0]===HS.m,ad=HD.admins.indexOf(x[0])>=0;
@@ -3536,7 +3576,7 @@ var TEN_CODES=[
   function isoLocal(y,m,d){return y+"-"+(m+1<10?"0":"")+(m+1)+"-"+(d<10?"0":"")+d;}
 
   // --- action dispatcher ---
-  function hErrMsg(e){ return e==="rsot-mismatch"?"an RSOT can only be swapped for another RSOT":e==="sync-failed"?"couldn’t sync your schedule — check your connection and try again":e==="author-gone"?"the person who posted this has left the house":e; }
+  function hErrMsg(e){ return e==="rsot-mismatch"?"an RSOT can only be swapped for another RSOT":e==="sync-failed"?"couldn’t sync your schedule — check your connection and try again":e==="author-gone"?"the person who posted this has left the house":e==="tour-taken"?"that tour is already part of another swap":e==="not-partners"?"even swaps only work with your confirmed mutual partner":e==="bad-partner"?"pick an active crewmate as your partner":e; }
   var hBusy=false;
   function hReloadThen(p){ if(hBusy)return; hBusy=true; hBusyMsg("Working…"); Promise.resolve(p).then(function(res){ hBusy=false; hMsg=(res&&res.err)?("⚠ "+hErrMsg(res.err)):""; renderHouse(); }).catch(function(){ hBusy=false; renderHouse(); }); }   // drop a second tap while a write is in flight (no duplicate crew-visible requests)
   function hBusyMsg(t){ hMsg=t; var b=document.getElementById("houseBody"); if(b&&HS){/* keep current view, just note */} }
@@ -3547,7 +3587,11 @@ var TEN_CODES=[
     if(act==="pday"){ var p=shiftDate(hVY,hVM,hVD,-1); hVY=p[0];hVM=p[1];hVD=p[2]; renderHouse(); return; }
     if(act==="nday"){ var n=shiftDate(hVY,hVM,hVD,1); hVY=n[0];hVM=n[1];hVD=n[2]; renderHouse(); return; }
     if(act==="today"){ hVY=now.getFullYear();hVM=now.getMonth();hVD=now.getDate(); renderHouse(); return; }
-    if(act==="create"){ var nm=(document.getElementById("hCreateName")||{}).value||""; if(!nm.trim()){hMsg="Name your house first.";renderHouse();return;} hReloadThen(houseCreate(nm.trim())); return; }
+    if(act==="addnewco"){ var nci=document.getElementById("hNewCoAdd"), nv=((nci&&nci.value)||"").trim(); if(!nv){hMsg="Type a company name first.";renderHouse();return;}
+      if(hNewCos.some(function(c){return c.toLowerCase()===nv.toLowerCase();})){hMsg="“"+nv+"” is already in the list.";renderHouse();return;}
+      if(hNewCos.length>=24){hMsg="That’s plenty of companies for now.";renderHouse();return;} hNewCos.push(nv); hMsg=""; renderHouse(); setTimeout(function(){var f=document.getElementById("hNewCoAdd");if(f)f.focus();},0); return; }   // stage a company for the new house (no server yet)
+    if(act==="delnewco"){ var dnc=el.getAttribute("data-co"); hNewCos=hNewCos.filter(function(c){return c!==dnc;}); renderHouse(); return; }
+    if(act==="create"){ var nm=(document.getElementById("hCreateName")||{}).value||""; if(!nm.trim()){hMsg="Name your house first.";renderHouse();return;} hReloadThen(houseCreate(nm.trim(),hNewCos.slice())); return; }
     if(act==="join"){ var cd=((document.getElementById("hJoinCode")||{}).value||"").trim(); if(!cd){hMsg="Enter the join code.";renderHouse();return;} if(hBusy)return; hBusy=true; houseJoin(cd).then(function(res){ hBusy=false; hMsg=res.err?("⚠ "+res.err):(res.pending?"Request sent — waiting for approval.":""); renderHouse(); }).catch(function(){ hBusy=false; renderHouse(); }); return; }
     if(act==="refresh"){ hGet().then(function(){renderHouse();}); return; }
     if(act==="forget"){ HS=null;HD=null;hSave(); renderHouse(); return; }
@@ -3558,7 +3602,12 @@ var TEN_CODES=[
     if(act==="removem"){ appConfirm("Remove this member from the house?","Remove",function(){ hReloadThen(hOp({type:"remove",who:who})); }); return; }
     if(act==="promote"){ hReloadThen(hOp({type:"promote",who:who})); return; }
     if(act==="demote"){ hReloadThen(hOp({type:"demote",who:who})); return; }
-    if(act==="editco"){ appPrompt("Companies in this house (comma-separated, e.g. E295, L144):",HD.companies.join(", "),function(v){ hReloadThen(hOp({type:"setCompanies",companies:(v||"").split(",")})); },"text"); return; }
+    if(act==="addco"){ var ci=document.getElementById("hCoAdd"), v=((ci&&ci.value)||"").trim(); if(!v){hMsg="Type a company name first.";renderHouse();return;}
+      if(HD.companies.some(function(c){return c.toLowerCase()===v.toLowerCase();})){hMsg="“"+v+"” is already added.";renderHouse();return;}
+      hReloadThen(hOp({type:"setCompanies",companies:HD.companies.concat([v])})); return; }   // add ONE company (server caps + sanitizes)
+    if(act==="delco"){ var dco=el.getAttribute("data-co"); appConfirm("Remove “"+esc(dco)+"” from the house? Members assigned to it keep their assignment; it just drops from this list.","Remove",function(){ hReloadThen(hOp({type:"setCompanies",companies:HD.companies.filter(function(c){return c!==dco;})})); }); return; }
+    if(act==="setpartner"){ var psel=document.getElementById("hPartnerSel"), pw=(psel&&psel.value)||""; if(!pw){hMsg="Pick a crewmate first.";renderHouse();return;} if(pw===HS.m){hMsg="Pick someone other than yourself.";renderHouse();return;} hReloadThen(hOp({type:"setPartner",who:pw})); return; }
+    if(act==="unpartner"){ hReloadThen(hOp({type:"setPartner"})); return; }   // omit who → clears the link
     if(act==="abcdpush"){ appPrompt("ABCD start date (YYYY-MM-DD):",(HD.abcd&&HD.abcd.s)||isoLocal(hVY,hVM,hVD),function(s){ appPrompt("End date (YYYY-MM-DD, blank = ongoing):",(HD.abcd&&HD.abcd.e)||"",function(e){ hReloadThen(hOp({type:"abcdPush",abcd:{s:(s||"").trim(),e:(e||"").trim()}})); },"text"); },"text"); return; }
     if(act==="abcdoff"){ hReloadThen(hOp({type:"abcdPush",abcd:null})); return; }
     if(act==="rotatecode"){ appConfirm("Generate a new join code? The current code stops working right away — you'll need to re-share the new one.","New code",function(){ hReloadThen(hOp({type:"rotateCode"})); }); return; }
@@ -3595,6 +3644,7 @@ var TEN_CODES=[
   document.getElementById("houseBody").addEventListener("click",function(e){ var b=e.target.closest("[data-act]"); if(!b)return; if(b.tagName==="A")return; e.preventDefault(); hAct(b.getAttribute("data-act"),b); });
   document.getElementById("houseBody").addEventListener("click",function(e){ var seg=e.target.closest(".hrseg button"); if(!seg)return; var p=seg.parentNode; Array.prototype.forEach.call(p.querySelectorAll("button"),function(x){x.classList.toggle("on",x===seg);}); if(p.id==="hReqType"){var wr=document.getElementById("hWantWrap"); if(wr)wr.style.display=(seg.getAttribute("data-rt")==="swap")?"":"none";} });
   document.getElementById("houseBody").addEventListener("input",function(e){ if(e.target.id==="hRosterSearch"){ hRostQ=e.target.value; filterRoster(); } });
+  document.getElementById("houseBody").addEventListener("keydown",function(e){ if(e.key!=="Enter")return; if(e.target.id==="hCoAdd"){ e.preventDefault(); hAct("addco",e.target); } else if(e.target.id==="hNewCoAdd"){ e.preventDefault(); hAct("addnewco",e.target); } });   // Enter adds the company
 
   document.getElementById("openRef").onclick=function(){renderRef();openSheet(refSheet);};
   document.getElementById("refDone").onclick=closeSheets;
