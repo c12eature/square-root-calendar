@@ -761,6 +761,7 @@
   .hctx{display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:var(--ink); background:color-mix(in srgb,var(--accent) 10%,var(--panel)); border:1px solid color-mix(in srgb,var(--accent) 30%,var(--line)); border-radius:10px; padding:9px 11px; margin-bottom:10px;}
   .hctx .hclr{margin-left:auto; flex:none; border:none; background:transparent; color:var(--mut); font-size:15px; cursor:pointer; font-family:inherit; font-weight:900;}
   .hrseg.big button{padding:11px 6px; font-size:13px;}
+  .hreqhint{font-size:11.5px; font-weight:600; color:var(--mut); line-height:1.45; margin:7px 2px 11px;}
   .hreq.forme{border-color:color-mix(in srgb,var(--accent) 45%,var(--line)); background:color-mix(in srgb,var(--accent) 8%,var(--panel));}
   .hreqfor{font-size:10px; font-weight:900; background:var(--accent); color:#fff; border-radius:5px; padding:1px 6px;}
   .reqto{color:var(--accent); font-weight:800; white-space:nowrap;}
@@ -3404,6 +3405,10 @@ var TEN_CODES=[
       if(curState(yy,mm,dd,9)==="rsot")out.push({d:isoLocal(yy,mm,dd),t:9});
       if(curState(yy,mm,dd,6)==="rsot")out.push({d:isoLocal(yy,mm,dd),t:6}); }
     return out; }
+  function myTourList(){ var out=[],t0=new Date(),y0=t0.getFullYear(),m0=t0.getMonth(),d0=t0.getDate();   // my upcoming tours I actually WORK — to pick from when giving/covering (no need to remember dates)
+    for(var i=0;i<95&&out.length<50;i++){ var dt=new Date(y0,m0,d0+i),yy=dt.getFullYear(),mm=dt.getMonth(),dd=dt.getDate();
+      [9,6].forEach(function(tt){ if(worked(yy,mm,dd,tt) && !(HS&&houseTourCommitted(HS.m,yy,mm,dd,tt))) out.push({y:yy,m:mm,d:dd,t:tt}); }); }   // worked() nets out swaps/off/comp; skip tours already given away
+    return out; }
   function myProfile(){ return {name:uname,company:uco,group:my,letter:hletter,phone:uphone,spouse:uspouse,spousePhone:usphone,duty:dutyForHouse(),ot:myRsotList()}; }
   // --- sync layer ---
   function hFetch(method,qs,body,hdrs){ var h=body?{"Content-Type":"application/json"}:{}; if(hdrs){for(var k in hdrs)h[k]=hdrs[k];} return fetch("/api/house"+(qs||""),{method:method,headers:h,body:body?JSON.stringify(body):undefined})
@@ -3480,6 +3485,11 @@ var TEN_CODES=[
     if(r.type==="swap")return ev+esc(by)+" wants to swap "+tt+" for "+(r.want?hDateLabel(r.want.y,r.want.m,r.want.d)+" "+tourKeyLbl(r.want):"?")+dir;
     if(r.type==="cover")return ev+esc(by)+" needs "+tt+" covered"+dir;
     return esc(by)+" is looking to pick up tours"; }
+  function reqTexts(t){   // plain-English hint + the "your tour" field label per request type
+    if(t==="cover")return {hint:"🤝 Get one of your tours covered — someone works it for you.", lbl:"Tour to get covered"};
+    if(t==="pickup")return {hint:"✋ Looking to pick up an extra tour someone is giving away.", lbl:""};
+    return {hint:"🔁 Trade one of your tours for another.", lbl:"Your tour to give"};
+  }
   function memberCard(mem){ var call=mem.phone?'<a class="hmcall" href="'+escA("tel:"+mem.phone.replace(/[^0-9+]/g,""))+'">📞</a>':'';
     return '<span class="hmem"><span class="hmname">'+esc(mem.name||"—")+'</span>'+(mem.group?'<span class="hmg">g'+mem.group+'</span>':'')+(mem.letter&&houseAbcdActive(hVY,hVM,hVD)?'<span class="hmg">'+mem.letter+'</span>':'')+call+'</span>'; }
   function pushMyProfile(){ return hOp(Object.assign({type:"updateProfile"},myProfile())); }
@@ -3614,12 +3624,18 @@ var TEN_CODES=[
     var myIso=pre.myTour?isoLocal(pre.myTour.y,pre.myTour.m,pre.myTour.d):"", myT=pre.myTour?pre.myTour.t:9;
     var wIso=pre.wantTour?isoLocal(pre.wantTour.y,pre.wantTour.m,pre.wantTour.d):"", wT=pre.wantTour?pre.wantTour.t:9;
     var banner=(pre.toName||pre.ctxLbl)?'<div class="hctx">'+(pre.toName?'🔁 With <b>'+esc(pre.toName)+'</b>':'🤝 Your tour')+(pre.ctxLbl?' · '+esc(pre.ctxLbl):'')+'<button class="hclr" data-act="clrctx">✕</button></div>':'';
-    var myLbl=typ==="swap"?(pre.toName?"Your tour to give them":"Your tour to give"):"Your tour";
+    var rtx=reqTexts(typ), myLbl=(typ==="swap"&&pre.toName)?"Your tour to give them":rtx.lbl;
+    var myTours=myTourList();   // your real upcoming tours → pick from a list instead of remembering dates
+    if(pre.myTour && !myTours.some(function(t){return t.y===pre.myTour.y&&t.m===pre.myTour.m&&t.d===pre.myTour.d&&t.t===pre.myTour.t;})) myTours.unshift({y:pre.myTour.y,m:pre.myTour.m,d:pre.myTour.d,t:pre.myTour.t});
+    var myTourField = myTours.length
+      ? '<div class="vfield"><label id="hReqDateLbl">'+myLbl+'</label><select class="cevin" id="hReqTourSel"><option value="">— choose one of your tours —</option>'+myTours.map(function(t){var v=t.y+"-"+t.m+"-"+t.d+"|"+t.t, isPre=pre.myTour&&pre.myTour.y===t.y&&pre.myTour.m===t.m&&pre.myTour.d===t.d&&pre.myTour.t===t.t; return '<option value="'+v+'"'+(isPre?" selected":"")+'>'+esc(reqTourLbl(t))+'</option>';}).join("")+'</select></div>'
+      : '<div class="ldrow"><div class="vfield"><label id="hReqDateLbl">'+myLbl+'</label><input type="date" id="hReqDate" value="'+escA(myIso)+'"></div><div class="vfield"><label>&nbsp;</label><div class="hrseg" id="hReqTour"><button data-t="9" class="'+(myT===9?"on":"")+'">9×</button><button data-t="6" class="'+(myT===6?"on":"")+'">6×</button></div></div></div>';   // fallback to a date picker if we can't compute your tours (e.g. group not set)
     var out=pushRow()+hPartnerCard();
     if(forMe.length){ out+='<div class="setlbl">📩 For you</div>'+forMe.map(reqCard).join(""); }
-    out+='<div class="hnewreq">'+banner+'<div class="setlbl">'+((pre.toName||pre.ctxLbl)?"Finish this request":"Post a request")+'</div>'+
+    out+='<div class="hnewreq">'+banner+'<div class="setlbl">'+((pre.toName||pre.ctxLbl)?"Finish this request":"What do you need?")+'</div>'+
       '<div class="hrseg big" id="hReqType"><button data-rt="swap" class="'+(typ==="swap"?"on":"")+'">🔁 Swap</button><button data-rt="cover" class="'+(typ==="cover"?"on":"")+'">🤝 Cover</button><button data-rt="pickup" class="'+(typ==="pickup"?"on":"")+'">✋ Pick up</button></div>'+
-      '<div class="ldrow"><div class="vfield"><label>'+myLbl+'</label><input type="date" id="hReqDate" value="'+escA(myIso)+'"></div><div class="vfield"><label>&nbsp;</label><div class="hrseg" id="hReqTour"><button data-t="9" class="'+(myT===9?"on":"")+'">9×</button><button data-t="6" class="'+(myT===6?"on":"")+'">6×</button></div></div></div>'+
+      '<div class="hreqhint" id="hReqHint">'+rtx.hint+'</div>'+
+      '<div id="hMyTourWrap" style="'+(typ==="pickup"?"display:none":"")+'">'+myTourField+'</div>'+
       '<div id="hWantWrap" style="'+(typ==="swap"?"":"display:none")+'"><div class="ldrow"><div class="vfield"><label>Swap for</label><input type="date" id="hWantDate" value="'+escA(wIso)+'"></div><div class="vfield"><label>&nbsp;</label><div class="hrseg" id="hWantTour"><button data-t="9" class="'+(wT===9?"on":"")+'">9×</button><button data-t="6" class="'+(wT===6?"on":"")+'">6×</button></div></div></div></div>'+
       '<input class="cevin" id="hReqNote" placeholder="Note (optional)" style="margin-bottom:6px"><button class="raddbtn" data-act="newreq" style="width:100%">Post request</button></div>';
     if(mineReq.length){ out+='<div class="setlbl" style="margin-top:14px">🗒️ Your requests</div>'+mineReq.map(reqCard).join(""); }
@@ -3690,9 +3706,10 @@ var TEN_CODES=[
       hview="requests"; hMsg=""; renderHouse(); return; }
     if(act==="clrctx"){ hReqPre=null; renderHouse(); return; }
     if(act==="pickup"){ hReqPre={type:"pickup"}; hview="requests"; hMsg=""; renderHouse(); return; }
-    if(act==="newreq"){ var pre=hReqPre||{}; var type=readSeg("hReqType"),dv=(document.getElementById("hReqDate")||{}).value,tv=readSeg("hReqTour"),wv=(document.getElementById("hWantDate")||{}).value,wt=readSeg("hWantTour"),note=(document.getElementById("hReqNote")||{}).value;
+    if(act==="newreq"){ var pre=hReqPre||{}; var type=readSeg("hReqType"),wv=(document.getElementById("hWantDate")||{}).value,wt=readSeg("hWantTour"),note=(document.getElementById("hReqNote")||{}).value;
       function iso2tour(iso,t){ if(!isRealDate(iso))return null; var p=iso.split("-"); return {y:+p[0],m:+p[1]-1,d:+p[2],t:+t}; }
-      var req={type:type,note:note}; if(type!=="pickup"){req.tour=iso2tour(dv,tv); if(!req.tour){hMsg="Pick your tour's date.";renderHouse();return;}} if(type==="swap"){req.want=iso2tour(wv,wt); if(!req.want){hMsg="Pick the tour to swap for.";renderHouse();return;}}
+      function myTourVal(){ var sel=document.getElementById("hReqTourSel"); if(sel){ if(!sel.value)return null; var p=sel.value.split("|"),dp=p[0].split("-"); return {y:+dp[0],m:+dp[1],d:+dp[2],t:+p[1]}; } return iso2tour((document.getElementById("hReqDate")||{}).value, readSeg("hReqTour")); }   // tour comes from the my-tours picker, or the date-input fallback
+      var req={type:type,note:note}; if(type!=="pickup"){req.tour=myTourVal(); if(!req.tour){hMsg="Pick your tour first.";renderHouse();return;}} if(type==="swap"){req.want=iso2tour(wv,wt); if(!req.want){hMsg="Pick the tour to swap for.";renderHouse();return;}}
       if(pre.toId&&type!=="pickup")req.to=pre.toId;
       if(type==="swap"){ var gR=curState(req.tour.y,req.tour.m,req.tour.d,req.tour.t)==="rsot"; req.giveRsot=gR;   // stamp give-side RSOT from my full calendar (server trusts this)
         if(req.to){ var toM=HD.members[req.to], wR=toM?memberRSOT(toM,req.want.y,req.want.m,req.want.d,req.want.t):false;   // directed: your tour & theirs must match on RSOT
@@ -3714,7 +3731,12 @@ var TEN_CODES=[
   document.getElementById("openHouse").onclick=function(){ hReqPre=null; hview="day"; hMsg=""; renderHouse(); openSheet(houseSheet); if(HS)hGet().then(function(r){ if(r&&r.doc)pushMyProfile().then(function(){renderHouse();}); else renderHouse(); }); };   // reset compose context (like openHouseOnDate) so a stale directed target doesn't misdirect a later request
   document.getElementById("houseDone").onclick=closeSheets;
   document.getElementById("houseBody").addEventListener("click",function(e){ var b=e.target.closest("[data-act]"); if(!b)return; if(b.tagName==="A")return; e.preventDefault(); hAct(b.getAttribute("data-act"),b); });
-  document.getElementById("houseBody").addEventListener("click",function(e){ var seg=e.target.closest(".hrseg button"); if(!seg)return; var p=seg.parentNode; Array.prototype.forEach.call(p.querySelectorAll("button"),function(x){x.classList.toggle("on",x===seg);}); if(p.id==="hReqType"){var wr=document.getElementById("hWantWrap"); if(wr)wr.style.display=(seg.getAttribute("data-rt")==="swap")?"":"none";} });
+  document.getElementById("houseBody").addEventListener("click",function(e){ var seg=e.target.closest(".hrseg button"); if(!seg)return; var p=seg.parentNode; Array.prototype.forEach.call(p.querySelectorAll("button"),function(x){x.classList.toggle("on",x===seg);});
+    if(p.id==="hReqType"){ var t=seg.getAttribute("data-rt"), tx=reqTexts(t);   // switching request type: update the hint, the "your tour" label, and which fields show
+      var wr=document.getElementById("hWantWrap"); if(wr)wr.style.display=(t==="swap")?"":"none";
+      var mw=document.getElementById("hMyTourWrap"); if(mw)mw.style.display=(t==="pickup")?"none":"";   // pickup has no tour to give — hide the field entirely
+      var hn=document.getElementById("hReqHint"); if(hn)hn.textContent=tx.hint;
+      var lb=document.getElementById("hReqDateLbl"); if(lb&&tx.lbl)lb.textContent=tx.lbl; } });
   document.getElementById("houseBody").addEventListener("input",function(e){ if(e.target.id==="hRosterSearch"){ hRostQ=e.target.value; filterRoster(); } });
   // ---- in-app month-grid day picker (House Day tab → tap the date box) ----
   var hcY=0, hcM=0;
