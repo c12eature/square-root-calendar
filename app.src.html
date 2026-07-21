@@ -747,15 +747,16 @@
   .htsec.t6{background:color-mix(in srgb,#6366f1 9%,var(--panel)); border-color:color-mix(in srgb,#6366f1 26%,var(--line));}
   .htshd{font-size:14px; font-weight:900; letter-spacing:.02em; margin-bottom:8px; display:flex; align-items:center; gap:7px;}
   .htsec.t9 .htshd{color:#b45309;} .htsec.t6 .htshd{color:#4f46e5;} .hticon{font-size:15px;}
-  .htco{display:flex; gap:9px; align-items:flex-start; padding:8px 0; border-top:1px dashed var(--line2);}
+  .htco{display:flex; gap:7px; align-items:flex-start; padding:8px 0; border-top:1px dashed var(--line2);}
   .htco:first-of-type{border-top:none; padding-top:2px;}
-  .htconame{flex:none; min-width:46px; font-size:12px; font-weight:900; color:var(--ink2); padding-top:6px;}
-  .htchips{flex:1; min-width:0; display:flex; flex-wrap:wrap; gap:6px;}
-  .hwchip{display:inline-flex; align-items:center; gap:5px; background:var(--panel); border:1px solid var(--line); border-radius:9px; padding:6px 9px; font-size:12.5px; font-weight:800; color:var(--ink); cursor:pointer; font-family:inherit; transition:transform .08s;}
+  .htconame{flex:none; width:38px; font-size:11.5px; font-weight:900; color:var(--ink2); padding-top:6px;}
+  .htchips{flex:1; min-width:0; display:grid; grid-template-columns:repeat(3,1fr); gap:6px;}
+  .hwchip{display:flex; align-items:center; justify-content:space-between; gap:5px; min-width:0; background:var(--panel); border:1px solid var(--line); border-radius:9px; padding:6px 8px; font-size:12px; font-weight:800; color:var(--ink); cursor:pointer; font-family:inherit; transition:transform .08s; text-align:left;}
+  .hwname{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;}
   .hwchip:active{transform:scale(.96);}
   .hwchip.me{border-color:var(--accent); background:color-mix(in srgb,var(--accent) 12%,var(--panel)); color:var(--accent);}
   .hwchip.rsot{border-style:dashed;}
-  .hwtag{font-size:9.5px; font-weight:900; background:color-mix(in srgb,var(--ink) 10%,transparent); color:var(--ink2); border-radius:5px; padding:1px 5px;}
+  .hwtag{flex:none; font-size:9.5px; font-weight:900; background:color-mix(in srgb,var(--ink) 10%,transparent); color:var(--ink2); border-radius:5px; padding:1px 5px;}
   .hwtag.g{opacity:.7;} .hwtag.rsotb{background:#c2410c; color:#fff;}
   /* request context + inbox */
   .hctx{display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:var(--ink); background:color-mix(in srgb,var(--accent) 10%,var(--panel)); border:1px solid color-mix(in srgb,var(--accent) 30%,var(--line)); border-radius:10px; padding:9px 11px; margin-bottom:10px;}
@@ -3480,6 +3481,7 @@ var TEN_CODES=[
   // --- rendering ---
   function hDateLabel(y,m,d){return DOWF[new Date(y,m,d).getDay()].slice(0,3)+" "+MON[m].slice(0,3)+" "+d;}
   function tourKeyLbl(t){return t.t===9?"9× Day":"6× Night";}
+  function shortName(n){ n=(n||"").trim(); if(!n)return "—"; var p=n.split(/\s+/); return p.length<2?p[0]:p[0]+" "+p[p.length-1].charAt(0).toUpperCase()+"."; }   // "Anthony Ferraro" → "Anthony F." for the compact day-view chips (full name stays in the title tooltip)
   function reqLine(r){var by=(HD.members[r.by]&&HD.members[r.by].name)||"?", toN=(r.to&&HD.members[r.to])?(HD.members[r.to].name||"?"):"";
     var tt=r.tour?hDateLabel(r.tour.y,r.tour.m,r.tour.d)+" "+tourKeyLbl(r.tour):"", dir=toN?' <span class="reqto">→ '+esc(toN)+'</span>':'', ev=r.even?'<span class="reqeven">🤝 partner · even</span> ':'';
     if(r.type==="swap")return ev+esc(by)+" wants to swap "+tt+" for "+(r.want?hDateLabel(r.want.y,r.want.m,r.want.d)+" "+tourKeyLbl(r.want):"?")+dir;
@@ -3556,7 +3558,7 @@ var TEN_CODES=[
     var evs=(HD.events||[]).filter(function(e){return e.dates&&e.dates.some(function(x){return vacMs(x)===Date.UTC(y,m,d);});});
     if(evs.length)out+=evs.map(function(e){return '<div class="hevent">📌 <b>'+esc(e.title)+'</b>'+(e.note?' · '+esc(e.note):'')+'</div>';}).join("");
     var cos=HD.companies.slice(); mems.forEach(function(x){var c=x[1].company||"";if(cos.indexOf(c)<0)cos.push(c);}); if(!cos.length)cos=[""];
-    function chip(id,mem,t,rsot){ return '<button class="hwchip'+(rsot?" rsot":"")+(id===HS.m?" me":"")+'" data-act="dayreq" data-mid="'+escA(id)+'" data-t="'+t+'"><span class="hwname">'+esc(mem.name||"—")+'</span>'+(rsot?'<span class="hwtag rsotb">RSOT</span>':(ab&&mem.letter?'<span class="hwtag">'+esc(mem.letter)+'</span>':(mem.group?'<span class="hwtag g">'+mem.group+'</span>':'')))+'</button>'; }
+    function chip(id,mem,t,rsot){ return '<button class="hwchip'+(rsot?" rsot":"")+(id===HS.m?" me":"")+'" data-act="dayreq" data-mid="'+escA(id)+'" data-t="'+t+'" title="'+escA(mem.name||"")+'"><span class="hwname">'+esc(shortName(mem.name))+'</span>'+(rsot?'<span class="hwtag rsotb">RSOT</span>':(ab&&mem.letter?'<span class="hwtag">'+esc(mem.letter)+'</span>':''))+'</button>'; }   // no group-number tag in the day view (clutter; Roster tab shows groups) — gives the name room in the 3-col grid
     [9,6].forEach(function(t){
       out+='<div class="htsec '+(t===9?"t9":"t6")+'"><div class="htshd">'+(t===9?'<span class="hticon">☀️</span> 9× · Day tour':'<span class="hticon">🌙</span> 6× · Night tour')+'</div>';
       cos.forEach(function(co){ var inco=mems.filter(function(x){return (x[1].company||"")===co;}); if(!inco.length&&co)return;
