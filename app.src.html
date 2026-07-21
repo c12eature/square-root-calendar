@@ -710,6 +710,20 @@
   .hrgbody{padding:2px 12px 8px; display:block;}
   .hrgroup.collapsed .hrgbody{display:none;} .hrlist.searching .hrgroup.collapsed .hrgbody{display:block;}
   .hrempty{color:var(--mut); font-size:12.5px; padding:8px 2px;}
+  /* Requests feed: collapsible sections (For you / General / Your requests) */
+  .hreqsec{border:1px solid var(--line); border-radius:12px; margin-bottom:10px; background:var(--panel2); overflow:hidden;}
+  .hreqsec.alert{border-color:color-mix(in srgb,var(--accent) 46%,var(--line)); background:color-mix(in srgb,var(--accent) 7%,var(--panel2));}
+  .hreqhd{display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; background:none; border:none; font-family:inherit; color:var(--fg); cursor:pointer; padding:11px 12px; -webkit-tap-highlight-color:transparent;}
+  .hreqhdl{font-weight:800; font-size:14px;}
+  .hreqhr{display:flex; align-items:center; gap:8px; flex:none;}
+  .hreqn{min-width:22px; text-align:center; background:var(--panel); border:1px solid var(--line); border-radius:999px; padding:1px 8px; font-size:12px; font-weight:800; color:var(--mut);}
+  .hreqsec.alert .hreqn{background:var(--accent); color:#151515; border-color:transparent;}
+  .hreqsec:not(.collapsed) .hrgchev{transform:rotate(180deg);}
+  .hreqbody{padding:0 10px 8px; display:block;}
+  .hreqsec.collapsed .hreqbody{display:none;}
+  .hreqbody .hreq:first-child{margin-top:0;}
+  .hreqact .raddbtn:disabled{opacity:.4; cursor:not-allowed; filter:grayscale(.35);}
+  .hreqconf{color:var(--red); font-size:11.5px; font-weight:700; margin-top:4px;}
   .hgrow{display:flex; gap:9px; align-items:flex-start; padding:8px 0; border-top:1px solid var(--line2);}
   .hgrow:first-child{border-top:none;}
   .hgnum{flex:none; min-width:28px; text-align:center; font-size:12px; font-weight:900; color:var(--ink); background:var(--panel); border:1px solid var(--line); border-radius:7px; padding:5px 3px; font-variant-numeric:tabular-nums;}
@@ -3421,7 +3435,7 @@ var TEN_CODES=[
   var hpushOn=load("hpush",false);      // web-push enabled on this device
   var hpushPrefs=load("hpushprefs",{personal:true,general:false,tours:true});   // per-category notification toggles
   var VAPID_PUB="BDcPsixcRRapSmss7LoUwIWsTKyeUtk4jLBzyOJMSgsD5cT0zq2qC1d1uzuTm48O7BOFE7DHXe09Kfr6e-08DUc";   // public VAPID key (safe to embed); private key is server env only
-  var hview="day", hVY=now.getFullYear(), hVM=now.getMonth(), hVD=now.getDate(), hMsg="", hRostOpen={}, hRostQ="", hReqPre=null, hNewCos=[];   // hNewCos = companies staged while creating a house
+  var hview="day", hVY=now.getFullYear(), hVM=now.getMonth(), hVD=now.getDate(), hMsg="", hRostOpen={}, hRostQ="", hReqPre=null, hNewCos=[], hReqOpen={};   // hReqOpen = which Requests-feed sections are collapsed (device-local); hNewCos = companies staged while creating a house
   function houseUnread(){ if(!HD||!HS)return {n:0,forme:0}; var sn=hseenMap(),n=0,fm=0; (HD.requests||[]).forEach(function(r){ if(r.status!=="open"||r.by===HS.m||sn[r.id])return; if(r.to&&r.to!==HS.m&&r.takenBy!==HS.m)return; n++; if(r.to===HS.m)fm++; }); return {n:n,forme:fm}; }   // count only what I can actually see (open board or directed at/taken by me) — no phantom count / directed-existence leak
   function markReqsSeen(){ if(!HD||!HS)return; var sn=hseenMap(),ch=false; (HD.requests||[]).forEach(function(r){ if(!sn[r.id]){sn[r.id]=1;ch=true;} }); if(ch)save("hseen",hseen); setHouseBadge(); }
   function setHouseBadge(){ var b=document.getElementById("openHouse"); if(!b)return;
@@ -3596,7 +3610,7 @@ var TEN_CODES=[
       '<div class="hhdbtns">'+(admin?'<button class="hcode" data-act="sharecode" title="Share join code">'+esc(HD.code)+' ⧉</button>':'')+'<button class="hcode haddbtn" data-act="addhouse" title="Join or create another house — e.g. a detail house">＋ house</button></div></div>'; }
   function hTabs(){ var openReq=(HD.requests||[]).filter(function(r){return r.status==="open";}).length, pend=amAdmin()?memList("pending").length:0;
     var badge=function(n,alert){return n?' <span class="hcount'+(alert?' alert':'')+'">'+n+'</span>':'';};
-    var t=[["day","📅","Day",""],["roster","👥","Roster",badge(memList("active").length)],["requests","🔁","Requests",badge(openReq,true)]];
+    var t=[["requests","🔁","Requests",badge(openReq,true)],["day","📅","Day",""],["roster","👥","Roster",badge(memList("active").length)]];   // Requests first — it's the tab you open to
     if(amAdmin())t.push(["manage","⚙️","Manage",badge(pend,true)]);
     return '<div class="htabs">'+t.map(function(x){return '<button class="htab'+(hview===x[0]?" on":"")+'" data-act="tab" data-v="'+x[0]+'"><span>'+x[1]+'</span><span>'+x[2]+'</span>'+x[3]+'</button>';}).join("")+'</div>'; }
   function hDay(){ var y=hVY,m=hVM,d=hVD,ab=houseAbcdActive(y,m,d),mems=memList("active");
@@ -3662,12 +3676,17 @@ var TEN_CODES=[
     if(!hpushOn) return '<button class="raddbtn ghost" data-act="pushon" style="width:100%;margin-bottom:10px">🔔 Turn on push notifications</button>';
     return '<div class="hpushrow on">🔔 Notifications on · fine-tune in ⚙ Settings <button class="hpxbtn" data-act="pushoff">Turn off</button></div>'; }
   function reqCard(r){ var mine=r.by===HS.m,tookIt=r.takenBy===HS.m,forMe=(r.to===HS.m&&r.status==="open");
+    var pickTour=(r.type==="cover"||r.type==="swap")?r.tour:null;   // the tour you'd WORK if you take this (cover the poster's tour / pick up the swap's give-tour)
+    var conflict=!!(pickTour&&pickTour.t&&worked(pickTour.y,pickTour.m,pickTour.d,pickTour.t));   // you're already on that tour → taking it would double-book you
+    function takeBtn(lbl){ return conflict
+      ? '<button class="raddbtn sm" disabled title="You already work this tour">'+lbl+'</button>'
+      : '<button class="raddbtn sm" data-act="take" data-rid="'+r.id+'">'+lbl+'</button>'; }
     var acts='';
     if(mine)acts+='<button class="ldbtn sm" data-act="cancelreq" data-rid="'+r.id+'">Cancel</button>';
-    else if(forMe)acts+='<button class="raddbtn sm" data-act="take" data-rid="'+r.id+'">Accept</button><button class="ldbtn sm" data-act="decline" data-rid="'+r.id+'">Pass</button>';
-    else if(r.status==="open")acts+='<button class="raddbtn sm" data-act="take" data-rid="'+r.id+'">I’ll take it</button>';
+    else if(forMe)acts+=takeBtn("Accept")+'<button class="ldbtn sm" data-act="decline" data-rid="'+r.id+'">Pass</button>';
+    else if(r.status==="open")acts+=takeBtn("I’ll take it");
     if((mine||tookIt)&&r.status==="taken")acts+='<button class="raddbtn sm" data-act="resolve" data-rid="'+r.id+'">Done ✓</button>';
-    return '<div class="hreq'+(forMe?" forme":"")+'"><div class="hreqtxt">'+(forMe?'<span class="hreqfor">📩 for you</span> ':'')+reqLine(r)+(r.note?'<div class="hreqnote">'+esc(r.note)+'</div>':'')+(r.status==="taken"?'<div class="hreqst">✓ taken'+(tookIt?" by you":(r.takenBy?" by "+esc((HD.members[r.takenBy]&&HD.members[r.takenBy].name)||"someone"):""))+'</div>':'')+'</div><div class="hreqact">'+acts+'</div></div>'; }
+    return '<div class="hreq'+(forMe?" forme":"")+'"><div class="hreqtxt">'+(forMe?'<span class="hreqfor">📩 for you</span> ':'')+reqLine(r)+(r.note?'<div class="hreqnote">'+esc(r.note)+'</div>':'')+(conflict&&!mine&&r.status==="open"?'<div class="hreqconf">⚠︎ You already work this tour</div>':'')+(r.status==="taken"?'<div class="hreqst">✓ taken'+(tookIt?" by you":(r.takenBy?" by "+esc((HD.members[r.takenBy]&&HD.members[r.takenBy].name)||"someone"):""))+'</div>':'')+'</div><div class="hreqact">'+acts+'</div></div>'; }
   function hPartnerCard(){ var p=myPartner(), conf=partnerConfirmed(),
       act=memList("active").filter(function(x){return x[0]!==HS.m;}),
       pick='<select class="cevin" id="hPartnerSel" style="margin-bottom:0"><option value="">— pick a crewmate —</option>'+act.map(function(x){return '<option value="'+escA(x[0])+'"'+(x[0]===p?" selected":"")+'>'+esc(x[1].name||"?")+(x[1].company?" · "+esc(x[1].company):"")+'</option>';}).join("")+'</select>',
@@ -3675,13 +3694,23 @@ var TEN_CODES=[
              : p    ? '<div class="hpartpend">⏳ You picked <b>'+esc(memName(p))+'</b> — waiting for them to pick you back. <button class="ldbtn sm" data-act="unpartner">Cancel</button></div>'
                     : '';
     return '<div class="hpartner"><div class="setlbl">🤝 Mutual partner</div>'+status+'<div class="hcoadd">'+pick+'<button class="raddbtn" data-act="setpartner">'+(p?"Change":"Set")+'</button></div><div class="hpartsub">Link with your regular partner to send <b>even swaps you both approve</b> — always in sync, no debt tracked.</div></div>'; }
+  function reqSec(sec,emoji,label,list,alert,emptyMsg){   // one collapsible feed section (newest→oldest), remembers its open/closed state in hReqOpen
+    var collapsed=hReqOpen[sec]===false;   // default (undefined) = open
+    var body=list.length? list.map(reqCard).join("") : '<div class="dempty">'+(emptyMsg||"Nothing here right now.")+'</div>';
+    return '<div class="hreqsec'+(collapsed?" collapsed":"")+(alert&&list.length?" alert":"")+'"><button class="hreqhd" data-act="reqtoggle" data-sec="'+sec+'"><span class="hreqhdl">'+emoji+' '+label+'</span><span class="hreqhr"><span class="hreqn">'+list.length+'</span><span class="hrgchev">▾</span></span></button><div class="hreqbody">'+body+'</div></div>'; }
   function hRequests(){ var pre=hReqPre||{}, typ=pre.type||"swap";
     var opens=HD.requests.filter(function(r){return r.status==="open"||r.status==="taken";});
     var visible=opens.filter(function(r){return !r.to||r.to===HS.m||r.by===HS.m||r.takenBy===HS.m;});   // open board → whole house; a directed request → only the two people involved
-    var forMe=visible.filter(function(r){return r.to===HS.m&&r.status==="open";});
-    var rest=visible.filter(function(r){return !(r.to===HS.m&&r.status==="open");});
-    var mineReq=rest.filter(function(r){return r.by===HS.m;}).sort(function(a,b){return b.at-a.at;});
-    var board=rest.filter(function(r){return r.by!==HS.m;}).sort(function(a,b){return b.at-a.at;});
+    var byNew=function(a,b){return b.at-a.at;};                                                          // newest → oldest
+    var forMe=visible.filter(function(r){return r.to===HS.m&&r.status==="open";}).sort(byNew);           // directed at me → needs my answer
+    var mineReq=visible.filter(function(r){return r.by===HS.m;}).sort(byNew);                            // requests I posted
+    var board=visible.filter(function(r){return r.by!==HS.m&&r.to!==HS.m;}).sort(byNew);                 // the open house board (others', not aimed at me)
+    // --- the feed, up top: collapsible menus, newest first ---
+    var feed='';
+    if(forMe.length) feed+=reqSec("forme","📩","For you",forMe,true);
+    feed+=reqSec("board","📢","General requests",board,false,"Nothing open right now — post one below, or tap someone on the Day tab.");
+    if(mineReq.length) feed+=reqSec("mine","🗒️","Your requests",mineReq,false);
+    // --- the compose form ---
     var myIso=pre.myTour?isoLocal(pre.myTour.y,pre.myTour.m,pre.myTour.d):"", myT=pre.myTour?pre.myTour.t:9;
     var wIso=pre.wantTour?isoLocal(pre.wantTour.y,pre.wantTour.m,pre.wantTour.d):"", wT=pre.wantTour?pre.wantTour.t:9;
     var banner=(pre.toName||pre.ctxLbl)?'<div class="hctx">'+(pre.toName?'🔁 With <b>'+esc(pre.toName)+'</b>':'🤝 Your tour')+(pre.ctxLbl?' · '+esc(pre.ctxLbl):'')+'<button class="hclr" data-act="clrctx">✕</button></div>':'';
@@ -3691,18 +3720,14 @@ var TEN_CODES=[
     var myTourField = myTours.length
       ? '<div class="vfield"><label id="hReqDateLbl">'+myLbl+'</label><select class="cevin" id="hReqTourSel"><option value="">— choose one of your tours —</option>'+myTours.map(function(t){var v=t.y+"-"+t.m+"-"+t.d+"|"+t.t, isPre=pre.myTour&&pre.myTour.y===t.y&&pre.myTour.m===t.m&&pre.myTour.d===t.d&&pre.myTour.t===t.t; return '<option value="'+v+'"'+(isPre?" selected":"")+'>'+esc(reqTourLbl(t))+'</option>';}).join("")+'</select></div>'
       : '<div class="ldrow"><div class="vfield"><label id="hReqDateLbl">'+myLbl+'</label><input type="date" id="hReqDate" value="'+escA(myIso)+'"></div><div class="vfield"><label>&nbsp;</label><div class="hrseg" id="hReqTour"><button data-t="9" class="'+(myT===9?"on":"")+'">9×</button><button data-t="6" class="'+(myT===6?"on":"")+'">6×</button></div></div></div>';   // fallback to a date picker if we can't compute your tours (e.g. group not set)
-    var out=pushRow()+hPartnerCard();
-    if(forMe.length){ out+='<div class="setlbl">📩 For you</div>'+forMe.map(reqCard).join(""); }
-    out+='<div class="hnewreq">'+banner+'<div class="setlbl">'+((pre.toName||pre.ctxLbl)?"Finish this request":"What do you need?")+'</div>'+
+    var compose='<div class="hnewreq">'+banner+'<div class="setlbl">'+((pre.toName||pre.ctxLbl)?"Finish this request":"What do you need?")+'</div>'+
       '<div class="hrseg big" id="hReqType"><button data-rt="swap" class="'+(typ==="swap"?"on":"")+'">🔁 Swap</button><button data-rt="cover" class="'+(typ==="cover"?"on":"")+'">🤝 Cover</button><button data-rt="pickup" class="'+(typ==="pickup"?"on":"")+'">✋ Pick up</button></div>'+
       '<div class="hreqhint" id="hReqHint">'+rtx.hint+'</div>'+
       '<div id="hMyTourWrap" style="'+(typ==="pickup"?"display:none":"")+'">'+myTourField+'</div>'+
       '<div id="hWantWrap" style="'+(typ==="swap"?"":"display:none")+'"><div class="ldrow"><div class="vfield"><label>Swap for</label><input type="date" id="hWantDate" value="'+escA(wIso)+'"></div><div class="vfield"><label>&nbsp;</label><div class="hrseg" id="hWantTour"><button data-t="9" class="'+(wT===9?"on":"")+'">9×</button><button data-t="6" class="'+(wT===6?"on":"")+'">6×</button></div></div></div></div>'+
-      '<input class="cevin" id="hReqNote" placeholder="Note (optional)" style="margin-bottom:6px"><button class="raddbtn" data-act="newreq" style="width:100%">Post request</button></div>';
-    if(mineReq.length){ out+='<div class="setlbl" style="margin-top:14px">🗒️ Your requests</div>'+mineReq.map(reqCard).join(""); }
-    out+='<div class="setlbl" style="margin-top:14px">📢 Open requests</div>';
-    out+= board.length? board.map(reqCard).join("") : '<div class="dempty">Nothing open right now — long-press a tour on your calendar, or tap someone on the Day tab.</div>';
-    return out; }
+      '<input class="cevin" id="hReqNote" placeholder="Note (optional)" style="margin-bottom:6px"><button class="raddbtn" data-act="newreq" style="width:100%">Post request</button></div>'+hPartnerCard();
+    var composeFirst=!!(pre.toName||pre.ctxLbl);   // arrived to finish a specific request (tapped someone) → put the form first
+    return (composeFirst?(compose+feed):(feed+compose))+pushRow(); }
   function hManage(){ var pend=memList("pending"), act=memList("active");
     var out='<div class="setlbl">Pending approvals</div>';
     out+= pend.length? pend.map(function(x){var mem=x[1];
@@ -3730,6 +3755,7 @@ var TEN_CODES=[
   function hAct(act,el){ var who=el.getAttribute("data-who"), rid=el.getAttribute("data-rid");
     if(act==="tab"){ hview=el.getAttribute("data-v"); hMsg=""; renderHouse(); return; }
     if(act==="rosttoggle"){ var g=el.closest(".hrgroup"); if(g){ g.classList.toggle("collapsed"); hRostOpen[el.getAttribute("data-co")]=!g.classList.contains("collapsed"); } return; }
+    if(act==="reqtoggle"){ var rs=el.closest(".hreqsec"); if(rs){ rs.classList.toggle("collapsed"); hReqOpen[el.getAttribute("data-sec")]=!rs.classList.contains("collapsed"); } return; }   // collapse/expand a feed section (no full re-render)
     if(act==="pday"){ var p=shiftDate(hVY,hVM,hVD,-1); hVY=p[0];hVM=p[1];hVD=p[2]; renderHouse(); return; }
     if(act==="nday"){ var n=shiftDate(hVY,hVM,hVD,1); hVY=n[0];hVM=n[1];hVD=n[2]; renderHouse(); return; }
     if(act==="today"){ var tdy=new Date(); hVY=tdy.getFullYear();hVM=tdy.getMonth();hVD=tdy.getDate(); renderHouse(); return; }   // fresh Date so "today" is really today even in a long-lived PWA
@@ -3781,6 +3807,8 @@ var TEN_CODES=[
         else if(gR&&HD&&HD.members&&!houseHasRsot(req.want.y,req.want.m,req.want.d,req.want.t)){ hMsg="🔁 That’s an RSOT — it can only swap for another RSOT, and nobody holds an RSOT on "+reqTourLbl(req.want)+"."; renderHouse(); return; } }   // open swap: same guard as the long-press path (fail-open if roster unknown)
       hReqPre=null; hReloadThen(hOp({type:"createRequest",req:req})); return; }
     if(act==="take"){ var rq=(HD&&HD.requests||[]).filter(function(x){return x.id===rid;})[0];
+      var pt=rq&&(rq.type==="cover"||rq.type==="swap")?rq.tour:null;
+      if(pt&&pt.t&&worked(pt.y,pt.m,pt.d,pt.t)){ appConfirm("You already work "+reqTourLbl(pt)+" — taking this would double-book you.","OK",function(){}); return; }   // guard: can't pick up a tour you're already on
       if(rq&&rq.type==="swap"&&rq.tour&&rq.want){ var giveR=(typeof rq.giveRsot==="boolean")?rq.giveRsot:memberRSOT(HD.members[rq.by],rq.tour.y,rq.tour.m,rq.tour.d,rq.tour.t), mineR=curState(rq.want.y,rq.want.m,rq.want.d,rq.want.t)==="rsot";
         if(giveR!==mineR){ appConfirm(giveR?("🔁 This is an RSOT swap — you can only take it if you hold an RSOT on "+reqTourLbl(rq.want)+"."):("🔁 This is a regular-tour swap — it can’t be taken with your RSOT."),"OK",function(){}); return; } }
       hReloadThen(pushMyProfile().then(function(pr){ if(pr&&pr.err)return {err:"sync-failed"}; return hOp({type:"takeRequest",rid:rid}); })); return; }
@@ -3792,7 +3820,7 @@ var TEN_CODES=[
     if(act==="pref"){ togglePref(el.getAttribute("data-k")); return; }
   }
   function openHouseOnDate(y,mm,dd){ if(!HS)return; hVY=y;hVM=mm;hVD=dd; hview="day"; hMsg=""; hReqPre=null; hAddMode=false; renderHouse(); openSheet(houseSheet); hGet().then(function(r){ if(r&&r.doc)renderHouse(); }); }
-  document.getElementById("openHouse").onclick=function(){ hReqPre=null; hview="day"; hMsg=""; hAddMode=false; renderHouse(); openSheet(houseSheet); if(HS)hGet().then(function(r){ if(r&&r.doc)pushMyProfile().then(function(){renderHouse();}); else renderHouse(); }); };   // reset compose context (like openHouseOnDate) so a stale directed target doesn't misdirect a later request
+  document.getElementById("openHouse").onclick=function(){ hReqPre=null; hview="requests"; hMsg=""; hAddMode=false; renderHouse(); openSheet(houseSheet); if(HS)hGet().then(function(r){ if(r&&r.doc)pushMyProfile().then(function(){renderHouse();}); else renderHouse(); }); };   // open straight to the Requests feed; reset compose context so a stale directed target doesn't misdirect a later request
   document.getElementById("houseDone").onclick=closeSheets;
   document.getElementById("houseBody").addEventListener("click",function(e){ var b=e.target.closest("[data-act]"); if(!b)return; if(b.tagName==="A")return; e.preventDefault(); hAct(b.getAttribute("data-act"),b); });
   document.getElementById("houseBody").addEventListener("click",function(e){ var seg=e.target.closest(".hrseg button"); if(!seg)return; var p=seg.parentNode; Array.prototype.forEach.call(p.querySelectorAll("button"),function(x){x.classList.toggle("on",x===seg);});
