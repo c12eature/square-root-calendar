@@ -211,7 +211,7 @@ function sanDuty(arr) {
   for (var i = 0; i < arr.length && out.length < DUTY_MAX; i++) {
     var d = arr[i]; if (!d) continue;
     var t = clip(d.t, 8), s = clip(d.s, 10), e = clip(d.e, 10);
-    if (/^(vac|ml|ld|tr)$/.test(t) && /^\d{4}-\d\d?-\d\d?$/.test(s)) out.push({ t: t, s: s, e: /^\d{4}-\d\d?-\d\d?$/.test(e) ? e : "" });
+    if (/^(vac|ml|ld|tr|det)$/.test(t) && /^\d{4}-\d\d?-\d\d?$/.test(s)) out.push({ t: t, s: s, e: /^\d{4}-\d\d?-\d\d?$/.test(e) ? e : "" });   // "det" = 6-month detail (away from this house)
   }
   return out;
 }
@@ -228,12 +228,30 @@ function sanProfile(op) {
   return { name: clip(op.name, NAME_MAX), company: co(op.company), group: grpOK(op.group),
            letter: /^[ABCD]$/.test(op.letter) ? op.letter : "",
            phone: clip(op.phone, PHONE_MAX), spouse: clip(op.spouse, NAME_MAX),
-           spousePhone: clip(op.spousePhone, PHONE_MAX), duty: sanDuty(op.duty), ot: sanOt(op.ot) };
+           spousePhone: clip(op.spousePhone, PHONE_MAX), duty: sanDuty(op.duty), ot: sanOt(op.ot),
+           mxoff: sanOt(op.mxoff), mxon: sanOt(op.mxon) };   // mxoff/mxon = tours the member is OFF / WORKING due to an out-of-house mutual (so the day-view is accurate); same {d,t} shape as ot
 }
 function newMember(op, role, status) {
   var p = sanProfile(op);
   return { name: p.name, company: p.company, group: p.group, letter: p.letter, phone: p.phone, spouse: p.spouse,
-           spousePhone: p.spousePhone, duty: p.duty, ot: p.ot, role: role, status: status, at: Date.now() };
+           spousePhone: p.spousePhone, duty: p.duty, ot: p.ot, mxoff: p.mxoff, mxon: p.mxon, role: role, status: status, at: Date.now() };
+}
+// A departed member (status "left" / "removed") collapses to a name-only tombstone — enough for their past
+// swaps to still show who it was, but with NO group/duty/PII, so they drop out of the roster + day-view and
+// never count toward member caps. Filtered everywhere by status !== "active"/"pending".
+function tombstone(mem, status) { return { name: (mem && mem.name) || "", status: status, role: "member", at: Date.now() }; }
+// Keep tombstones bounded: drop any that no retained request still references (their history is gone anyway),
+// then hard-cap the rest oldest-first. Removed members stay banned regardless (the ban list is separate).
+function pruneTombstones(doc) {
+  var MAX_TOMB = 200, refd = {};
+  (doc.requests || []).forEach(function (r) { if (r.by) refd[r.by] = 1; if (r.takenBy) refd[r.takenBy] = 1; });
+  var isTomb = function (k) { var s = doc.members[k].status; return s === "left" || s === "removed"; };
+  Object.keys(doc.members).filter(isTomb).forEach(function (k) { if (!refd[k]) delete doc.members[k]; });
+  var tombs = Object.keys(doc.members).filter(isTomb);
+  if (tombs.length > MAX_TOMB) {
+    tombs.sort(function (a, b) { return (doc.members[a].at || 0) - (doc.members[b].at || 0); });
+    tombs.slice(0, tombs.length - MAX_TOMB).forEach(function (k) { delete doc.members[k]; });
+  }
 }
 function sanCompanies(arr) {   // sanitize + dedup (case-insensitive via co()) + cap a company list
   var seen = {}, cs = [];
@@ -266,22 +284,26 @@ function applyOp(doc, op, m) {
   function foundGuard(who) { if (isFounder(doc, who) && isAdmin(doc, who) && who !== m) throw { code: 403, error: "founder-protected" }; }  // protect the founder only while they still hold admin (a rejoined/self-demoted founder is a plain, removable member)
   if (t === "updateProfile") {
     var p = sanProfile(op);   // NOTE: company + group are admin-owned (set at join/approve) — not overwritten here
-    me.name = p.name; me.letter = p.letter; me.phone = p.phone; me.spouse = p.spouse; me.spousePhone = p.spousePhone; me.duty = p.duty; me.ot = p.ot;
+    me.name = p.name; me.letter = p.letter; me.phone = p.phone; me.spouse = p.spouse; me.spousePhone = p.spousePhone; me.duty = p.duty; me.ot = p.ot; me.mxoff = p.mxoff; me.mxon = p.mxon;
   } else if (t === "setPartner") {   // declare your mutual partner (a specific active member); "confirmed" once they name you back. Omit `who` to clear.
     if (op.who != null) { if (op.who === m || !doc.members[op.who] || doc.members[op.who].status !== "active") throw { code: 400, error: "bad-partner" }; me.partner = op.who; }
     else delete me.partner;
   } else if (t === "leave") {
     if (isAdmin(doc, m) && doc.admins.length <= 1) throw { code: 409, error: "last-admin" };  // promote someone first
-    delete doc.members[m]; doc.admins = doc.admins.filter(function (a) { return a !== m; }); cancelMemberReqs(doc, m);
+    doc.members[m] = tombstone(me, "left");   // keep a name-only tombstone so this person's past swaps still read right in the crew's history
+    doc.admins = doc.admins.filter(function (a) { return a !== m; }); cancelMemberReqs(doc, m); pruneTombstones(doc);
   } else if (t === "approve") {
     admin(); var w = doc.members[op.who]; if (!w) throw { code: 404, error: "no-such-member" };
+    if (w.status !== "pending" && w.status !== "active") throw { code: 403, error: "gone" };   // approve = confirm a pending join OR reassign an active member — NEVER resurrect a left/removed tombstone (which would also bypass the ban)
     w.status = "active"; if (op.company != null) w.company = co(op.company); var g = grpOK(op.group); if (g) w.group = g;
   } else if (t === "reject" || t === "remove") {
     admin(); if (op.who === m) throw { code: 400, error: "use-leave" };
     foundGuard(op.who);
-    if (!doc.members[op.who]) throw { code: 404, error: "no-such-member" };
+    var wm = doc.members[op.who]; if (!wm) throw { code: 404, error: "no-such-member" };
     ban(doc, op.who);   // removed/rejected members can't silently re-join with the same identity
-    delete doc.members[op.who]; doc.admins = doc.admins.filter(function (a) { return a !== op.who; }); cancelMemberReqs(doc, op.who);
+    if (wm.status === "pending") delete doc.members[op.who];   // a historyless pending join → drop it
+    else doc.members[op.who] = tombstone(wm, "removed");        // active OR an already-departed member → keep/refresh a name tombstone (never lose the name from history)
+    doc.admins = doc.admins.filter(function (a) { return a !== op.who; }); cancelMemberReqs(doc, op.who); pruneTombstones(doc);
   } else if (t === "promote") {
     admin(); var pm = doc.members[op.who]; if (!pm || pm.status !== "active") throw { code: 400, error: "not-active" };
     if (doc.admins.indexOf(op.who) < 0) doc.admins.push(op.who); pm.role = "admin";
@@ -403,7 +425,7 @@ async function handler(req, res) {
       var raw = await redis(["GET", HOUSE_PREFIX + gid]);
       if (!raw) { res.status(404).json({ error: "not-found" }); return; }
       var doc = JSON.parse(raw), me = doc.members[gm];
-      if (!me) { res.status(403).json({ error: "not-member" }); return; }
+      if (!me || me.status === "left" || me.status === "removed") { res.status(403).json({ error: "not-member" }); return; }   // a tombstone reads as GONE → the caller's client drops this house
       if (me.status !== "active") { res.status(200).json({ pending: true, id: doc.id, name: doc.name, status: me.status }); return; }
       res.status(200).json({ doc: doc });
       return;
@@ -457,14 +479,15 @@ async function handler(req, res) {
         var raw2 = await redis(["GET", HOUSE_PREFIX + hid]);
         if (!raw2) { res.status(404).json({ error: "no-house" }); return; }
         var d2 = JSON.parse(raw2), existing = d2.members[m];
-        if (existing) {   // already known — never leak the doc unless already active
+        if (existing && (existing.status === "active" || existing.status === "pending")) {   // already a live member — never leak the doc unless active
           if (existing.status === "active") res.status(200).json({ doc: d2 });
           else res.status(200).json({ pending: true, id: hid, name: d2.name, status: existing.status });
           return;
-        }
+        }   // else: no record, OR a "left"/"removed" tombstone → banned check blocks "removed"; a "left" member re-joins fresh below
         if ((d2.banned || []).indexOf(m) >= 0) { res.status(403).json({ error: "banned" }); return; }
-        if (Object.keys(d2.members).length >= MAX_MEMBERS) { res.status(403).json({ error: "house-full" }); return; }
-        var pend = Object.keys(d2.members).filter(function (k) { return d2.members[k].status !== "active"; }).length;
+        var live = Object.keys(d2.members).filter(function (k) { var s = d2.members[k].status; return s === "active" || s === "pending"; });   // tombstones (left/removed) don't count toward caps
+        if (live.length >= MAX_MEMBERS) { res.status(403).json({ error: "house-full" }); return; }
+        var pend = d2.members ? Object.keys(d2.members).filter(function (k) { return d2.members[k].status === "pending"; }).length : 0;
         if (pend >= MAX_PENDING) { res.status(403).json({ error: "too-many-pending" }); return; }
         d2.members[m] = newMember(body, "member", "pending"); d2.ver++;
         if (await casSet(HOUSE_PREFIX + hid, raw2, JSON.stringify(d2))) {
@@ -487,7 +510,7 @@ async function handler(req, res) {
     // Only ACTIVE members act. A pending/removed caller may ONLY cancel their own join ("leave"),
     // and NEVER receives the doc (this is the confidentiality gate the GET path also enforces).
     if (me3.status !== "active") {
-      if (op.type === "leave") {
+      if (op.type === "leave" && me3.status === "pending") {   // only a genuine pending join can self-cancel (delete). A left/removed tombstone must survive so history keeps the name.
         delete doc3.members[m]; doc3.admins = doc3.admins.filter(function (x) { return x !== m; }); doc3.ver++;
         if (await casSet(HOUSE_PREFIX + pid, raw3, JSON.stringify(doc3))) { res.status(200).json({ left: true }); return; }
         res.status(200).json({ left: true }); return;   // concurrent write? their membership is gone either way

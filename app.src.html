@@ -299,6 +299,7 @@
   .stype[data-pt="ml"].on{background:#0f766e;color:#fff;border-color:var(--teal);}
   .stype[data-pt="ld"].on{background:#475569;color:#fff;border-color:#475569;}
   .stype[data-pt="tr"].on{background:#4338ca;color:#fff;border-color:#4338ca;}
+  .stype[data-pt="det"].on{background:#b45309;color:#fff;border-color:#b45309;}
   .stype[data-ev="edu"].on{background:#6d4ae0;color:#fff;border-color:#6d4ae0;}
   .stype[data-ev="med"].on{background:#0e7490;color:#fff;border-color:#0e7490;}
   .opt{font-weight:600;color:var(--ink3,var(--ink2));opacity:.7;}
@@ -686,6 +687,13 @@
   .hhd{display:flex; align-items:flex-start; gap:10px; margin-bottom:10px; flex:none;}
   .hhd h3{font-size:19px;} .hsub{font-size:12px; color:var(--mut); font-weight:700; margin-top:2px;}
   .hcode{margin-left:auto; flex:none; background:color-mix(in srgb,var(--accent) 14%,var(--panel)); color:var(--accent); border:1px solid color-mix(in srgb,var(--accent) 34%,var(--line)); border-radius:9px; padding:7px 10px; font-weight:900; font-family:inherit; letter-spacing:.08em; cursor:pointer; font-size:14px;}
+  .hhdbtns{margin-left:auto; display:flex; gap:6px; flex:none; align-items:center;}
+  .hhdbtns .hcode{margin-left:0;}
+  .haddbtn{background:var(--panel2); color:var(--mut); border-color:var(--line); letter-spacing:0; font-size:12px; padding:7px 9px; white-space:nowrap;}
+  .hswrow{display:flex; gap:6px; overflow-x:auto; -webkit-overflow-scrolling:touch; margin-bottom:10px; flex:none; padding-bottom:2px;}
+  .hswch{flex:none; background:var(--panel2); color:var(--mut); border:1px solid var(--line); border-radius:999px; padding:6px 12px; font-weight:800; font-family:inherit; font-size:12.5px; cursor:pointer; white-space:nowrap;}
+  .hswch.on{background:color-mix(in srgb,var(--accent) 16%,var(--panel)); color:var(--accent); border-color:color-mix(in srgb,var(--accent) 40%,var(--line));}
+  .hbackbar{background:none; border:none; color:var(--accent); font-weight:800; font-family:inherit; font-size:14px; cursor:pointer; padding:0 0 10px; display:block;}
   .htabs{display:flex; gap:4px; background:var(--panel2); border:1px solid var(--line); border-radius:12px; padding:4px; margin-bottom:12px; flex:none;}
   .htab{flex:1; display:flex; align-items:center; justify-content:center; gap:5px; white-space:nowrap; padding:10px 6px; border:none; border-radius:9px; background:transparent; color:var(--ink2); font-size:12.5px; font-weight:800; cursor:pointer; font-family:inherit; transition:background .12s,color .12s;}
   .htab.on{background:var(--accent); color:#fff; box-shadow:0 1px 4px color-mix(in srgb,var(--accent) 40%,transparent);}
@@ -709,7 +717,7 @@
   .hgnum.nog{color:var(--mut); border-style:dashed;}
   .hgdash{color:var(--mut); padding-top:5px; font-size:12px;}
   .hgmems{flex:1; min-width:0; display:flex; flex-direction:column; gap:9px;}
-  .hmline{min-width:0;} .hmline.pend{opacity:.72;}
+  .hmline{min-width:0;} .hmline.pend{opacity:.72;} .hmline.ondet{opacity:.55;}
   .hmltop{display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
   .hmedit{margin-left:auto; flex:none; font-size:10.5px; font-weight:800; color:var(--accent); background:color-mix(in srgb,var(--accent) 12%,var(--panel)); border:1px solid color-mix(in srgb,var(--accent) 34%,var(--line)); border-radius:7px; padding:2px 8px; cursor:pointer; font-family:inherit; touch-action:manipulation;}
   .hrgoff{font-size:9px; font-weight:900; letter-spacing:.02em; text-transform:uppercase; color:#b45309; background:color-mix(in srgb,#f59e0b 15%,var(--panel)); border:1px solid color-mix(in srgb,#f59e0b 38%,var(--line)); border-radius:5px; padding:1px 5px; margin-left:6px;}
@@ -757,7 +765,7 @@
   .hwchip.me{border-color:var(--accent); background:color-mix(in srgb,var(--accent) 12%,var(--panel)); color:var(--accent);}
   .hwchip.rsot{border-style:dashed;}
   .hwtag{flex:none; font-size:9.5px; font-weight:900; background:color-mix(in srgb,var(--ink) 10%,transparent); color:var(--ink2); border-radius:5px; padding:1px 5px;}
-  .hwtag.g{opacity:.7;} .hwtag.rsotb{background:#c2410c; color:#fff;}
+  .hwtag.g{opacity:.7;} .hwtag.rsotb{background:#c2410c; color:#fff;} .hwtag.mutb{background:#0e7490; color:#fff;}
   /* request context + inbox */
   .hctx{display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:var(--ink); background:color-mix(in srgb,var(--accent) 10%,var(--panel)); border:1px solid color-mix(in srgb,var(--accent) 30%,var(--line)); border-radius:10px; padding:9px 11px; margin-bottom:10px;}
   .hctx .hclr{margin-left:auto; flex:none; border:none; background:transparent; color:var(--mut); font-size:15px; cursor:pointer; font-family:inherit; font-weight:900;}
@@ -1098,6 +1106,7 @@
     <button class="stype" data-pt="ml">🩹 Medical leave</button>
     <button class="stype" data-pt="ld">📋 Light duty</button>
     <button class="stype" data-pt="tr">🎓 Training</button>
+    <button class="stype" data-pt="det">🚚 Detail</button>
   </div>
   <div class="ldcfg" id="ldCfg" style="display:none">
     <span class="lab">Light-duty schedule — the schedule you actually work while on light duty</span>
@@ -1127,6 +1136,12 @@
     <div class="lddays" id="trDays"><button type="button" data-d="0">Su</button><button type="button" data-d="1" class="on">Mo</button><button type="button" data-d="2" class="on">Tu</button><button type="button" data-d="3" class="on">We</button><button type="button" data-d="4" class="on">Th</button><button type="button" data-d="5" class="on">Fr</button><button type="button" data-d="6">Sa</button></div>
     <div class="ldrow"><div class="vfield"><label>Start</label><input type="time" id="trSs" value="09:00"></div><div class="vfield"><label>End</label><input type="time" id="trSe" value="18:00"></div></div>
     <div class="ldsub">Runs Mon–Fri by default over the dates you set. Tap a single day on the calendar to add or remove a class day.</div>
+  </div>
+  <div class="ldcfg" id="detCfg" style="display:none">
+    <span class="lab">🚚 6-month detail — you’re temporarily assigned to another firehouse. Your own calendar follows your <b>detail group</b> for the window and switches back on your return date; your home house shows you <b>“on detail”</b> and drops your tours until you’re back.</span>
+    <span class="lab" style="margin-top:11px">Your group at the detail house (1–25)</span>
+    <input class="ldgigin" id="detGrp" type="number" inputmode="numeric" min="1" max="25" placeholder="e.g. 12">
+    <span class="lab" style="margin-top:11px">Set the <b>End</b> date above to your <b>return date</b>.</span>
   </div>
   <div class="vadd">
     <div class="vfield"><label>Start</label><input type="date" id="pStart" aria-label="Start date"></div>
@@ -1490,7 +1505,8 @@
   var _rawG=load("groups",null);
   var groups=(function(){var g=(Array.isArray(_rawG)&&_rawG.length)?_rawG:[{s:"1970-01-01",my:my,pt:pt}];   // migrate a single my/pt into a base epoch
     g=g.filter(function(e){return e&&typeof e==="object"&&typeof e.my==="number";})
-       .map(function(e){return {s:(typeof e.s==="string"&&/^\d{4}-\d\d?-\d\d?$/.test(e.s))?e.s:"1970-01-01",my:mod(e.my-1,G)+1,pt:(typeof e.pt==="number"&&e.pt>=1&&e.pt<=G)?e.pt:0};});
+       .map(function(e){var o={s:(typeof e.s==="string"&&/^\d{4}-\d\d?-\d\d?$/.test(e.s))?e.s:"1970-01-01",my:mod(e.my-1,G)+1,pt:(typeof e.pt==="number"&&e.pt>=1&&e.pt<=G)?e.pt:0};
+         if(typeof e.det==="string"&&/^\d{4}-\d\d?-\d\d?$/.test(e.det))o.det=e.det; return o;});   // preserve the detail-epoch tag so add/remove/hide stay reliable across reloads
     if(!g.length)g=[{s:"1970-01-01",my:7,pt:19}];
     g.sort(function(a,b){return isoToNum(a.s)-isoToNum(b.s);}); return g;})();
   if(!Array.isArray(_rawG)||!_rawG.length)save("groups",groups);   // persist only on first migration (avoid a save every load)
@@ -1728,11 +1744,12 @@
   function fmtMin(n){if(n<60)return n+"m";var h=Math.floor(n/60),mm=n%60;return h+"h"+(mm?mm+"m":"");}
   // Duty-status periods (vacation / medical leave / light duty). Blank end = ongoing/current.
   function vacMs(iso){if(!iso||typeof iso!=="string")return NaN;var p=iso.split("-");return Date.UTC(+p[0],+p[1]-1,+p[2]);}   // NaN on bad input → comparisons fail closed (no match, no crash)
-  function periodType(y,m,d){var t=Date.UTC(y,m,d);for(var i=0;i<periods.length;i++){var p=periods[i];if(!p)continue;if(t>=vacMs(p.s)&&(!p.e||t<=vacMs(p.e)))return p.t;}return null;}
+  function periodType(y,m,d){var t=Date.UTC(y,m,d);for(var i=0;i<periods.length;i++){var p=periods[i];if(!p||p.t==="det")continue;if(t>=vacMs(p.s)&&(!p.e||t<=vacMs(p.e)))return p.t;}return null;}   // "det" is home-house-only (pushed to the house), never a personal off-status — the calendar follows the detail group change instead
+  function detailActive(y,m,d){var t=Date.UTC(y,m,d);return (periods||[]).some(function(p){return p&&p.t==="det"&&t>=vacMs(p.s)&&(!p.e||t<=vacMs(p.e));});}   // am I on a 6-month detail on this date?
   function dutyStatus(y,m,d,tour){var pt2=periodType(y,m,d);return (pt2&&curState(y,m,d,tour)==="base"&&baseOf(y,m,d,tour)==="mine")?pt2:null;}
-  function dutyTag(t){return t==="vac"?"VAC":t==="ml"?"ML":t==="tr"?"TR":"LD";}
-  function dutyLabel(t){return t==="vac"?"Vacation":t==="ml"?"Medical leave":t==="tr"?"Training":"Light duty";}
-  function dutyEmoji(t){return t==="vac"?"🌴":t==="ml"?"🩹":t==="tr"?"🎓":"📋";}
+  function dutyTag(t){return t==="vac"?"VAC":t==="ml"?"ML":t==="tr"?"TR":t==="det"?"DET":"LD";}
+  function dutyLabel(t){return t==="vac"?"Vacation":t==="ml"?"Medical leave":t==="tr"?"Training":t==="det"?"On detail":"Light duty";}
+  function dutyEmoji(t){return t==="vac"?"🌴":t==="ml"?"🩹":t==="tr"?"🎓":t==="det"?"🚚":"📋";}
   // ---- Light-duty schedules ----
   // A light-duty period can carry its OWN schedule (light duty = day-work, not firefighting tours). Three modes:
   //   m:"group"  → you keep working your square-root group's on-tours
@@ -2403,6 +2420,7 @@
   function renderGroups(){
     var list=document.getElementById("gcList");
     list.innerHTML=groups.map(function(g,i){
+      if(g.det)return "";   // detail epochs are managed from the Status & Time Off "Detail" entry, not here
       var base=(i===0), when=base?'From the start <span class="gcbase">(original)</span>':esc(fmtEpochWhen(g.s));
       var grp='<span class="gcmy">Group '+g.my+'</span>'+(g.pt?(' · <span class="gcpt">partner '+g.pt+'</span>'):' · no partner');
       return '<div class="gcitem"><div><div class="gcwhen">'+when+'</div><div class="gcgrp">'+grp+'</div></div>'+(base?'':'<button class="gcrm" data-i="'+i+'" type="button" aria-label="Remove change">&#10005;</button>')+'</div>';
@@ -2529,7 +2547,7 @@
   // every save() runs this: keep the on-device mirror fresh + queue a cloud push.
   // NOTE: pure sync-metadata keys must NOT re-trigger a push, or cloudPush's own
   // save("cloudts") would loop forever (push → save cloudts → push → …).
-  var _mirrorT=null, NOSYNC={cloudts:1,cbase:1,cdirty:1,cconf:1,bakts:1,baksnooze:1,cfrsnooze:1,hgack:1};   // sync-metadata keys never re-trigger a push
+  var _mirrorT=null, NOSYNC={cloudts:1,cbase:1,cdirty:1,cconf:1,bakts:1,baksnooze:1,cfrsnooze:1,hgack:1,curhouse:1};   // sync-metadata keys never re-trigger a push (curhouse = which house you're currently viewing, device-local)
   // NOSYNC-guard is null-safe: during module init (before the var above is assigned) NOSYNC is
   // undefined, so an early save() (e.g. mutual-name seeding) must NOT throw here.
   function afterWrite(k){ if(NOSYNC&&NOSYNC[k])return;
@@ -3382,25 +3400,49 @@ var TEN_CODES=[
   document.getElementById("boxSearch").oninput=function(){bq=this.value.trim().toLowerCase();renderBox();};
 
   // ===================== House Calendar (multi-user firehouse sync) =====================
-  var HS=load("house",null);        // {id, code, m, s} — my membership + device identity (m=SHA256(s))
-  var HD=load("housedoc",null);     // cached last-fetched house document
+  // Multi-house: this device can belong to several houses (e.g. your home house + a 6-month detail house) at once.
+  var houses=load("houses",null);   // [{id,code,m,s,name}] — every house this device is a member of
+  var HS=load("house",null);        // the ACTIVE house's membership {id, code, m, s(, name)} — device identity m=SHA256(s)
+  if(!Array.isArray(houses)){ houses=HS?[HS]:[]; }                         // migrate the old single-house key into the list
+  else if(HS&&!houses.some(function(h){return h.id===HS.id;})){ houses.push(HS); }
+  var curHouse=load("curhouse",(HS&&HS.id)||(houses[0]&&houses[0].id)||"");
+  HS=houses.filter(function(h){return h.id===curHouse;})[0]||houses[0]||null;   // resolve the active membership
+  if(HS)curHouse=HS.id;
+  var HD=load("housedoc",null);     // cached last-fetched document for the ACTIVE house
+  var hAddMode=false;               // true while the "join/create another house" gate is showing over an existing membership
   var uphone=load("phone",""), uspouse=load("spouse",""), usphone=load("sphone",""), hletter=load("hletter","");
-  var hqapplied=load("hqapplied",{});   // request ids already applied to my personal calendar
-  var hseen=load("hseen",{});           // request ids I've already seen (drives the unread badge)
+  var hqapplied=load("hqapplied",{});   // {houseId:{reqId:1}} request ids already applied to my personal calendar (namespaced per house so pruning one house never re-applies another's swaps)
+  var hseen=load("hseen",{});           // {houseId:{reqId:1}} request ids I've already seen (drives the unread badge)
+  (function migrateHouseMaps(){ function flat(o){ for(var k in o){ return !(o[k]&&typeof o[k]==="object"); } return false; }   // old flat {reqId:1} → per-house; fold the legacy map into the current house
+    if(flat(hqapplied)){ var a={}; if(curHouse)a[curHouse]=hqapplied; hqapplied=a; save("hqapplied",hqapplied); }
+    if(flat(hseen)){ var b={}; if(curHouse)b[curHouse]=hseen; hseen=b; save("hseen",hseen); } })();
+  function hqMap(){ if(!HS)return {}; return hqapplied[HS.id]||(hqapplied[HS.id]={}); }   // this house's applied-request set
+  function hseenMap(){ if(!HS)return {}; return hseen[HS.id]||(hseen[HS.id]={}); }         // this house's seen-request set
   var hpushOn=load("hpush",false);      // web-push enabled on this device
   var hpushPrefs=load("hpushprefs",{personal:true,general:false,tours:true});   // per-category notification toggles
   var VAPID_PUB="BDcPsixcRRapSmss7LoUwIWsTKyeUtk4jLBzyOJMSgsD5cT0zq2qC1d1uzuTm48O7BOFE7DHXe09Kfr6e-08DUc";   // public VAPID key (safe to embed); private key is server env only
   var hview="day", hVY=now.getFullYear(), hVM=now.getMonth(), hVD=now.getDate(), hMsg="", hRostOpen={}, hRostQ="", hReqPre=null, hNewCos=[];   // hNewCos = companies staged while creating a house
-  function houseUnread(){ if(!HD||!HS)return {n:0,forme:0}; var n=0,fm=0; (HD.requests||[]).forEach(function(r){ if(r.status!=="open"||r.by===HS.m||hseen[r.id])return; if(r.to&&r.to!==HS.m&&r.takenBy!==HS.m)return; n++; if(r.to===HS.m)fm++; }); return {n:n,forme:fm}; }   // count only what I can actually see (open board or directed at/taken by me) — no phantom count / directed-existence leak
-  function markReqsSeen(){ if(!HD)return; var ch=false; (HD.requests||[]).forEach(function(r){ if(!hseen[r.id]){hseen[r.id]=1;ch=true;} }); if(ch)save("hseen",hseen); setHouseBadge(); }
+  function houseUnread(){ if(!HD||!HS)return {n:0,forme:0}; var sn=hseenMap(),n=0,fm=0; (HD.requests||[]).forEach(function(r){ if(r.status!=="open"||r.by===HS.m||sn[r.id])return; if(r.to&&r.to!==HS.m&&r.takenBy!==HS.m)return; n++; if(r.to===HS.m)fm++; }); return {n:n,forme:fm}; }   // count only what I can actually see (open board or directed at/taken by me) — no phantom count / directed-existence leak
+  function markReqsSeen(){ if(!HD||!HS)return; var sn=hseenMap(),ch=false; (HD.requests||[]).forEach(function(r){ if(!sn[r.id]){sn[r.id]=1;ch=true;} }); if(ch)save("hseen",hseen); setHouseBadge(); }
   function setHouseBadge(){ var b=document.getElementById("openHouse"); if(!b)return;
-    if(HD&&HD.requests){ var live={}; HD.requests.forEach(function(r){live[r.id]=1;});   // prune seen/applied ids the server no longer keeps → no unbounded localStorage growth
-      var c1=false; Object.keys(hseen).forEach(function(k){if(!live[k]){delete hseen[k];c1=true;}}); if(c1)save("hseen",hseen);
-      var c2=false; Object.keys(hqapplied).forEach(function(k){if(!live[k]){delete hqapplied[k];c2=true;}}); if(c2)save("hqapplied",hqapplied); }
+    if(HD&&HD.requests&&HS){ var live={}; HD.requests.forEach(function(r){live[r.id]=1;});   // prune only THIS house's seen/applied ids the server no longer keeps (never touch another house's set)
+      var sn=hseenMap(),c1=false; Object.keys(sn).forEach(function(k){if(!live[k]){delete sn[k];c1=true;}}); if(c1)save("hseen",hseen);
+      var hq=hqMap(),c2=false; Object.keys(hq).forEach(function(k){if(!live[k]){delete hq[k];c2=true;}}); if(c2)save("hqapplied",hqapplied); }
     var u=houseUnread(); b.setAttribute("data-hn",u.n>0?String(u.n):""); b.classList.toggle("forme",u.forme>0); }
-  function hSave(){ if(HS)save("house",HS); else localStorage.removeItem("sqrt:house"); if(HD)save("housedoc",HD); else localStorage.removeItem("sqrt:housedoc"); }
+  function hSave(){ save("houses",houses); save("curhouse",curHouse);
+    if(HS)save("house",HS); else localStorage.removeItem("sqrt:house");   // legacy mirror of the ACTIVE membership (back-compat)
+    if(HD)save("housedoc",HD); else localStorage.removeItem("sqrt:housedoc"); }
+  function hSyncActive(){ if(!HS)return; if(HD&&HD.id===HS.id){ HS.name=HD.name||HS.name; HS.code=HD.code||HS.code; } }   // keep the list entry's name/code fresh from the fetched doc
+  function hEnter(mem){ houses=houses.filter(function(h){return h.id!==mem.id;}); houses.push(mem); HS=mem; curHouse=mem.id; hAddMode=false; }   // join/create → add to the list + make active
+  function hDrop(id){ houses=houses.filter(function(h){return h.id!==id;}); if(curHouse===id){ HS=houses[0]||null; curHouse=(HS&&HS.id)||""; HD=null; } hSave(); }   // leave/removed → remove just THAT house, switch to another (or none)
+  function hSwitch(id){ if(id===curHouse)return; var m=houses.filter(function(h){return h.id===id;})[0]; if(!m)return;
+    HS=m; curHouse=id; HD=null; localStorage.removeItem("sqrt:housedoc"); save("curhouse",curHouse);   // clear the previous house's cached doc; refetch the new one
+    hAddMode=false; hview="day"; hMsg=""; hReqPre=null; renderHouse();
+    hGet().then(function(r){ if(r&&r.doc)pushMyProfile().then(function(){renderHouse();}); else renderHouse(); }); }
   function hex256(str){ return crypto.subtle.digest("SHA-256", new TextEncoder().encode(str)).then(function(b){return toHex(new Uint8Array(b));}); }
-  function dutyForHouse(){ return (periods||[]).filter(function(p){return p&&p.t&&isRealDate(p.s);}).map(function(p){return {t:p.t,s:p.s,e:p.e||""};}).slice(0,24); }
+  function dutyForHouse(forId){ return (periods||[]).filter(function(p){ if(!p||!p.t||!isRealDate(p.s))return false;
+      if(p.t==="det")return (!!p.home&&p.home===forId);   // the "on detail" flag belongs ONLY to the detail's HOME house. An unknown home → show WORKING everywhere (safe), never hide the member in the house they detailed INTO
+      return true; }).map(function(p){ var e=p.e||""; if(p.t==="det"&&isRealDate(p.e)){var q=p.e.split("-"),db=shiftDate(+q[0],+q[1]-1,+q[2],-1);e=isoLocal(db[0],db[1],db[2]);} return {t:p.t,s:p.s,e:e}; }).slice(0,24); }   // det flag ends the day BEFORE the return date (back on home group that day)
   function myRsotList(){ var out=[],t0=new Date(),y0=t0.getFullYear(),m0=t0.getMonth(),d0=t0.getDate();   // my upcoming scheduled-OT (RSOT) tours, so the house can see + I can offer them for swap
     for(var i=0;i<130&&out.length<120;i++){ var dt=new Date(y0,m0,d0+i),yy=dt.getFullYear(),mm=dt.getMonth(),dd=dt.getDate();
       if(curState(yy,mm,dd,9)==="rsot")out.push({d:isoLocal(yy,mm,dd),t:9});
@@ -3410,7 +3452,15 @@ var TEN_CODES=[
     for(var i=0;i<95&&out.length<50;i++){ var dt=new Date(y0,m0,d0+i),yy=dt.getFullYear(),mm=dt.getMonth(),dd=dt.getDate();
       [9,6].forEach(function(tt){ if(worked(yy,mm,dd,tt) && !(HS&&houseTourCommitted(HS.m,yy,mm,dd,tt))) out.push({y:yy,m:mm,d:dd,t:tt}); }); }   // worked() nets out swaps/off/comp; skip tours already given away
     return out; }
-  function myProfile(){ return {name:uname,company:uco,group:my,letter:hletter,phone:uphone,spouse:uspouse,spousePhone:usphone,duty:dutyForHouse(),ot:myRsotList()}; }
+  function myMutualOff(){ var out=[],t0=new Date(),y0=t0.getFullYear(),m0=t0.getMonth(),d0=t0.getDate();   // tours I'm OFF via an out-of-house mutual (any mutual-out: named, self, or partner even-swap) — so my house shows me not reporting
+    for(var i=0;i<95&&out.length<80;i++){ var dt=new Date(y0,m0,d0+i),yy=dt.getFullYear(),mm=dt.getMonth(),dd=dt.getDate();
+      [9,6].forEach(function(tt){ var cs=curState(yy,mm,dd,tt); if(cs==="mxout"||cs==="smxout"||cs==="pmxout")out.push({d:isoLocal(yy,mm,dd),t:tt}); }); }
+    return out; }
+  function myMutualOn(){ var out=[],t0=new Date(),y0=t0.getFullYear(),m0=t0.getMonth(),d0=t0.getDate();   // tours I'm WORKING via an out-of-house mutual (any mutual-in: named, self, or partner even-swap) — so my house shows me reporting
+    for(var i=0;i<95&&out.length<80;i++){ var dt=new Date(y0,m0,d0+i),yy=dt.getFullYear(),mm=dt.getMonth(),dd=dt.getDate();
+      [9,6].forEach(function(tt){ var cs=curState(yy,mm,dd,tt); if(cs==="mxin"||cs==="smxin"||cs==="pmxin")out.push({d:isoLocal(yy,mm,dd),t:tt}); }); }
+    return out; }
+  function myProfile(forId){ return {name:uname,company:uco,group:my,letter:hletter,phone:uphone,spouse:uspouse,spousePhone:usphone,duty:dutyForHouse(forId),ot:myRsotList(),mxoff:myMutualOff(),mxon:myMutualOn()}; }   // forId = the house this profile is bound for (scopes the detail flag)
   // --- sync layer ---
   function hFetch(method,qs,body,hdrs){ var h=body?{"Content-Type":"application/json"}:{}; if(hdrs){for(var k in hdrs)h[k]=hdrs[k];} return fetch("/api/house"+(qs||""),{method:method,headers:h,body:body?JSON.stringify(body):undefined})
     .then(function(r){ return r.json().catch(function(){return {};}).then(function(j){ return {status:r.status,j:j}; }); })
@@ -3428,17 +3478,20 @@ var TEN_CODES=[
     if(!HS||!HD||hBusy) return;
     if(document.querySelector(".cmodal.show,.onb.show,.swpick.show,.lgpop.show")) return;   // don't stack over a modal / onboarding / picker
     var hg=myHouseGroup(); if(!hg) return;
-    var ack=load("hgack",null); ack=(ack&&ack.h===HS.id)?ack:null;
-    if(ack&&hg===ack.g) return;   // this exact house value was already handled → don't re-prompt (a member's own group edit leaves hg unchanged → stays silent)
-    save("hgack",{h:HS.id,g:hg});   // mark seen → prompt at most once per house value
+    var _dt=new Date(), _tt=Date.UTC(_dt.getFullYear(),_dt.getMonth(),_dt.getDate());
+    if((periods||[]).some(function(p){return p&&p.t==="det"&&(!isRealDate(p.e)||vacMs(p.e)>=_tt);})) return;   // an active OR still-pending detail owns your group during its window — don't nag or clobber the detail epochs
+    var acks=load("hgack",null); if(!acks||typeof acks!=="object"||acks.h!==undefined)acks={};   // per-house map {houseId:group}; migrate the old single-slot {h,g}
+    if(acks[HS.id]===hg) return;   // this exact house value was already handled → don't re-prompt (a member's own edit leaves hg unchanged; switching houses no longer re-nags)
+    acks[HS.id]=hg; save("hgack",acks);   // mark seen per-house → prompt at most once per house value, independently for each house
     var cur=(curEpoch()&&curEpoch().my)||my;
     if(hg===cur) return;   // house already matches my calendar → nothing to offer
     appConfirm("🏠 "+((HD&&HD.name)||"Your house")+" has you in group "+hg+", but your calendar shows group "+cur+". Update your calendar to group "+hg+", starting today?","Update to group "+hg,function(){ applyHouseGroup(hg); });
   }
-  function hGet(){ if(!HS)return Promise.resolve({none:true}); return hFetch("GET","?id="+encodeURIComponent(HS.id),null,{"X-House-M":HS.m,"X-House-S":HS.s}).then(function(r){
-    if(r.status===200&&r.j.doc){HD=r.j.doc;hSave();applyDoneRequests();setHouseBadge();maybePromptHouseGroup();return {doc:HD};}
+  function hGet(){ if(!HS)return Promise.resolve({none:true}); var reqId=HS.id; return hFetch("GET","?id="+encodeURIComponent(reqId),null,{"X-House-M":HS.m,"X-House-S":HS.s}).then(function(r){
+    if(!HS||HS.id!==reqId)return {stale:true};   // the active house changed while this fetch was in flight → ignore it (never render another house's data)
+    if(r.status===200&&r.j.doc){HD=r.j.doc;hSyncActive();hSave();applyDoneRequests();setHouseBadge();maybePromptHouseGroup();return {doc:HD};}
     if(r.status===200&&r.j.pending){return {pending:true};}
-    if(r.status===403||r.status===404){HS=null;HD=null;hSave();return {gone:true};}
+    if(r.status===403||r.status===404){hDrop(reqId);return HS?hGet():Promise.resolve({gone:true});}   // drop just this (gone) house; if another membership remains, fetch IT so we never show a false "pending" screen for a house you're active in
     return {err:(r.j&&r.j.error)||("http "+r.status)}; }); }
   function hOp(op){ if(!HS)return Promise.resolve({err:"no-house"}); function post(){return hFetch("POST","",{id:HS.id,m:HS.m,s:HS.s,base:HD?HD.ver:0,op:op});}
     return post().then(function(r){
@@ -3446,10 +3499,10 @@ var TEN_CODES=[
       if(r.status===409){ if(r.j.doc){HD=r.j.doc;hSave();} return post().then(function(r2){ if(r2.status===200&&r2.j.doc){HD=r2.j.doc;hSave();applyDoneRequests();return {doc:HD};} return {err:(r2.j&&r2.j.error)||("http "+r2.status)}; }); }
       return {err:(r.j&&r.j.error)||("http "+r.status)}; }); }
   function hIdentity(){ if(HS&&HS.m&&HS.s)return Promise.resolve({m:HS.m,s:HS.s}); var s=genCode()+"-"+genCode(); return hex256(s).then(function(m){return {m:m,s:s};}); }
-  function houseCreate(name,companies){ return hIdentity().then(function(id){ var b=myProfile(); b.m=id.m;b.s=id.s;b.house=name; b.companies=companies||[];
-    return hFetch("POST","?a=create",b).then(function(r){ if(r.status===200&&r.j.doc){HS={id:r.j.doc.id,code:r.j.doc.code,m:id.m,s:id.s};HD=r.j.doc;hSave();hNewCos=[];return {ok:true};} return {err:(r.j&&r.j.error)||("http "+r.status)}; }); }); }
-  function houseJoin(code){ return hIdentity().then(function(id){ var b=myProfile(); b.m=id.m;b.s=id.s;b.code=code;
-    return hFetch("POST","?a=join",b).then(function(r){ if(r.status===200){HS={id:(r.j.doc?r.j.doc.id:r.j.id),code:code.toUpperCase(),m:id.m,s:id.s};HD=r.j.doc||null;hSave();return {ok:true,pending:!r.j.doc};} return {err:(r.j&&r.j.error)||("http "+r.status)}; }); }); }
+  function houseCreate(name,companies){ return hIdentity().then(function(id){ var b=myProfile("");b.m=id.m;b.s=id.s;b.house=name; b.companies=companies||[];   // "" → no detail flag leaks into a house you're founding
+    return hFetch("POST","?a=create",b).then(function(r){ if(r.status===200&&r.j.doc){hEnter({id:r.j.doc.id,code:r.j.doc.code,m:id.m,s:id.s,name:r.j.doc.name});HD=r.j.doc;hSave();hNewCos=[];return {ok:true};} return {err:(r.j&&r.j.error)||("http "+r.status)}; }); }); }
+  function houseJoin(code){ return hIdentity().then(function(id){ var b=myProfile("");b.m=id.m;b.s=id.s;b.code=code;   // "" → a house you're joining is never your detail's home house, so don't grey yourself out there
+    return hFetch("POST","?a=join",b).then(function(r){ if(r.status===200){var did=(r.j.doc?r.j.doc.id:r.j.id),dnm=(r.j.doc?r.j.doc.name:r.j.name)||"";hEnter({id:did,code:code.toUpperCase(),m:id.m,s:id.s,name:dnm});HD=r.j.doc||null;hSave();return {ok:true,pending:!r.j.doc};} return {err:(r.j&&r.j.error)||("http "+r.status)}; }); }); }
   // --- attendance engine (reuse has()/startOf()/abcdLetter) ---
   function houseAbcdActive(y,m,d){ if(!HD||!HD.abcd)return false; var t=Date.UTC(y,m,d),s=vacMs(HD.abcd.s),e=HD.abcd.e?vacMs(HD.abcd.e):Infinity; return !isNaN(s)&&t>=s&&t<=e; }
   function memberOff(mem,y,m,d){ var t=Date.UTC(y,m,d),ds=mem.duty||[]; for(var i=0;i<ds.length;i++){var s=vacMs(ds[i].s),e=ds[i].e?vacMs(ds[i].e):Infinity; if(!isNaN(s)&&t>=s&&t<=e)return ds[i].t;} return null; }
@@ -3458,6 +3511,7 @@ var TEN_CODES=[
   function partnerConfirmed(){ var p=myPartner(); return !!(p&&HD.members[p]&&HD.members[p].status==="active"&&HD.members[p].partner===HS.m); }   // both of us named each other
   function memName(id){ return (HD&&HD.members&&HD.members[id]&&HD.members[id].name)||"—"; }
   function memberRSOT(mem,y,m,d,tour){ var iso=isoLocal(y,m,d),ot=(mem&&mem.ot)||[]; for(var i=0;i<ot.length;i++)if(ot[i].t===tour&&ot[i].d===iso)return true; return false; }   // scheduled OT (RSOT) — extra body on this tour, swappable (mem may be undefined if its author left)
+  function memberMx(mem,y,m,d,tour,which){ var iso=isoLocal(y,m,d),arr=(mem&&mem[which])||[]; for(var i=0;i<arr.length;i++)if(arr[i].t===tour&&arr[i].d===iso)return true; return false; }   // out-of-house mutual: which="mxoff" (off) | "mxon" (working) — so the day-view shows who's actually reporting
   function houseTourCommitted(id,y,m,d,t){ if(!HD||!HD.requests)return false; var tour={y:y,m:m,d:d,t:t},reqs=HD.requests,latest=null;   // mirrors the server: has this member swapped/covered this exact tour away (and not re-gained it)?
     function away(r){return (r.by===id&&sameT(r.tour,tour))||(r.takenBy===id&&sameT(r.want,tour));}
     function gain(r){return (r.by===id&&sameT(r.want,tour))||(r.takenBy===id&&sameT(r.tour,tour));}
@@ -3466,8 +3520,8 @@ var TEN_CODES=[
   function memList(status){ if(!HD)return []; return Object.keys(HD.members).map(function(k){return [k,HD.members[k]];}).filter(function(x){return !status||x[1].status===status;}); }
   function amAdmin(){ return HD&&HS&&HD.admins.indexOf(HS.m)>=0; }
   // --- apply completed swap/cover requests to my personal calendar ---
-  function applyDoneRequests(){ if(!HD||!HS)return; var changed=false;
-    HD.requests.forEach(function(r){ if(r.status!=="done"||hqapplied[r.id])return; if(r.by!==HS.m&&r.takenBy!==HS.m)return;
+  function applyDoneRequests(){ if(!HD||!HS)return; var hq=hqMap(),changed=false;
+    HD.requests.forEach(function(r){ if(r.status!=="done"||hq[r.id])return; if(r.by!==HS.m&&r.takenBy!==HS.m)return;
       var otherId=(r.by===HS.m)?r.takenBy:r.by, other=(HD.members[otherId]&&HD.members[otherId].name)||"House swap";
       function set(t,st){ if(!t)return; setState(t.y,t.m,t.d,t.t,st,true); if(st==="mxin"||st==="mxout")setMxName(t.y,t.m,t.d,t.t,other); }   // quiet — never pop the day sheet from a boot/foreground sync
       if(r.type==="swap"){
@@ -3475,7 +3529,7 @@ var TEN_CODES=[
         else if(r.even){ if(r.by===HS.m){set(r.want,"pmxin");set(r.tour,"pmxout");} else {set(r.tour,"pmxin");set(r.want,"pmxout");} }   // partner even-swap → ledger-neutral PARTNER swap (no debt)
         else { if(r.by===HS.m){set(r.want,"mxin");set(r.tour,"mxout");} else {set(r.tour,"mxin");set(r.want,"mxout");} } }
       else if(r.type==="cover"){ if(r.even){ if(r.by===HS.m)set(r.tour,"pmxout"); else set(r.tour,"pmxin"); } else { if(r.by===HS.m){set(r.tour,"mxout");} else {set(r.tour,"mxin");} } }
-      hqapplied[r.id]=1; changed=true; });
+      hq[r.id]=1; changed=true; });
     if(changed){save("hqapplied",hqapplied);render();} }
 
   // --- rendering ---
@@ -3494,7 +3548,7 @@ var TEN_CODES=[
   }
   function memberCard(mem){ var call=mem.phone?'<a class="hmcall" href="'+escA("tel:"+mem.phone.replace(/[^0-9+]/g,""))+'">📞</a>':'';
     return '<span class="hmem"><span class="hmname">'+esc(mem.name||"—")+'</span>'+(mem.group?'<span class="hmg">g'+mem.group+'</span>':'')+(mem.letter&&houseAbcdActive(hVY,hVM,hVD)?'<span class="hmg">'+mem.letter+'</span>':'')+call+'</span>'; }
-  function pushMyProfile(){ return hOp(Object.assign({type:"updateProfile"},myProfile())); }
+  function pushMyProfile(){ return hOp(Object.assign({type:"updateProfile"},myProfile(HS?HS.id:""))); }   // scope duty/detail flag to the ACTIVE house
   function urlB64ToU8(b64){ var pad="=".repeat((4-b64.length%4)%4); var s=(b64+pad).replace(/-/g,"+").replace(/_/g,"/"); var raw=atob(s); var out=new Uint8Array(raw.length); for(var i=0;i<raw.length;i++)out[i]=raw.charCodeAt(i); return out; }
   function enablePush(){ if(!HS||!pushSupported()){ appConfirm(pushSupported()?"Join a house first.":"This device can't do notifications. On iPhone, add the app to your Home Screen first, then try again.","OK",function(){}); return; }
     Notification.requestPermission().then(function(perm){ if(perm!=="granted"){ appConfirm("Notifications are turned off. Enable them for this site in your browser/phone settings, then try again.","OK",function(){}); return; }
@@ -3516,13 +3570,15 @@ var TEN_CODES=[
     if(!HS){ el.innerHTML='<p class="ldsub">Join or create a House Calendar (🏠) first, then turn on notifications here.</p>'; return; }
     if(!hpushOn){ el.innerHTML='<p class="ldsub" style="margin-top:0">Get a heads-up on your phone for swaps, open tours, and the tours you’re about to work.</p><button class="raddbtn" data-act="pushon" style="width:100%">🔔 Turn on push notifications</button>'; return; }
     el.innerHTML='<div class="hpushrow on" style="margin-top:0">🔔 Push notifications on <button class="hpxbtn" data-act="pushoff">Turn off</button></div><p class="ldsub" style="margin:0 0 8px">Choose what pings your phone:</p>'+notifTogglesHTML(); }
+  function hSwitchRow(){ if(houses.length<2)return "";   // chips to switch between the houses this device belongs to
+    return '<div class="hswrow">'+houses.map(function(h){return '<button class="hswch'+(h.id===curHouse?' on':'')+'" data-act="switchhouse" data-hid="'+escA(h.id)+'">🏠 '+esc(h.name||h.code||"House")+'</button>';}).join("")+'</div>'; }
   function renderHouse(){ var body=document.getElementById("houseBody"); if(!body)return;
-    if(!HS){ body.innerHTML='<div class="hscroll">'+hGate()+'</div>'; return; }
-    var me=HD&&HD.members[HS.m];
-    if(HD&&!me){ body.innerHTML='<div class="hscroll"><h3>House Calendar</h3><p class="rsub">You were removed from this house, or it no longer exists.</p><button class="raddbtn" data-act="forget" style="width:100%">Start over</button></div>'; return; }
-    if(!HD||(me&&me.status!=="active")){ body.innerHTML='<div class="hscroll">'+hPending()+'</div>'; return; }
+    if(!HS||hAddMode){ var back=(hAddMode&&houses.length)?'<button class="hbackbar" data-act="addcancel">‹ Back to '+esc((HS&&(HS.name||HS.code))||"my houses")+'</button>':''; body.innerHTML='<div class="hscroll">'+back+hGate()+'</div>'; return; }
+    var sw=hSwitchRow(), me=HD&&HD.members[HS.m];
+    if(HD&&!me){ body.innerHTML='<div class="hscroll">'+sw+'<h3>'+esc(HS.name||"House Calendar")+'</h3><p class="rsub">You were removed from this house, or it no longer exists.</p><button class="raddbtn" data-act="forget" style="width:100%">Leave this house</button></div>'; return; }
+    if(!HD||(me&&me.status!=="active")){ body.innerHTML='<div class="hscroll">'+sw+hPending()+'</div>'; return; }
     var view=(hview==="roster"?hRoster():hview==="requests"?hRequests():hview==="manage"?hManage():hDay());
-    body.innerHTML=hHeader()+hTabs()+'<div class="hscroll">'+(hMsg?'<div class="hmsg">'+esc(hMsg)+'</div>':'')+view+'</div>';
+    body.innerHTML=sw+hHeader()+hTabs()+'<div class="hscroll">'+(hMsg?'<div class="hmsg">'+esc(hMsg)+'</div>':'')+view+'</div>';
     if(hview==="roster")filterRoster(); if(hview==="requests")markReqsSeen(); }
   function hGate(){ var ready=(uname&&uco);
     return '<h3>🏠 House Calendar</h3><p class="rsub">Sync your firehouse — see who’s reporting for each tour, swap &amp; cover tours, and keep the crew in one place.</p>'+
@@ -3537,7 +3593,7 @@ var TEN_CODES=[
   function hPending(){ return '<h3>🏠 '+esc((HD&&HD.name)||"House")+'</h3><div class="hmsg">⏳ Waiting for an admin to approve you. Refresh once they do.</div><div class="cfrbtns"><button class="raddbtn" data-act="refresh">Refresh</button><button class="ldbtn" data-act="leave">Cancel request</button></div>'; }
   function hHeader(){ var admin=amAdmin();
     return '<div class="hhd"><div><h3 style="margin:0">🏠 '+esc(HD.name)+'</h3><div class="hsub">'+memList("active").length+' active'+(admin?' · you’re an admin':'')+'</div></div>'+
-      (admin?'<button class="hcode" data-act="sharecode" title="Share join code">'+esc(HD.code)+' ⧉</button>':'')+'</div>'; }
+      '<div class="hhdbtns">'+(admin?'<button class="hcode" data-act="sharecode" title="Share join code">'+esc(HD.code)+' ⧉</button>':'')+'<button class="hcode haddbtn" data-act="addhouse" title="Join or create another house — e.g. a detail house">＋ house</button></div></div>'; }
   function hTabs(){ var openReq=(HD.requests||[]).filter(function(r){return r.status==="open";}).length, pend=amAdmin()?memList("pending").length:0;
     var badge=function(n,alert){return n?' <span class="hcount'+(alert?' alert':'')+'">'+n+'</span>':'';};
     var t=[["day","📅","Day",""],["roster","👥","Roster",badge(memList("active").length)],["requests","🔁","Requests",badge(openReq,true)]];
@@ -3558,25 +3614,28 @@ var TEN_CODES=[
     var evs=(HD.events||[]).filter(function(e){return e.dates&&e.dates.some(function(x){return vacMs(x)===Date.UTC(y,m,d);});});
     if(evs.length)out+=evs.map(function(e){return '<div class="hevent">📌 <b>'+esc(e.title)+'</b>'+(e.note?' · '+esc(e.note):'')+'</div>';}).join("");
     var cos=HD.companies.slice(); mems.forEach(function(x){var c=x[1].company||"";if(cos.indexOf(c)<0)cos.push(c);}); if(!cos.length)cos=[""];
-    function chip(id,mem,t,rsot){ return '<button class="hwchip'+(rsot?" rsot":"")+(id===HS.m?" me":"")+'" data-act="dayreq" data-mid="'+escA(id)+'" data-t="'+t+'" title="'+escA(mem.name||"")+'"><span class="hwname">'+esc(shortName(mem.name))+'</span>'+(rsot?'<span class="hwtag rsotb">RSOT</span>':(ab&&mem.letter?'<span class="hwtag">'+esc(mem.letter)+'</span>':''))+'</button>'; }   // no group-number tag in the day view (clutter; Roster tab shows groups) — gives the name room in the 3-col grid
+    function chip(id,mem,t,rsot,mut){ return '<button class="hwchip'+(rsot?" rsot":"")+(id===HS.m?" me":"")+'" data-act="dayreq" data-mid="'+escA(id)+'" data-t="'+t+'" title="'+escA(mem.name||"")+'"><span class="hwname">'+esc(shortName(mem.name))+'</span>'+(rsot?'<span class="hwtag rsotb">RSOT</span>':(mut?'<span class="hwtag mutb">MUT</span>':(ab&&mem.letter?'<span class="hwtag">'+esc(mem.letter)+'</span>':'')))+'</button>'; }   // no group-number tag in the day view (clutter; Roster tab shows groups) — gives the name room in the 3-col grid
     [9,6].forEach(function(t){
       out+='<div class="htsec '+(t===9?"t9":"t6")+'"><div class="htshd">'+(t===9?'<span class="hticon">☀️</span> 9× · Day tour':'<span class="hticon">🌙</span> 6× · Night tour')+'</div>';
       cos.forEach(function(co){ var inco=mems.filter(function(x){return (x[1].company||"")===co;}); if(!inco.length&&co)return;
-        var reg=inco.filter(function(x){return !memberOff(x[1],y,m,d)&&memberWorks(x[1],y,m,d,t)&&!houseTourCommitted(x[0],y,m,d,t);});   // hide anyone who already swapped/covered this exact tour away
+        var reg=inco.filter(function(x){return !memberOff(x[1],y,m,d)&&memberWorks(x[1],y,m,d,t)&&!houseTourCommitted(x[0],y,m,d,t)&&!memberMx(x[1],y,m,d,t,"mxoff");});   // hide anyone who swapped/covered this tour away (in-house) OR mutual-out with another house
         var rs=inco.filter(function(x){return !memberOff(x[1],y,m,d)&&!memberWorks(x[1],y,m,d,t)&&memberRSOT(x[1],y,m,d,t)&&!houseTourCommitted(x[0],y,m,d,t);});
-        var chips=reg.map(function(x){return chip(x[0],x[1],t,false);}).join("")+rs.map(function(x){return chip(x[0],x[1],t,true);}).join("");
+        var mut=inco.filter(function(x){return !memberOff(x[1],y,m,d)&&!memberWorks(x[1],y,m,d,t)&&!memberRSOT(x[1],y,m,d,t)&&memberMx(x[1],y,m,d,t,"mxon")&&!houseTourCommitted(x[0],y,m,d,t);});   // working this tour because they picked up an out-of-house mutual
+        var chips=reg.map(function(x){return chip(x[0],x[1],t,false);}).join("")+rs.map(function(x){return chip(x[0],x[1],t,true);}).join("")+mut.map(function(x){return chip(x[0],x[1],t,false,true);}).join("");
         out+='<div class="htco"><span class="htconame">'+(co?esc(co):"Unassigned")+'</span><div class="htchips">'+(chips||'<span class="hnone">—</span>')+'</div></div>'; });
       out+='</div>'; });
     var off=mems.filter(function(x){return memberOff(x[1],y,m,d);});
-    if(off.length)out+='<div class="hoffrow">🚫 Off today: '+off.map(function(x){return esc(x[1].name||"?")+' ('+esc(dutyLabel(memberOff(x[1],y,m,d)))+')';}).join(", ")+'</div>';
+    var det=off.filter(function(x){return memberOff(x[1],y,m,d)==="det";}), offx=off.filter(function(x){return memberOff(x[1],y,m,d)!=="det";});
+    if(det.length)out+='<div class="hoffrow">🚚 On detail: '+det.map(function(x){return esc(x[1].name||"?");}).join(", ")+'</div>';
+    if(offx.length)out+='<div class="hoffrow">🚫 Off today: '+offx.map(function(x){return esc(x[1].name||"?")+' ('+esc(dutyLabel(memberOff(x[1],y,m,d)))+')';}).join(", ")+'</div>';
     if(ab){var noltr=mems.filter(function(x){return !memberOff(x[1],y,m,d)&&!x[1].letter;}); if(noltr.length)out+='<div class="hoffrow warn">🔤 no ABCD letter set: '+noltr.map(function(x){return esc(x[1].name||"?");}).join(", ")+'</div>';}
     return out; }
   function memberLine(id,mem){ var pend=mem.status!=="active", ad=HD.admins.indexOf(id)>=0, duty=memberOff(mem,hVY,hVM,hVD), canEdit=amAdmin()&&!pend;
     var s=((mem.name||"")+" "+(mem.company||"")+" g"+(mem.group||"")+" "+(mem.phone||"")).toLowerCase();
     var contact=(mem.phone?'<a href="'+escA("tel:"+mem.phone.replace(/[^0-9+]/g,""))+'">📞 '+esc(mem.phone)+'</a>':'')+(mem.spouse?'<span class="hrsp">💛 '+esc(mem.spouse)+(mem.spousePhone?' <a href="'+escA("tel:"+mem.spousePhone.replace(/[^0-9+]/g,""))+'">'+esc(mem.spousePhone)+'</a>':'')+'</span>':'');
-    return '<div class="hmline'+(pend?" pend":"")+'" data-s="'+escA(s)+'"><div class="hmltop"><span class="hrname">'+esc(mem.name||"—")+'</span>'+(ad?'<span class="hadmin">admin</span>':'')+(pend?'<span class="hpend">pending</span>':'')+(duty?'<span class="hdutyp">'+dutyEmoji(duty)+' '+esc(dutyLabel(duty))+'</span>':'')+(canEdit?'<button class="hmedit" data-act="editmember" data-who="'+escA(id)+'" title="Reassign company or group">✎ Reassign</button>':'')+'</div>'+(contact?'<div class="hrcontact">'+contact+'</div>':'')+'</div>'; }
+    return '<div class="hmline'+(pend?" pend":"")+(duty==="det"?" ondet":"")+'" data-s="'+escA(s)+'"><div class="hmltop"><span class="hrname">'+esc(mem.name||"—")+'</span>'+(ad?'<span class="hadmin">admin</span>':'')+(pend?'<span class="hpend">pending</span>':'')+(duty?'<span class="hdutyp">'+dutyEmoji(duty)+' '+esc(dutyLabel(duty))+'</span>':'')+(canEdit?'<button class="hmedit" data-act="editmember" data-who="'+escA(id)+'" title="Reassign company or group">✎ Reassign</button>':'')+'</div>'+(contact?'<div class="hrcontact">'+contact+'</div>':'')+'</div>'; }
   function sortPpl(a){ a.sort(function(p,q){ var pa=p[1].status!=="active"?1:0,qa=q[1].status!=="active"?1:0; if(pa!==qa)return pa-qa; var pd=HD.admins.indexOf(p[0])>=0?0:1,qd=HD.admins.indexOf(q[0])>=0?0:1; if(pd!==qd)return pd-qd; return (p[1].name||"").localeCompare(q[1].name||""); }); return a; }
-  function hRoster(){ var mems=memList();
+  function hRoster(){ var mems=memList().filter(function(x){return x[1].status!=="left"&&x[1].status!=="removed";});   // never show departed-member tombstones in the roster
     var order=HD.companies.slice(); mems.forEach(function(x){var c=x[1].company||"";if(order.indexOf(c)<0)order.push(c);});
     order.sort(function(a,b){return (a===""?1:0)-(b===""?1:0);});   // "Unassigned" company bucket last
     var bar='<div class="hrostbar"><input class="dsearch" id="hRosterSearch" type="text" inputmode="search" autocomplete="off" placeholder="Search a member — name, company, group…" value="'+escA(hRostQ)+'"></div>';
@@ -3684,9 +3743,12 @@ var TEN_CODES=[
     if(act==="create"){ var nm=(document.getElementById("hCreateName")||{}).value||""; if(!nm.trim()){hMsg="Name your house first.";renderHouse();return;} hReloadThen(houseCreate(nm.trim(),hNewCos.slice())); return; }
     if(act==="join"){ var cd=((document.getElementById("hJoinCode")||{}).value||"").trim(); if(!cd){hMsg="Enter the join code.";renderHouse();return;} if(hBusy)return; hBusy=true; houseJoin(cd).then(function(res){ hBusy=false; hMsg=res.err?("⚠ "+res.err):(res.pending?"Request sent — waiting for approval.":""); renderHouse(); }).catch(function(){ hBusy=false; renderHouse(); }); return; }
     if(act==="refresh"){ hGet().then(function(){renderHouse();}); return; }
-    if(act==="forget"){ HS=null;HD=null;hSave(); renderHouse(); return; }
+    if(act==="addhouse"){ hAddMode=true; hMsg=""; renderHouse(); return; }              // join/create ANOTHER house (e.g. a 6-month detail house)
+    if(act==="addcancel"){ hAddMode=false; hMsg=""; renderHouse(); return; }
+    if(act==="switchhouse"){ hSwitch(el.getAttribute("data-hid")); return; }
+    if(act==="forget"){ var fid=HS&&HS.id; hDrop(fid); renderHouse(); if(HS)hGet().then(function(){renderHouse();}); return; }   // this house only; land on another if any
     if(act==="sharecode"){ copyText(HD.code,el); appConfirm("Share this join code with your crew:\n\n"+HD.code+"\n\nThey enter it in House Calendar → Join.","Got it",function(){}); return; }
-    if(act==="leave"){ appConfirm("Leave this house? Your tours stay on your own calendar.","Leave",function(){ hOp({type:"leave"}).then(function(){HS=null;HD=null;hSave();renderHouse();}); }); return; }
+    if(act==="leave"){ appConfirm("Leave this house? Your tours stay on your own calendar, and your other houses aren’t affected.","Leave",function(){ var lid=HS&&HS.id; hOp({type:"leave"}).then(function(){ hDrop(lid); renderHouse(); if(HS)hGet().then(function(){renderHouse();}); }); }); return; }
     if(act==="approve"||act==="editmember"){ assignMember(who); return; }
     if(act==="reject"){ hReloadThen(hOp({type:"reject",who:who})); return; }
     if(act==="removem"){ appConfirm("Remove this member from the house?","Remove",function(){ hReloadThen(hOp({type:"remove",who:who})); }); return; }
@@ -3729,8 +3791,8 @@ var TEN_CODES=[
     if(act==="pushoff"){ disablePush(); return; }
     if(act==="pref"){ togglePref(el.getAttribute("data-k")); return; }
   }
-  function openHouseOnDate(y,mm,dd){ if(!HS)return; hVY=y;hVM=mm;hVD=dd; hview="day"; hMsg=""; hReqPre=null; renderHouse(); openSheet(houseSheet); hGet().then(function(r){ if(r&&r.doc)renderHouse(); }); }
-  document.getElementById("openHouse").onclick=function(){ hReqPre=null; hview="day"; hMsg=""; renderHouse(); openSheet(houseSheet); if(HS)hGet().then(function(r){ if(r&&r.doc)pushMyProfile().then(function(){renderHouse();}); else renderHouse(); }); };   // reset compose context (like openHouseOnDate) so a stale directed target doesn't misdirect a later request
+  function openHouseOnDate(y,mm,dd){ if(!HS)return; hVY=y;hVM=mm;hVD=dd; hview="day"; hMsg=""; hReqPre=null; hAddMode=false; renderHouse(); openSheet(houseSheet); hGet().then(function(r){ if(r&&r.doc)renderHouse(); }); }
+  document.getElementById("openHouse").onclick=function(){ hReqPre=null; hview="day"; hMsg=""; hAddMode=false; renderHouse(); openSheet(houseSheet); if(HS)hGet().then(function(r){ if(r&&r.doc)pushMyProfile().then(function(){renderHouse();}); else renderHouse(); }); };   // reset compose context (like openHouseOnDate) so a stale directed target doesn't misdirect a later request
   document.getElementById("houseDone").onclick=closeSheets;
   document.getElementById("houseBody").addEventListener("click",function(e){ var b=e.target.closest("[data-act]"); if(!b)return; if(b.tagName==="A")return; e.preventDefault(); hAct(b.getAttribute("data-act"),b); });
   document.getElementById("houseBody").addEventListener("click",function(e){ var seg=e.target.closest(".hrseg button"); if(!seg)return; var p=seg.parentNode; Array.prototype.forEach.call(p.querySelectorAll("button"),function(x){x.classList.toggle("on",x===seg);});
@@ -3813,10 +3875,11 @@ var TEN_CODES=[
   var pType="vac", ldEMode="group", ldELtr="A", pEditIdx=-1;
   function fmtVD(iso){var p=iso.split("-");return MON[+p[1]-1].slice(0,3)+" "+(+p[2])+", "+p[0];}
   function pErr(msg){var el=document.getElementById("pErr");if(el)el.textContent=msg||"";}
-  function updateEndReq(){var o=document.getElementById("pEndOpt");if(!o)return;if(pType==="vac"){o.textContent="(required)";o.className="opt req";}else{o.textContent="(optional)";o.className="opt";}}
+  function updateEndReq(){var o=document.getElementById("pEndOpt");if(!o)return;if(pType==="vac"||pType==="det"){o.textContent=pType==="det"?"(return date)":"(required)";o.className="opt req";}else{o.textContent="(optional)";o.className="opt";}}
   function showLdCfg(){   // reveal the light-duty / training config only for the matching type, and the right sub-block for the LD mode
     document.getElementById("ldCfg").style.display=(pType==="ld")?"block":"none";
     document.getElementById("trCfg").style.display=(pType==="tr")?"block":"none";
+    document.getElementById("detCfg").style.display=(pType==="det")?"block":"none";
     document.getElementById("ldAbcd").style.display=(pType==="ld"&&ldEMode==="abcd")?"block":"none";
     document.getElementById("ldCustom").style.display=(pType==="ld"&&ldEMode==="custom")?"block":"none";
     Array.prototype.forEach.call(document.querySelectorAll("#ldMode button"),function(x){x.classList.toggle("on",x.getAttribute("data-m")===ldEMode);});
@@ -3828,12 +3891,28 @@ var TEN_CODES=[
     var obj={t:"tr",s:s,e:e||"",name:name,days:days,ss:document.getElementById("trSs").value||"09:00",se:document.getElementById("trSe").value||"18:00"};
     obj.ex=(pEditIdx>=0&&periods[pEditIdx]&&periods[pEditIdx].ex)?periods[pEditIdx].ex:{};
     return obj;}
+  function setDetail(s,e,grp,editIdx){   // 6-month detail = a temporary group change (new group → revert on return) + a home-house "det" flag
+    var old=(editIdx>=0&&periods[editIdx]&&periods[editIdx].t==="det")?periods[editIdx]:null;
+    if(old)groups=groups.filter(function(g){return g.det!==old.s;});   // editing: drop the OLD detail's epochs
+    groups=groups.filter(function(g){return g.det!==s;});              // and any stale epochs for THIS detail — removes only DETAIL-tagged epochs, never a user's real group change on the same date
+    var sp=s.split("-"), pd=shiftDate(+sp[0],+sp[1]-1,+sp[2],-1), prevE=effGroups(pd[0],pd[1],pd[2]);   // REAL group/partner effective just before the detail (post-cleanup)
+    groups.push({s:s,my:grp,pt:0,det:s});                    // detail group from the start date (tagged with the detail's start so we can find its epochs)
+    groups.push({s:e,my:prevE.my,pt:prevE.pt||0,det:s});     // back to your home group on the return date
+    groups.sort(function(a,b){return isoToNum(a.s)-isoToNum(b.s);});
+    save("groups",groups); syncCurGroups(); save("my",my); save("pt",pt);
+    var oldHome=(old&&old.home)||"";                   // preserve the home house across an edit; else stamp the house I'm in now
+    var obj={t:"det",s:s,e:e,grp:grp,pg:prevE.my,home:oldHome||(HS&&HS.id)||(houses[0]&&houses[0].id)||""};     // home-house on-detail flag: dutyForHouse greys me ONLY in this home house, never in the house I detail INTO (falls back to my only/first house if I'm not actively in one)
+    if(editIdx>=0)periods[editIdx]=obj; else periods.push(obj);
+    save("periods",periods);
+  }
+  function removeDetailEpochs(p){ if(!p)return; groups=groups.filter(function(g){return g.det!==p.s;}); save("groups",groups); syncCurGroups(); save("my",my); save("pt",pt); }   // only THIS detail's tagged epochs
   function setPType(t){pType=t;Array.prototype.forEach.call(document.querySelectorAll("#pTypes .stype"),function(x){x.classList.toggle("on",x.getAttribute("data-pt")===t);});updateEndReq();showLdCfg();}
   function resetSchedCfg(){   // restore the light-duty & training builders to their defaults so no prior period's schedule bleeds into the next Add
     ldEMode="group";ldELtr="A";
     var g=document.getElementById("ldGig");if(g)g.value="";
     var a=document.getElementById("ldSs");if(a)a.value="09:00"; var b=document.getElementById("ldSe");if(b)b.value="18:00";
     Array.prototype.forEach.call(document.querySelectorAll("#ldDays button"),function(x){var wd=+x.getAttribute("data-d");x.classList.toggle("on",wd>=1&&wd<=5);});
+    var dgn=document.getElementById("detGrp");if(dgn)dgn.value="";
     var tn=document.getElementById("trName");if(tn)tn.value="";
     var ta=document.getElementById("trSs");if(ta)ta.value="09:00"; var tb=document.getElementById("trSe");if(tb)tb.value="18:00";
     Array.prototype.forEach.call(document.querySelectorAll("#trDays button"),function(x){var wd=+x.getAttribute("data-d");x.classList.toggle("on",wd>=1&&wd<=5);});
@@ -3846,13 +3925,13 @@ var TEN_CODES=[
     var idx=periods.map(function(v,i){return i;}).sort(function(a,b){return vacMs(periods[a].s)-vacMs(periods[b].s);});
     list.innerHTML=yrAcc(idx,function(i){return +periods[i].s.slice(0,4);},function(i){var v=periods[i];
       var span=v.e?(fmtVD(v.s)+' – '+fmtVD(v.e)):(fmtVD(v.s)+' · ongoing');
-      var mtag=(v.t==="ld"&&v.m)?' <span class="ldm">· '+ldModeLabel(v.m)+(v.m==="abcd"?" "+esc(v.ltr):"")+(v.gig?" · "+esc(v.gig):"")+'</span>':(v.t==="tr"&&v.name)?' <span class="ldm">· '+esc(v.name)+'</span>':'';
+      var mtag=(v.t==="ld"&&v.m)?' <span class="ldm">· '+ldModeLabel(v.m)+(v.m==="abcd"?" "+esc(v.ltr):"")+(v.gig?" · "+esc(v.gig):"")+'</span>':(v.t==="tr"&&v.name)?' <span class="ldm">· '+esc(v.name)+'</span>':(v.t==="det"&&v.grp)?' <span class="ldm">· group '+v.grp+' at detail house</span>':'';
       var tail=v.e?('<span class="rt night">'+(Math.round((vacMs(v.e)-vacMs(v.s))/864e5)+1)+'d</span>')
         :('<label class="pendset" title="Set the end date to return to regular tours">📅<input type="date" class="pendin" data-i="'+i+'" min="'+escA(v.s)+'" aria-label="Set end date"></label>');
       var edit=(v.t==="ld"||v.t==="tr")?'<button class="cevedit pedit" data-i="'+i+'" aria-label="Edit schedule" type="button">✎</button>':'';
       return '<div class="ritem'+(v.e?'':' ongoing')+(pEditIdx===i?' editing':'')+'"><span class="ptag '+v.t+'">'+dutyEmoji(v.t)+' '+dutyTag(v.t)+'</span><span class="rd">'+span+mtag+'</span>'+tail+edit+'<button class="rx" data-i="'+i+'" aria-label="Remove">✕</button></div>';
     });
-    Array.prototype.forEach.call(list.querySelectorAll(".rx"),function(b){b.onclick=function(){var i=+b.getAttribute("data-i");if(pEditIdx===i)resetPForm();else if(pEditIdx>i)pEditIdx--;periods.splice(i,1);save("periods",periods);render();renderPeriods();};});
+    Array.prototype.forEach.call(list.querySelectorAll(".rx"),function(b){b.onclick=function(){var i=+b.getAttribute("data-i");var rp=periods[i];if(rp&&rp.t==="det")removeDetailEpochs(rp);if(pEditIdx===i)resetPForm();else if(pEditIdx>i)pEditIdx--;periods.splice(i,1);save("periods",periods);render();renderPeriods();};});
     Array.prototype.forEach.call(list.querySelectorAll(".pedit"),function(b){b.onclick=function(){startPeriodEdit(periods[+b.getAttribute("data-i")]);};});
     wireYrAcc(list);
     Array.prototype.forEach.call(list.querySelectorAll(".pendin"),function(inp){inp.onchange=function(){var i=+inp.getAttribute("data-i"),val=inp.value;if(!val)return;
@@ -3888,6 +3967,12 @@ var TEN_CODES=[
     var ns=vacMs(s),ne=e?vacMs(e):Infinity;   // no overlapping leaves — close out the current one before starting another
     for(var oi=0;oi<periods.length;oi++){if(oi===pEditIdx)continue;var op=periods[oi];if(!op)continue;var os=vacMs(op.s),oe=op.e?vacMs(op.e):Infinity;
       if(ns<=oe&&ne>=os){pErr("That overlaps your "+dutyLabel(op.t).toLowerCase()+" ("+fmtVD(op.s)+(op.e?" – "+fmtVD(op.e):" · ongoing")+"). Close that out first.");return;}}
+    if(pType==="det"){   // 6-month detail: needs a return date + your detail-house group
+      if(!e){pErr("A detail needs a return date — set the End date.");document.getElementById("pEnd").focus();return;}
+      var dg=parseInt((document.getElementById("detGrp").value||""),10);
+      if(!(dg>=1&&dg<=25)){pErr("Enter your group at the detail house (1–25).");return;}
+      setDetail(s,e,dg,pEditIdx); resetPForm(); render(); renderPeriods(); return;
+    }
     var obj;
     if(pType==="ld"){obj={t:"ld",s:s,e:e||"",m:ldEMode};
       var gv=(document.getElementById("ldGig").value||"").trim(); if(gv)obj.gig=gv;   // gig applies to all 3 modes
