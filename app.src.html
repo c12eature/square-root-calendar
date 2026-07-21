@@ -100,8 +100,6 @@
   .dot.edu{background:#7c3aed;}     /* Education Day */
   .dot.med{background:#0891b2;}     /* Company Medical */
   .pay{color:var(--pay); font-weight:900; font-size:14px;}
-  .tapnote{margin:14px 6px 0; text-align:center; font-size:11px; color:var(--mut); font-weight:600; line-height:1.5;}
-  .tapnote a{color:var(--ink2); font-weight:800; text-decoration:none;}
   .chip{border-radius:7px; padding:4px 5px 4px 6px; font-size:13px; font-weight:800; letter-spacing:-.01em;
     display:flex; align-items:baseline; gap:3px; line-height:1; min-width:0; overflow:hidden;}
   .chip.off{background:var(--off); color:var(--off-ink);}
@@ -560,6 +558,18 @@
   .swpickgo{font-size:12px; font-weight:800; color:var(--accent); white-space:nowrap; flex:none;}
   .swpicknone{font-size:12.5px; color:var(--mut); padding:4px 2px 2px; line-height:1.4;}
   .swpickopen{width:100%; padding:12px; border-radius:12px; border:1px solid color-mix(in srgb,var(--accent) 34%,var(--line)); background:color-mix(in srgb,var(--accent) 12%,var(--panel)); color:var(--accent); font-family:inherit; font-size:14px; font-weight:800; cursor:pointer; flex:none;}
+  .hcalnav{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:9px;}
+  .hcalmon{font-size:15.5px; font-weight:800; color:var(--ink);}
+  .hcnav{width:40px; height:40px; border:1px solid var(--line); border-radius:10px; background:var(--panel2); color:var(--ink); font-size:20px; font-weight:900; cursor:pointer; font-family:inherit; touch-action:manipulation;}
+  .hcaldow{display:grid; grid-template-columns:repeat(7,1fr); gap:5px; margin-bottom:5px;}
+  .hcaldow span{text-align:center; font-size:10px; font-weight:800; color:var(--mut); text-transform:uppercase; letter-spacing:.02em;}
+  .hcalgrid{display:grid; grid-template-columns:repeat(7,1fr); gap:5px;}
+  .hcday{aspect-ratio:1/1; min-width:0; border:1px solid var(--line); border-radius:10px; background:var(--panel2); color:var(--ink); font-size:14.5px; font-weight:700; cursor:pointer; font-family:inherit; display:flex; align-items:center; justify-content:center; touch-action:manipulation;}
+  .hcday.blank{border:0; background:transparent; cursor:default;}
+  .hcday.today{border-color:var(--accent); color:var(--accent); font-weight:900;}
+  .hcday.sel{background:var(--accent); color:#fff; border-color:var(--accent); font-weight:900;}
+  .hcday:not(.blank):active{transform:scale(.9);}
+  .hcalfoot{margin-top:11px; width:100%; border:1px solid var(--line); background:var(--panel2); color:var(--accent); font-weight:800; font-size:12.5px; padding:10px; border-radius:11px; cursor:pointer; font-family:inherit; flex:none; touch-action:manipulation;}
   .reqbarsub{font-weight:600; color:var(--mut);}
   .reqbaracts{display:flex; gap:8px;}
   .reqbaracts button{flex:1; padding:11px 8px; border:1px solid var(--line); border-radius:11px; background:var(--panel2); color:var(--ink); font-family:inherit; font-size:13px; font-weight:800; cursor:pointer;}
@@ -712,12 +722,11 @@
   .hnavb.mon{width:34px; font-size:15px; color:var(--mut);}
   .hnavb:active,.htoday:active{transform:scale(.94);}
   .hdate{position:relative; flex:1 1 auto; min-width:0; height:44px; padding:0 8px; display:flex; align-items:center; justify-content:center; gap:5px; border:1px solid var(--line); border-radius:10px; background:var(--panel2); color:var(--ink); font-size:13px; font-weight:800; cursor:pointer; font-family:inherit; white-space:nowrap; touch-action:manipulation;}
-  .hdate:focus-within{outline:2px solid var(--accent); outline-offset:2px;}
+  .hdate:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
   .hdate .hdow{flex:none;}
   .hdate .hdnum{flex:none; min-width:0; overflow:hidden; text-overflow:ellipsis;}
   @media (max-width:359px){ .hdate .hdow{display:none;} }   /* on tiny phones drop the weekday first so the date itself stays fully readable */
   .hdate .hdcal{flex:none; opacity:.65; font-size:13px;}
-  .hdate input[type=date]{position:absolute; inset:0; width:100%; height:100%; margin:0; padding:0; border:0; opacity:0; cursor:pointer; font-family:inherit; -webkit-appearance:none; appearance:none;}
   .htodayrow{display:flex; justify-content:center; margin:-4px 0 11px;}
   .htoday{border:1px solid var(--line); background:var(--panel2); color:var(--accent); font-weight:800; font-size:12px; padding:5px 13px; border-radius:999px; cursor:pointer; font-family:inherit; touch-action:manipulation;}
   .habanner{background:color-mix(in srgb,var(--accent) 13%,var(--panel)); border:1px solid color-mix(in srgb,var(--accent) 34%,var(--line)); color:var(--accent); font-weight:800; font-size:12.5px; border-radius:10px; padding:8px 11px; margin-bottom:10px;}
@@ -911,8 +920,6 @@
     </div>
     <button class="keybtn" id="openLegend" type="button">🔑 Key</button>
   </div>
-
-  <div class="tapnote">Free calendar app from <a href="https://nyfirestudyapp.com" target="_blank" rel="noopener">NYFireStudyApp.com</a></div>
 </div>
 <div class="reqbar" id="reqbar">
   <div class="reqbarmsg" id="reqbarMsg"></div>
@@ -929,6 +936,16 @@
     <div class="swpickhd"><span id="swpickTitle">Swap</span><button class="swpickclose" data-swp="cancel" aria-label="Close">✕</button></div>
     <div class="swpickbody" id="swpickBody"></div>
     <button class="swpickopen" data-swp="open">📢 Post to the whole house</button>
+  </div>
+</div>
+
+<div class="swpick hcalpop" id="hcalPop" role="dialog" aria-modal="true">
+  <div class="swpickcard">
+    <div class="swpickhd"><span>📅 Jump to a day</span><button class="swpickclose" data-hc="cancel" aria-label="Close">✕</button></div>
+    <div class="hcalnav"><button class="hcnav" data-hc="prev" aria-label="Previous month">‹</button><span class="hcalmon" id="hcalMon"></span><button class="hcnav" data-hc="next" aria-label="Next month">›</button></div>
+    <div class="hcaldow"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div>
+    <div class="hcalgrid" id="hcalGrid"></div>
+    <button class="hcalfoot" data-hc="today">↩︎ Jump to today</button>
   </div>
 </div>
 
@@ -3519,7 +3536,7 @@ var TEN_CODES=[
     var out='<div class="hdaynav">'+
       '<button class="hnavb mon" data-act="pmon" aria-label="Previous month">«</button>'+
       '<button class="hnavb" data-act="pday" aria-label="Previous day">‹</button>'+
-      '<label class="hdate"><span class="hdow">'+DOWF[new Date(y,m,d).getDay()].slice(0,3)+' · </span><span class="hdnum">'+MON[m].slice(0,3)+" "+d+", "+y+'</span><span class="hdcal">📅</span><input type="date" id="hDayPick" value="'+escA(isoLocal(y,m,d))+'" aria-label="Jump to a date"></label>'+
+      '<button class="hdate" data-act="pickcal" aria-label="Jump to any day"><span class="hdow">'+DOWF[new Date(y,m,d).getDay()].slice(0,3)+' · </span><span class="hdnum">'+MON[m].slice(0,3)+" "+d+", "+y+'</span><span class="hdcal">📅</span></button>'+
       '<button class="hnavb" data-act="nday" aria-label="Next day">›</button>'+
       '<button class="hnavb mon" data-act="nmon" aria-label="Next month">»</button>'+
       '</div>';
@@ -3639,6 +3656,7 @@ var TEN_CODES=[
     if(act==="pday"){ var p=shiftDate(hVY,hVM,hVD,-1); hVY=p[0];hVM=p[1];hVD=p[2]; renderHouse(); return; }
     if(act==="nday"){ var n=shiftDate(hVY,hVM,hVD,1); hVY=n[0];hVM=n[1];hVD=n[2]; renderHouse(); return; }
     if(act==="today"){ var tdy=new Date(); hVY=tdy.getFullYear();hVM=tdy.getMonth();hVD=tdy.getDate(); renderHouse(); return; }   // fresh Date so "today" is really today even in a long-lived PWA
+    if(act==="pickcal"){ openHCal(); return; }
     if(act==="pmon"){ var pm=shiftMonth(hVY,hVM,hVD,-1); hVY=pm[0];hVM=pm[1];hVD=pm[2]; renderHouse(); return; }
     if(act==="nmon"){ var nm=shiftMonth(hVY,hVM,hVD,1); hVY=nm[0];hVM=nm[1];hVD=nm[2]; renderHouse(); return; }
     if(act==="addnewco"){ var nci=document.getElementById("hNewCoAdd"), nv=((nci&&nci.value)||"").trim(); if(!nv){hMsg="Type a company name first.";renderHouse();return;}
@@ -3698,7 +3716,27 @@ var TEN_CODES=[
   document.getElementById("houseBody").addEventListener("click",function(e){ var b=e.target.closest("[data-act]"); if(!b)return; if(b.tagName==="A")return; e.preventDefault(); hAct(b.getAttribute("data-act"),b); });
   document.getElementById("houseBody").addEventListener("click",function(e){ var seg=e.target.closest(".hrseg button"); if(!seg)return; var p=seg.parentNode; Array.prototype.forEach.call(p.querySelectorAll("button"),function(x){x.classList.toggle("on",x===seg);}); if(p.id==="hReqType"){var wr=document.getElementById("hWantWrap"); if(wr)wr.style.display=(seg.getAttribute("data-rt")==="swap")?"":"none";} });
   document.getElementById("houseBody").addEventListener("input",function(e){ if(e.target.id==="hRosterSearch"){ hRostQ=e.target.value; filterRoster(); } });
-  document.getElementById("houseBody").addEventListener("blur",function(e){ if(e.target.id==="hDayPick"&&isRealDate(e.target.value)){ var p=e.target.value.split("-"); hVY=+p[0];hVM=+p[1]-1;hVD=+p[2]; hMsg=""; renderHouse(); } },true);   // commit the picked date when the native picker CLOSES (blur, capture-phase since blur doesn't bubble) — re-rendering on "change" would destroy the still-open iOS-wheel / Android-spinner picker mid-selection
+  // ---- in-app month-grid day picker (House Day tab → tap the date box) ----
+  var hcY=0, hcM=0;
+  function openHCal(){ hcY=hVY; hcM=hVM; renderHCal(); document.getElementById("hcalPop").classList.add("show"); }
+  function closeHCal(){ var p=document.getElementById("hcalPop"); if(p)p.classList.remove("show"); }
+  function renderHCal(){ var mon=document.getElementById("hcalMon"), grid=document.getElementById("hcalGrid"); if(!mon||!grid)return;
+    mon.textContent=MON[hcM]+" "+hcY;
+    var first=new Date(hcY,hcM,1).getDay(), dim=new Date(hcY,hcM+1,0).getDate();
+    var t=new Date(), ty=t.getFullYear(), tm=t.getMonth(), td=t.getDate(), h="";
+    for(var i=0;i<first;i++)h+='<span class="hcday blank"></span>';
+    for(var d=1;d<=dim;d++){ var isT=(hcY===ty&&hcM===tm&&d===td), isS=(hcY===hVY&&hcM===hVM&&d===hVD);
+      h+='<button class="hcday'+(isS?" sel":(isT?" today":""))+'" data-hc="pick" data-d="'+d+'">'+d+'</button>'; }
+    grid.innerHTML=h;
+  }
+  document.getElementById("hcalPop").addEventListener("click",function(e){ if(e.target.id==="hcalPop"){closeHCal();return;}   // tap the backdrop to close
+    var b=e.target.closest("[data-hc]"); if(!b)return; var a=b.getAttribute("data-hc");
+    if(a==="cancel"){ closeHCal(); return; }
+    if(a==="prev"){ if(--hcM<0){hcM=11;hcY--;} renderHCal(); return; }
+    if(a==="next"){ if(++hcM>11){hcM=0;hcY++;} renderHCal(); return; }
+    if(a==="today"){ var t=new Date(); hVY=t.getFullYear();hVM=t.getMonth();hVD=t.getDate(); closeHCal(); hMsg=""; renderHouse(); return; }
+    if(a==="pick"){ hVY=hcY; hVM=hcM; hVD=parseInt(b.getAttribute("data-d"),10); closeHCal(); hMsg=""; renderHouse(); return; }
+  });
   document.getElementById("houseBody").addEventListener("keydown",function(e){ if(e.key!=="Enter")return; if(e.target.id==="hCoAdd"){ e.preventDefault(); hAct("addco",e.target); } else if(e.target.id==="hNewCoAdd"){ e.preventDefault(); hAct("addnewco",e.target); } });   // Enter adds the company
 
   document.getElementById("openRef").onclick=function(){renderRef();openSheet(refSheet);};
