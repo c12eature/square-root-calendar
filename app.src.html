@@ -171,6 +171,11 @@
   .notein::placeholder{color:var(--mut);font-weight:600;}
   .sttot{border:1px solid var(--line);border-radius:13px;background:color-mix(in srgb,var(--pay) 8%,var(--panel2));padding:16px;margin-bottom:14px;}
   .stbig{font-size:30px;font-weight:900;color:var(--pay);letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums;}
+  .stbigusd{font-size:19px;font-weight:900;color:var(--pay);opacity:.85;margin-left:10px;letter-spacing:-.01em;}
+  .stusd{color:var(--pay);font-weight:900;font-variant-numeric:tabular-nums;}
+  .stptot .stusd{display:block;font-size:12px;margin-top:1px;}
+  .stdisc{margin-top:12px;padding-top:10px;border-top:1px dashed var(--line);font-size:11px;line-height:1.5;color:var(--mut);font-weight:600;}
+  button.stdisc.stset{display:block;width:100%;text-align:left;background:none;border:none;border-top:1px dashed var(--line);color:var(--pay);cursor:pointer;font-family:inherit;padding:10px 0 0;}
   .stsub{font-size:12px;color:var(--mut);font-weight:600;margin-top:6px;line-height:1.5;}
   .stgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:14px;}
   .stcell{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 8px;text-align:center;}
@@ -983,6 +988,7 @@
     <div class="field"><label>Company / assignment</label><input class="cevin" id="setCo" type="text" autocomplete="off" placeholder="e.g. E295, L144, Squad 1" style="margin-bottom:0"></div>
     <div class="field"><label>Cell phone <span class="opt">(optional)</span></label><input class="cevin" id="setPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="Shown to your house crew" style="margin-bottom:0"></div>
     <div class="setgrps setgrps2" style="margin-bottom:5px"><div class="field" style="margin-bottom:0"><label>Spouse / emergency name <span class="opt">(optional)</span></label><input class="cevin" id="setSpouse" type="text" autocomplete="off" placeholder="Name" style="margin-bottom:0"></div><div class="field" style="margin-bottom:0"><label>Their phone</label><input class="cevin" id="setSphone" type="tel" inputmode="tel" autocomplete="off" placeholder="Phone" style="margin-bottom:0"></div></div>
+    <div class="field"><label>On the job since <span class="opt">(for overtime $ estimates)</span></label><input class="cevin" id="setAppt" type="date" style="margin-bottom:2px"><div class="setsub" id="apptSub"></div></div>
     <p class="rsub" style="margin:0 3px; line-height:1.4">Shown to your crew when you join a <b>House Calendar</b>.</p>
   </div>
   <div class="setsec">
@@ -2413,11 +2419,12 @@
 
   // ---- settings ----
   function syncPt(){document.getElementById("vPt").textContent=pt?pt:"None";var b=document.getElementById("ptClear");if(b)b.textContent=pt?"✕ No partner":"＋ Add partner";}
-  document.getElementById("gear").onclick=function(){syncCurGroups();document.getElementById("vMy").textContent=my;syncPt();syncDefSw();document.getElementById("setName").value=uname;document.getElementById("setCo").value=uco;document.getElementById("setPhone").value=uphone;document.getElementById("setSpouse").value=uspouse;document.getElementById("setSphone").value=usphone;document.getElementById("setLetter").value=hletter;renderSetNotif();openSheet(setSheet);};
+  document.getElementById("gear").onclick=function(){syncCurGroups();document.getElementById("vMy").textContent=my;syncPt();syncDefSw();document.getElementById("setName").value=uname;document.getElementById("setCo").value=uco;document.getElementById("setPhone").value=uphone;document.getElementById("setSpouse").value=uspouse;document.getElementById("setSphone").value=usphone;document.getElementById("setLetter").value=hletter;document.getElementById("setAppt").value=isRealDate(apptDate)?apptDate:"";document.getElementById("apptSub").textContent=apptSubText();renderSetNotif();openSheet(setSheet);};
   document.getElementById("setNotif").addEventListener("click",function(e){ var b=e.target.closest("[data-act]"); if(!b)return; var act=b.getAttribute("data-act"); if(act==="pushon")enablePush(); else if(act==="pushoff")disablePush(); else if(act==="pref")togglePref(b.getAttribute("data-k")); });
   document.getElementById("setName").oninput=function(){uname=this.value;save("name",uname);};   // save-as-you-type (no calendar rebuild)
   document.getElementById("setCo").oninput=function(){uco=this.value.trim();save("co",uco);};
   document.getElementById("setPhone").oninput=function(){uphone=this.value.trim();save("phone",uphone);};
+  document.getElementById("setAppt").onchange=function(){apptDate=isRealDate(this.value)?this.value:"";save("apptdate",apptDate);document.getElementById("apptSub").textContent=apptSubText();};
   document.getElementById("setSpouse").oninput=function(){uspouse=this.value.trim();save("spouse",uspouse);};
   document.getElementById("setSphone").oninput=function(){usphone=this.value.trim();save("sphone",usphone);};
   document.getElementById("setLetter").onchange=function(){hletter=this.value;save("hletter",hletter);};
@@ -2845,6 +2852,26 @@
   document.getElementById("openMx").onclick=function(){setSheet.classList.remove("show");renderLedger();openSheet(mxSheet);};
   document.getElementById("mxDone").onclick=closeSheets;
 
+  // ---- Overtime dollars: "on the job since" date → hourly OT rate from the UFA chart (8/1/2024). OVERTIME ONLY — no salary tracking. ----
+  // Two career tracks: hired before 4/1/22 hits grades at 1/2/3/4 yrs (1st grade at 5); on/after at 1.5/2.5/3.5/4.5 (1st at 5.5).
+  // Each row = [min years on, day OT $/hr, night-shift OT $/hr]; the rate applied is the one in effect ON THE DATE the OT was worked.
+  var UFA_ASOF="8/1/2024";
+  var UFA_RATES={
+    pre:[[0,40.436,44.480],[1,42.428,46.671],[2,46.212,50.833],[3,50.834,55.917],[4,56.033,61.636],[5,81.899,89.777],[5.5,82.453,90.385],[10,84.031,91.971],[15,85.613,93.560],[20,86.639,94.594]],
+    post:[[0,40.436,44.480],[1.5,42.428,46.671],[2.5,46.212,50.833],[3.5,50.834,55.917],[4.5,56.033,61.636],[5.5,82.453,90.385],[10,84.031,91.971],[15,85.363,93.310],[20,86.639,94.594]]};
+  var apptDate=load("apptdate","");
+  function otRateFor(y,m,d,tour){ if(!isRealDate(apptDate))return 0;
+    var yrs=(Date.UTC(y,m,d)-vacMs(apptDate))/(365.25*864e5); if(yrs<0)return 0;   // OT logged before your appointment date prices at 0 (bad data, not a crash)
+    var sched=(vacMs(apptDate)<Date.UTC(2022,3,1))?UFA_RATES.pre:UFA_RATES.post,row=sched[0];
+    for(var i=0;i<sched.length;i++){ if(sched[i][0]<=yrs)row=sched[i]; else break; }
+    return tour===6?row[2]:row[1]; }
+  function fmtUSD(v){ return "$"+Math.round(v).toLocaleString("en-US"); }
+  function apptSubText(){ if(!isRealDate(apptDate))return "Set it and your overtime shows dollar estimates (UFA "+UFA_ASOF+" chart).";
+    var t=new Date(),yrs=(Date.UTC(t.getFullYear(),t.getMonth(),t.getDate())-vacMs(apptDate))/(365.25*864e5);
+    if(yrs<0)return "That's in the future — double-check the date.";
+    var d9=otRateFor(t.getFullYear(),t.getMonth(),t.getDate(),9),n6=otRateFor(t.getFullYear(),t.getMonth(),t.getDate(),6);
+    return (Math.round(yrs*10)/10)+" years on — OT $"+d9.toFixed(2)+"/hr day · $"+n6.toFixed(2)+" night (UFA "+UFA_ASOF+")"; }
+
   // ---- Overtime statistics: all extra pay, bucketed by 2-week pay period (night-tour → day-tour 14 days later) ----
   function fmtHM(mins){var h=Math.floor(mins/60),mn=mins%60;if(h&&mn)return h+"h "+mn+"m";if(h)return h+"h";return mn+"m";}
   function payKeyOf(y,m,d,tour){var pd=Math.round((Date.UTC(y,m,d)-PAY)/864e5),hh=pd*2+(tour===9?0:1);return Math.floor((hh-3)/28);}
@@ -2859,9 +2886,10 @@
       var cs=curState(y,m,d,t),ms=cs==="ot"?otHours(t):0,rs=cs==="rsot"?otHours(t):0,oo=cs==="oot"?ootHrs(y,m,d,t):0,ool=cs==="oot"?ootNote(y,m,d,t):"",a=0,wu=0,pp=0,ot2=0,otl="";
       if(worked(y,m,d,t)&&!sp){a=arMin(y,m,d,t);wu=Math.max(0,washupExtra(y,m,d,t)-a);pp=p2pMin(y,m,d,t);ot2=othMin(y,m,d,t);otl=othLbl(y,m,d,t);}   // on a schedule day only the Other-OT hours count, never stale AR/washup/P2P/Other on that tour
       if(ms+rs+oo+a+wu+pp+ot2<=0)continue;                   // skip tours with no extra pay (e.g. ECC/CFR-only)
-      var pk=payKeyOf(y,m,d,t),r=byK[pk]||(byK[pk]={ms:0,rs:0,oo:0,ar:0,p2p:0,wu:0,oth:0,tours:[]});
-      r.ms+=ms;r.rs+=rs;r.oo+=oo;r.ar+=a;r.p2p+=pp;r.wu+=wu;r.oth+=ot2;
-      r.tours.push({y:y,m:m,d:d,t:t,ms:ms,rs:rs,oo:oo,ool:ool,ar:a,p2p:pp,wu:wu,oth:ot2,otl:otl});
+      var pk=payKeyOf(y,m,d,t),r=byK[pk]||(byK[pk]={ms:0,rs:0,oo:0,ar:0,p2p:0,wu:0,oth:0,usd:0,tours:[]});
+      var usd=(((ms+rs+oo)*60+a+wu+pp+ot2)/60)*otRateFor(y,m,d,t);   // every extra minute prices at the OT rate in effect THAT date (night tours use the night-shift OT rate)
+      r.ms+=ms;r.rs+=rs;r.oo+=oo;r.ar+=a;r.p2p+=pp;r.wu+=wu;r.oth+=ot2;r.usd+=usd;
+      r.tours.push({y:y,m:m,d:d,t:t,ms:ms,rs:rs,oo:oo,ool:ool,ar:a,p2p:pp,wu:wu,oth:ot2,otl:otl,usd:usd});
     }
     return byK;}
   function periodMin(r){return (r.ms+r.rs+r.oo)*60+r.ar+r.p2p+r.wu+r.oth;}
@@ -2869,9 +2897,9 @@
   function stCell(lab,val){return '<div class="stcell"><span class="stcl">'+lab+'</span><span class="stcv">'+val+'</span></div>';}
   function brkParts(r){var p=[];if(r.ms)p.push('MSOT '+r.ms+'h');if(r.rs)p.push('RSOT '+r.rs+'h');if(r.oo)p.push('Other OT '+r.oo+'h'+(r.ool?' ('+esc(r.ool)+')':''));if(r.ar)p.push('AR '+fmtHM(r.ar));if(r.p2p)p.push('P2P '+fmtHM(r.p2p));if(r.wu)p.push('Washup '+fmtHM(r.wu));if(r.oth)p.push(esc(r.otl||'Other')+' '+fmtHM(r.oth));return p.join(' · ');}
   function stDays(tours){return tours.slice().sort(function(a,b){return Date.UTC(a.y,a.m,a.d)-Date.UTC(b.y,b.m,b.d)||b.t-a.t;}).map(function(x){
-    return '<button class="stday" type="button" data-nav="'+x.y+'-'+x.m+'-'+x.d+'"><span class="stdd">'+MON[x.m].slice(0,3)+' '+x.d+' · '+(x.t===9?"9× Day":"6× Night")+'</span><span class="stdv">'+brkParts(x)+' <span class="stdgo">›</span></span></button>';}).join("");}
+    return '<button class="stday" type="button" data-nav="'+x.y+'-'+x.m+'-'+x.d+'"><span class="stdd">'+MON[x.m].slice(0,3)+' '+x.d+' · '+(x.t===9?"9× Day":"6× Night")+'</span><span class="stdv">'+brkParts(x)+(x.usd?' · <b class="stusd">'+fmtUSD(x.usd)+'</b>':'')+' <span class="stdgo">›</span></span></button>';}).join("");}
   function goToDate(y,m,d){statsSheet.classList.remove("show");view.y=y;view.m=m;render();openDay(y,m,d);}   // jump from the stats list to that day on the calendar
-  function sumBucket(list){var t={ms:0,rs:0,oo:0,ar:0,p2p:0,wu:0,oth:0};list.forEach(function(r){t.ms+=r.ms;t.rs+=r.rs;t.oo+=r.oo;t.ar+=r.ar;t.p2p+=r.p2p;t.wu+=r.wu;t.oth+=r.oth;});return t;}
+  function sumBucket(list){var t={ms:0,rs:0,oo:0,ar:0,p2p:0,wu:0,oth:0,usd:0};list.forEach(function(r){t.ms+=r.ms;t.rs+=r.rs;t.oo+=r.oo;t.ar+=r.ar;t.p2p+=r.p2p;t.wu+=r.wu;t.oth+=r.oth;t.usd+=(r.usd||0);});return t;}
   function yearSumTxt(t,n,unit){var oth=t.ms+t.rs+t.oo,ext=t.ar+t.p2p+t.wu+t.oth;return oth+'h OT'+(ext?' · '+fmtHM(ext):'')+' · '+n+' '+unit;}
   function yearShell(yr,open,sumTxt,body){return '<div class="styear'+(open?' open':'')+'"><button class="styhd"><span class="styr">'+yr+'</span><span class="stysum">'+sumTxt+'</span><span class="stychev">&#9662;</span></button><div class="stybody">'+body+'</div></div>';}
   function renderYMP(byK){   // year → month → pay period → days, all collapsible; grouped by payday
@@ -2885,18 +2913,24 @@
         var mOpen=(yOpen&&mi===0),mks=tree[Y][M].sort(function(a,b){return b-a;}),mRecs=mks.map(function(k){return byK[k];});
         yRecs=yRecs.concat(mRecs);
         var periodsHTML=mks.map(function(k,pi){var r=byK[k],cur=(k===curK),pd=paydayDate(k),pOpen=(mOpen&&pi===0);
-          return '<div class="stp'+(pOpen?' open':'')+(cur?' cur':'')+'"><button class="stphd" type="button"><span class="stpmain"><span class="stprange">'+payRangeLabel(k)+(cur?' <span class="curbadge">now</span>':'')+'</span><span class="stppay">💵 paid Fri '+MON[pd.getUTCMonth()].slice(0,3)+' '+pd.getUTCDate()+'</span></span><span class="stptot">'+fmtHM(periodMin(r))+'</span></button><div class="stpdays">'+stDays(r.tours)+'</div></div>';}).join("");
+          return '<div class="stp'+(pOpen?' open':'')+(cur?' cur':'')+'"><button class="stphd" type="button"><span class="stpmain"><span class="stprange">'+payRangeLabel(k)+(cur?' <span class="curbadge">now</span>':'')+'</span><span class="stppay">💵 paid Fri '+MON[pd.getUTCMonth()].slice(0,3)+' '+pd.getUTCDate()+'</span></span><span class="stptot">'+fmtHM(periodMin(r))+(r.usd?'<span class="stusd">'+fmtUSD(r.usd)+'</span>':'')+'</span></button><div class="stpdays">'+stDays(r.tours)+'</div></div>';}).join("");
         var mCur=(Y===curY&&M===curM);
-        return '<div class="stmonth'+(mOpen?' open':'')+'"><button class="stmhd" type="button"><span class="stmname">'+MON[M]+(mCur?' <span class="curbadge">now</span>':'')+'</span><span class="stmtot">'+fmtHM(periodMin(sumBucket(mRecs)))+'</span><span class="stychev">&#9662;</span></button><div class="stmbody">'+periodsHTML+'</div></div>';}).join("");
+        var mSum=sumBucket(mRecs);
+        return '<div class="stmonth'+(mOpen?' open':'')+'"><button class="stmhd" type="button"><span class="stmname">'+MON[M]+(mCur?' <span class="curbadge">now</span>':'')+'</span><span class="stmtot">'+fmtHM(periodMin(mSum))+(mSum.usd?' · <span class="stusd">'+fmtUSD(mSum.usd)+'</span>':'')+'</span><span class="stychev">&#9662;</span></button><div class="stmbody">'+periodsHTML+'</div></div>';}).join("");
       return '<div class="styear'+(yOpen?' open':'')+'"><button class="styhd" type="button"><span class="styr">'+Y+'</span><span class="stysum">'+yearSumTxt(sumBucket(yRecs),months.length,months.length===1?'mo':'mos')+'</span><span class="stychev">&#9662;</span></button><div class="stybody">'+monthsHTML+'</div></div>';}).join("");
   }
   function renderStats(){
     var byK=otStats(),ks=Object.keys(byK).map(Number);
     var tot=sumBucket(ks.map(function(k){return byK[k];}));
     var otH=tot.ms+tot.rs+tot.oo,extM=tot.ar+tot.p2p+tot.wu+tot.oth,totM=otH*60+extM;
-    document.getElementById("stTot").innerHTML='<div class="stbig">'+(totM?fmtHM(totM):"0h")+'</div>'+
+    var haveAppt=isRealDate(apptDate);
+    document.getElementById("stTot").innerHTML='<div class="stbig">'+(totM?fmtHM(totM):"0h")+(haveAppt&&tot.usd?'<span class="stbigusd">≈ '+fmtUSD(tot.usd)+'</span>':'')+'</div>'+
       '<div class="stsub">'+otH+'h overtime · '+fmtHM(extM)+' relief / detail / washup / other · '+ks.length+' pay period'+(ks.length!==1?'s':'')+'</div>'+
-      '<div class="stgrid">'+stCell("MSOT",tot.ms+"h")+stCell("RSOT",tot.rs+"h")+stCell("Other OT",tot.oo+"h")+stCell("AR",fmtHM(tot.ar))+stCell("P2P",fmtHM(tot.p2p))+stCell("Washup",fmtHM(tot.wu))+(tot.oth?stCell("Other",fmtHM(tot.oth)):"")+'</div>';
+      '<div class="stgrid">'+stCell("MSOT",tot.ms+"h")+stCell("RSOT",tot.rs+"h")+stCell("Other OT",tot.oo+"h")+stCell("AR",fmtHM(tot.ar))+stCell("P2P",fmtHM(tot.p2p))+stCell("Washup",fmtHM(tot.wu))+(tot.oth?stCell("Other",fmtHM(tot.oth)):"")+'</div>'+
+      (haveAppt?'<div class="stdisc">Dollars are estimates from the UFA '+UFA_ASOF+' firefighter chart, at your step when each tour was worked (night tours at the night-shift OT rate). Your check is the real number.</div>'
+               :'<button class="stdisc stset" type="button" id="stSetAppt">💵 Add the date you got on the job (Settings → You) and every hour here shows a dollar estimate — tap to set it.</button>');
+    var sa=document.getElementById("stSetAppt");
+    if(sa)sa.onclick=function(){statsSheet.classList.remove("show");document.getElementById("gear").onclick();setTimeout(function(){var f=document.getElementById("setAppt");if(f){f.scrollIntoView({block:"center"});f.focus();}},150);};
     var list=document.getElementById("stList");
     if(!ks.length){list.innerHTML='<div class="rempty">No overtime or extras recorded yet — add MSOT/RSOT/Other OT, AR, P2P or a washup on a worked tour and it lands here.</div>';return;}
     list.innerHTML=renderYMP(byK);
