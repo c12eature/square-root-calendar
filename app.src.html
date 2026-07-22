@@ -87,7 +87,7 @@
   .dot.rs{background:#2563eb;}      /* RSOT */
   .dot.oot{background:#c2410c;}     /* Other OT */
   .dot.mx{background:#e0930f;}      /* mutual in */
-  .dot.px{background:var(--amber);} /* partner swap */
+  .dot.px{background:transparent;box-shadow:inset 0 0 0 2px var(--amber);} /* partner swap — hollow amber ring: same partner-amber family, but distinct from the solid mutual-in dot (they were pixel-identical) */
   .dot.sx{background:#0e7490;}      /* self MX */
   .dot.cmp{background:#db2777;}     /* comp */
   .dot.pay{background:#6d4ae0;}     /* extra pay (AR/P2P/washup/other) */
@@ -1522,7 +1522,7 @@
          if(typeof e.det==="string"&&/^\d{4}-\d\d?-\d\d?$/.test(e.det))o.det=e.det; return o;});   // preserve the detail-epoch tag so add/remove/hide stay reliable across reloads
     if(!g.length)g=[{s:"1970-01-01",my:7,pt:19}];
     g.sort(function(a,b){return isoToNum(a.s)-isoToNum(b.s);}); return g;})();
-  if(!Array.isArray(_rawG)||!_rawG.length)save("groups",groups);   // persist only on first migration (avoid a save every load)
+  if((!Array.isArray(_rawG)||!_rawG.length)&&(localStorage.getItem("sqrt:my")!=null||localStorage.getItem("sqrt:pt")!=null))save("groups",groups);   // persist only when migrating a genuine LEGACY install (old my/pt data). A brand-new install must write NO sqrt:* key here — otherwise closing the app mid-onboarding makes isFreshInstall() false and onboarding never comes back (user silently stuck on default group 7)
   function effGroups(y,m,d){var n=ymdNum(y,m,d),g=groups[0];for(var i=0;i<groups.length;i++){if(isoToNum(groups[i].s)<=n)g=groups[i];else break;}return g;}
   function curEpoch(){var t=new Date();return effGroups(t.getFullYear(),t.getMonth(),t.getDate());}
   function syncCurGroups(){var c=curEpoch();my=c.my;pt=c.pt;}
@@ -1682,7 +1682,8 @@
   function clearSet(set){for(var i=0;i<4;i++){var t=set[i],k=K(t[0],t[1],t[2],t[3]);delete ov[k];delete ot[k];delete mx[k];}save("ov",ov);save("ot",ot);save("mx",mx);}
   function setLosses(set){var out=[],i;for(i=0;i<4;i++){var t=set[i],k=K(t[0],t[1],t[2],t[3]),cs=curState(t[0],t[1],t[2],t[3]);   // OT / RSOT / named mutuals a split would overwrite
     if(cs==="ot")out.push("an MSOT");else if(cs==="rsot")out.push("an RSOT");else if(cs==="oot")out.push("an Other-OT");
-    else if(cs==="mxin"||cs==="mxout")out.push(mx[k]?("a mutual with "+mx[k]):"a mutual (in your ledger)");}   // warn even when unnamed — the ledger still counts it
+    else if(cs==="mxin"||cs==="mxout")out.push(mx[k]?("a mutual with "+mx[k]):"a mutual (in your ledger)");   // warn even when unnamed — the ledger still counts it
+    else if(cs==="comp")out.push("a Comp-time day");else if(cs==="smxin"||cs==="smxout")out.push("a self-mutual");}   // these get destroyed by the split too — never silently
     return out;}
   function curSplit(set){var w=set.map(function(t){return worked(t[0],t[1],t[2],t[3])?1:0;}).join("");return {"1100":"1h","0011":"2h","0110":"in","1001":"out"}[w]||"";}
   function buildSplitter(set){
@@ -1751,7 +1752,11 @@
   function othLbl(y,m,d,tour){return addOf(y,m,d,tour).otht||"";}
   function tourEndMin(tour){return tour===9?1080:540;}                  // 9× ends 18:00 · 6× ends 09:00 (next morning)
   function parseHM(s){if(!s)return null;var p=String(s).split(":");if(p.length!==2)return null;var h=+p[0],mn=+p[1];return (isNaN(h)||isNaN(mn))?null:h*60+mn;}
-  function washupExtra(y,m,d,tour){var am=parseHM(addOf(y,m,d,tour).aq);if(am==null)return 0;var end=tourEndMin(tour),a=am;while(a<end)a+=1440;var e=(a+30)-end;return e>0?Math.min(e,600):0;}  // paid until AQ+30; relief clock time rolls to the next day if it's past midnight (e.g. day tour held till 01:30)
+  function washupExtra(y,m,d,tour){var am=parseHM(addOf(y,m,d,tour).aq);if(am==null)return 0;   // paid until AQ+30 past the tour end. Disambiguate the AQ clock by TOUR SHAPE — never blind-roll every pre-end clock a full day (that turned "AQ 17:45 on a 9×" into 600 bogus minutes)
+    var a,e;
+    if(tour===9){ a=(am<540)?am+1440:am; e=(a+30)-1080; }        // 9× works 09:00–18:00: a clock before 09:00 is a past-midnight holdover (01:30→480m); 17:45→15m; mid-tour → 0
+    else { a=(am>=1080)?am:am+1440; e=(a+30)-1980; }             // 6× works 18:00–09:00(+1): ≥18:00 = same evening (mid-tour → 0); earlier clocks = next morning (08:50→20m, 09:15→45m); 1980−1440=540 keeps paidTill's clock math intact
+    return e>0?Math.min(e,600):0;}
   function endExtra(y,m,d,tour){return Math.max(arMin(y,m,d,tour),washupExtra(y,m,d,tour));}   // paid-till extension = later of AR / washup
   function fmtClock(mins){mins=((mins%1440)+1440)%1440;var h=Math.floor(mins/60),mn=mins%60;return h+":"+(mn<10?"0":"")+mn;}
   function fmtMin(n){if(n<60)return n+"m";var h=Math.floor(n/60),mm=n%60;return h+"h"+(mm?mm+"m":"");}
@@ -1930,7 +1935,7 @@
       else { appConfirm("Posted "+okc+" of "+reqs.length+" — the rest didn’t go through. Try again.","Partly posted",function(){}); }
       return; }
     hOp({type:"createRequest",req:reqs[i]}).then(function(r){ if(r&&r.err)fail=r.err; else okc++; i++; nx(); }); })(); }
-  function doCover(){ if(!reqMode||reqMode.wants.length)return; var g=reqMode.give; postReqs([{type:"cover",tour:g}],"🤝 Posted — your crew can pick up "+reqTourLbl(g)+"."); }
+  function doCover(){ if(!reqMode||reqMode.wants.length)return; var g=reqMode.give,gR=curState(g.y,g.m,g.d,g.t)==="rsot"; postReqs([{type:"cover",tour:g,giveRsot:gR}],gR?"🤝 Posted — whoever takes it works your RSOT for the OT pay (no mutual owed).":"🤝 Posted — your crew can pick up "+reqTourLbl(g)+"."); }   // stamp the RSOT truth from the full calendar so the cover books as an OT transfer, not a debt mutual
   function swapCandidates(w){ var rsot=giveIsRsot(), out=[]; if(!HD||!HD.members||!HS)return out;   // crewmates who could take this swap (they work the tour you want)
     for(var id in HD.members){ if(id===HS.m)continue; var mm=HD.members[id]; if(!mm||mm.status!=="active")continue;
       if(memberOff(mm,w.y,w.m,w.d))continue;
@@ -1957,7 +1962,7 @@
     if(wants.length){ var reqs=wants.map(function(w){return {type:"swap",tour:g,want:w,to:pid,even:true,giveRsot:gR};}), i=0,okc=0,fail=null;
       (function nx(){ if(i>=reqs.length){ setHouseBadge(); appConfirm(okc?("🤝 Sent "+(okc>1?okc+" even swaps":"an even swap")+" to "+esc(pn)+" — once they approve, you're both in sync (no debt)."):("Couldn't send"+(fail?" ("+hErrMsg(fail)+")":"")+"."), okc?"Sent":"Not sent", function(){}); return; }
         hOp({type:"createRequest",req:reqs[i]}).then(function(r){ if(r&&r.err)fail=r.err; else okc++; i++; nx(); }); })(); }
-    else { hOp({type:"createRequest",req:{type:"cover",tour:g,to:pid,even:true}}).then(function(r){ setHouseBadge(); appConfirm(r&&r.err?("Couldn't send — "+hErrMsg(r.err)+"."):("🤝 Asked "+esc(pn)+" to cover "+reqTourLbl(g)+" — even, no debt. They approve → you're in sync."), r&&r.err?"Not sent":"Sent", function(){}); }); } }
+    else { hOp({type:"createRequest",req:{type:"cover",tour:g,to:pid,even:true,giveRsot:gR}}).then(function(r){ setHouseBadge(); appConfirm(r&&r.err?("Couldn't send — "+hErrMsg(r.err)+"."):("🤝 Asked "+esc(pn)+" to cover "+reqTourLbl(g)+" — even, no debt. They approve → you're in sync."), r&&r.err?"Not sent":"Sent", function(){}); }); } }
   function attachLongPress(el,cb){ var tmr=null,sx=0,sy=0,mv=false; function clr(){ if(tmr){clearTimeout(tmr);tmr=null;} }
     el.addEventListener("pointerdown",function(e){ if(e.button&&e.button!==0)return; mv=false; sx=e.clientX; sy=e.clientY; clr(); tmr=setTimeout(function(){tmr=null; if(!mv)cb();},480); },{passive:true});
     el.addEventListener("pointermove",function(e){ if(tmr&&(Math.abs(e.clientX-sx)>10||Math.abs(e.clientY-sy)>10)){mv=true;clr();} },{passive:true});
@@ -2267,9 +2272,11 @@
     document.getElementById("shTours").innerHTML=head+(lsDay?ldDaySheet(y,m,d,lsDay):trDay?trDaySheet(y,m,d,trDay):((awDay?abcdWholeCard(y,m,d,awDay):splitHTML)+tourCard(y,m,d,9)+tourCard(y,m,d,6)+(awDay?'':'<div class="sbnote"><b>*</b> standby — the first 3 groups of a tour. The job can force them to work overtime the following tour.</div>')));
     if(lsDay)wireLdDay(y,m,d,lsDay); else if(trDay)wireLdDay(y,m,d,{p:trDay.p});   // training reuses the LD Other-OT + edit wiring (no per-day time edits)
     var hh=document.querySelector("#shTours .househint"); if(hh)hh.onclick=function(){document.getElementById("sheet").classList.remove("show");openHouseOnDate(y,m,d);};   // jump to the house day view for this date
-    var dg=document.querySelector("#shTours .dutygo");   // tap the status banner → jump to the time-off editor (pre-select this type)
+    var dg=document.querySelector("#shTours .dutygo");   // tap the status banner → EDIT the period covering this day (the banner says "Edit ›" — honor it, don't open a blank Add form)
     if(dg)dg.onclick=function(){document.getElementById("sheet").classList.remove("show");
-      resetPForm();setPType(pt2);renderPeriods();openSheet(statSheet);};   // reset any in-progress edit + sync the config panel (avoids overwriting a period with the wrong type)
+      var cov=(periods||[]).filter(function(p){return p&&p.t===pt2&&isRealDate(p.s)&&vacMs(p.s)<=Date.UTC(y,m,d)&&(!p.e||Date.UTC(y,m,d)<=vacMs(p.e));})[0];
+      resetPForm();setPType(pt2);renderPeriods();openSheet(statSheet);
+      if(cov)startPeriodEdit(cov);};
     var eg=document.querySelector("#shTours .evgo");   // tap the education/medical banner → jump to that editor (pre-select type)
     if(eg)eg.onclick=function(){evType=evd;document.getElementById("sheet").classList.remove("show");
       Array.prototype.forEach.call(document.querySelectorAll("#evTypes .stype"),function(x){x.classList.toggle("on",x.getAttribute("data-ev")===evd);});
@@ -2442,6 +2449,7 @@
       var i=+b.getAttribute("data-i"); if(i<=0)return;
       appConfirm("Remove this group change? Dates after it fall back to your previous groups. Nothing you logged is deleted.","Remove",function(){
         groups.splice(i,1); groups.sort(function(a,b){return isoToNum(a.s)-isoToNum(b.s);}); save("groups",groups);
+        rebuildDetailReverts();   // a detail's hidden revert epoch may have been tracking this change — repoint it
         syncCurGroups(); document.getElementById("vMy").textContent=my; syncPt(); renderGroups(); render();
       });
     };});
@@ -2466,9 +2474,13 @@
     if(_ck.getFullYear()!==_yy||_ck.getMonth()!==_mm-1||_ck.getDate()!==_dd){err.textContent="That's not a real date.";return;}   // reject impossible dates (e.g. 02-30)
     if(isoToNum(dv)<=isoToNum("1970-01-02")){err.textContent="Pick a real start date.";return;}
     if(gcHasPt&&gcPtVal===gcMyVal){err.textContent="Your partner can't be your own group.";return;}
-    if(groups.some(function(g){return g.s===dv;})){err.textContent="You already have a change on that date — remove it first to redo it.";return;}
+    var inDet=(periods||[]).filter(function(p){return p&&p.t==="det"&&isRealDate(p.s)&&vacMs(p.s)<=vacMs(dv)&&(!p.e||vacMs(dv)<vacMs(p.e));})[0];
+    if(inDet){err.textContent="That date falls inside your detail ("+fmtVD(inDet.s)+" – "+fmtVD(inDet.e||"")+"). Date the change on your return ("+inDet.e+") or later — it'll take effect when you're back.";return;}   // a mid-detail epoch would override the detail group AND be masked by the hidden revert epoch
+    if(groups.some(function(g){return g.s===dv&&!g.det;})){err.textContent="You already have a change on that date — remove it first to redo it.";return;}   // ignore hidden detail epochs (they're managed from Status & Time Off)
+    groups=groups.filter(function(g){return !(g.s===dv&&g.det);});   // a change dated ON a detail's return date REPLACES that revert epoch (the reassignment is where you actually land)
     groups.push({s:dv,my:gcMyVal,pt:gcHasPt?gcPtVal:0});
     groups.sort(function(a,b){return isoToNum(a.s)-isoToNum(b.s);}); save("groups",groups);
+    rebuildDetailReverts();
     syncCurGroups(); document.getElementById("vMy").textContent=my; syncPt();
     renderGroups(); render(); err.textContent="";
   };
@@ -3500,16 +3512,22 @@ var TEN_CODES=[
     if(hg===cur) return;   // house already matches my calendar → nothing to offer
     appConfirm("🏠 "+((HD&&HD.name)||"Your house")+" has you in group "+hg+", but your calendar shows group "+cur+". Update your calendar to group "+hg+", starting today?","Update to group "+hg,function(){ applyHouseGroup(hg); });
   }
-  function hGet(){ if(!HS)return Promise.resolve({none:true}); var reqId=HS.id; return hFetch("GET","?id="+encodeURIComponent(reqId),null,{"X-House-M":HS.m,"X-House-S":HS.s}).then(function(r){
+  var hLoad="";   // what we KNOW about the active house when HD isn't cached: "loading" | "pending" | "err:<code>" — never guess "waiting for approval" from a missing doc
+  function hGet(){ if(!HS)return Promise.resolve({none:true}); var reqId=HS.id; if(!HD)hLoad="loading";
+    return hFetch("GET","?id="+encodeURIComponent(reqId),null,{"X-House-M":HS.m,"X-House-S":HS.s}).then(function(r){
     if(!HS||HS.id!==reqId)return {stale:true};   // the active house changed while this fetch was in flight → ignore it (never render another house's data)
-    if(r.status===200&&r.j.doc){HD=r.j.doc;hSyncActive();hSave();applyDoneRequests();setHouseBadge();maybePromptHouseGroup();return {doc:HD};}
-    if(r.status===200&&r.j.pending){return {pending:true};}
+    if(r.status===200&&r.j.doc){hLoad="";HD=r.j.doc;hSyncActive();hSave();applyDoneRequests();setHouseBadge();maybePromptHouseGroup();return {doc:HD};}
+    if(r.status===200&&r.j.pending){hLoad="pending";return {pending:true};}
     if(r.status===403||r.status===404){hDrop(reqId);return HS?hGet():Promise.resolve({gone:true});}   // drop just this (gone) house; if another membership remains, fetch IT so we never show a false "pending" screen for a house you're active in
+    hLoad="err:"+((r.j&&r.j.error)||("http "+r.status));
     return {err:(r.j&&r.j.error)||("http "+r.status)}; }); }
-  function hOp(op){ if(!HS)return Promise.resolve({err:"no-house"}); function post(){return hFetch("POST","",{id:HS.id,m:HS.m,s:HS.s,base:HD?HD.ver:0,op:op});}
+  function hOp(op){ if(!HS)return Promise.resolve({err:"no-house"}); var rqId=HS.id,rqM=HS.m,rqS=HS.s;   // freeze the identity at entry — a response landing after hSwitch must never write house A's doc/applied-ids over house B's
+    function post(){return hFetch("POST","",{id:rqId,m:rqM,s:rqS,base:(HD&&HS&&HS.id===rqId)?HD.ver:0,op:op});}
     return post().then(function(r){
+      if(!HS||HS.id!==rqId)return {stale:true};   // active house changed mid-flight → drop it (mirrors hGet)
+      if(r.status===200&&r.j.left)return {left:true};   // pending self-cancel: the server confirms departure with no doc — that's success, not an error
       if(r.status===200&&r.j.doc){HD=r.j.doc;hSave();applyDoneRequests();setHouseBadge();return {doc:HD};}
-      if(r.status===409){ if(r.j.doc){HD=r.j.doc;hSave();} return post().then(function(r2){ if(r2.status===200&&r2.j.doc){HD=r2.j.doc;hSave();applyDoneRequests();return {doc:HD};} return {err:(r2.j&&r2.j.error)||("http "+r2.status)}; }); }
+      if(r.status===409){ if(r.j.doc){HD=r.j.doc;hSave();} return post().then(function(r2){ if(!HS||HS.id!==rqId)return {stale:true}; if(r2.status===200&&r2.j.doc){HD=r2.j.doc;hSave();applyDoneRequests();return {doc:HD};} return {err:(r2.j&&r2.j.error)||("http "+r2.status)}; }); }
       return {err:(r.j&&r.j.error)||("http "+r.status)}; }); }
   function hIdentity(){ if(HS&&HS.m&&HS.s)return Promise.resolve({m:HS.m,s:HS.s}); var s=genCode()+"-"+genCode(); return hex256(s).then(function(m){return {m:m,s:s};}); }
   function houseCreate(name,companies){ return hIdentity().then(function(id){ var b=myProfile("");b.m=id.m;b.s=id.s;b.house=name; b.companies=companies||[];   // "" → no detail flag leaks into a house you're founding
@@ -3528,8 +3546,9 @@ var TEN_CODES=[
   function houseTourCommitted(id,y,m,d,t){ if(!HD||!HD.requests)return false; var tour={y:y,m:m,d:d,t:t},reqs=HD.requests,latest=null;   // mirrors the server: has this member swapped/covered this exact tour away (and not re-gained it)?
     function away(r){return (r.by===id&&sameT(r.tour,tour))||(r.takenBy===id&&sameT(r.want,tour));}
     function gain(r){return (r.by===id&&sameT(r.want,tour))||(r.takenBy===id&&sameT(r.tour,tour));}
-    for(var i=0;i<reqs.length;i++){ var r=reqs[i]; if(r.status==="taken"&&away(r))return true; if(r.status==="done"&&(away(r)||gain(r))&&(!latest||r.at>latest.at))latest=r; }
+    for(var i=0;i<reqs.length;i++){ var r=reqs[i]; if(r.status==="taken"&&away(r))return true; if(r.status==="done"&&(away(r)||gain(r))&&(!latest||(r.doneAt||r.at)>(latest.doneAt||latest.at)))latest=r; }   // order by COMPLETION time (mirrors the server) — an old request taken late must not outrank an earlier re-gain
     return !!latest&&away(latest); }
+  function tourFar(t){ if(!t)return false; var td=new Date(); return Date.UTC(t.y,t.m,t.d)-Date.UTC(td.getFullYear(),td.getMonth(),td.getDate())>130*864e5; }   // beyond the ~130d myRsotList sync horizon — a crewmate's synced RSOT list is blind here
   function memList(status){ if(!HD)return []; return Object.keys(HD.members).map(function(k){return [k,HD.members[k]];}).filter(function(x){return !status||x[1].status===status;}); }
   function amAdmin(){ return HD&&HS&&HD.admins.indexOf(HS.m)>=0; }
   // --- apply completed swap/cover requests to my personal calendar ---
@@ -3541,7 +3560,9 @@ var TEN_CODES=[
         if(r.giveRsot){ if(r.by===HS.m){set(r.want,"rsot");set(r.tour,"base");} else {set(r.tour,"rsot");set(r.want,"base");} }   // RSOT↔RSOT: the tour you pick up is genuine OT; the one you give away goes off (so OT stats stay right)
         else if(r.even){ if(r.by===HS.m){set(r.want,"pmxin");set(r.tour,"pmxout");} else {set(r.tour,"pmxin");set(r.want,"pmxout");} }   // partner even-swap → ledger-neutral PARTNER swap (no debt)
         else { if(r.by===HS.m){set(r.want,"mxin");set(r.tour,"mxout");} else {set(r.tour,"mxin");set(r.want,"mxout");} } }
-      else if(r.type==="cover"){ if(r.even){ if(r.by===HS.m)set(r.tour,"pmxout"); else set(r.tour,"pmxin"); } else { if(r.by===HS.m){set(r.tour,"mxout");} else {set(r.tour,"mxin");} } }
+      else if(r.type==="cover"){
+        if(r.giveRsot){ if(r.by===HS.m)set(r.tour,"base"); else set(r.tour,"rsot"); }   // covering an RSOT transfers the PAID OT: taker works it as genuine RSOT hours, poster simply goes off — no mutual, no debt either way
+        else if(r.even){ if(r.by===HS.m)set(r.tour,"pmxout"); else set(r.tour,"pmxin"); } else { if(r.by===HS.m){set(r.tour,"mxout");} else {set(r.tour,"mxin");} } }
       hq[r.id]=1; changed=true; });
     if(changed){save("hqapplied",hqapplied);render();} }
 
@@ -3589,7 +3610,12 @@ var TEN_CODES=[
     if(!HS||hAddMode){ var back=(hAddMode&&houses.length)?'<button class="hbackbar" data-act="addcancel">‹ Back to '+esc((HS&&(HS.name||HS.code))||"my houses")+'</button>':''; body.innerHTML='<div class="hscroll">'+back+hGate()+'</div>'; return; }
     var sw=hSwitchRow(), me=HD&&HD.members[HS.m];
     if(HD&&!me){ body.innerHTML='<div class="hscroll">'+sw+'<h3>'+esc(HS.name||"House Calendar")+'</h3><p class="rsub">You were removed from this house, or it no longer exists.</p><button class="raddbtn" data-act="forget" style="width:100%">Leave this house</button></div>'; return; }
-    if(!HD||(me&&me.status!=="active")){ body.innerHTML='<div class="hscroll">'+sw+hPending()+'</div>'; return; }
+    if(!HD){   // no cached doc — say what we actually KNOW, never assume "pending" (its Cancel button fires a real LEAVE on an active member)
+      var noDoc = hLoad==="pending" ? hPending()
+        : hLoad.indexOf("err:")===0 ? '<h3>🏠 '+esc(HS.name||"House")+'</h3><div class="hmsg warn">⚠ Couldn’t reach your house — '+esc(hErrMsg(hLoad.slice(4)))+'</div><div class="cfrbtns"><button class="raddbtn" data-act="refresh">Try again</button></div>'
+        : '<h3>🏠 '+esc(HS.name||"House")+'</h3><div class="hmsg">Loading your house…</div>';
+      body.innerHTML='<div class="hscroll">'+sw+noDoc+'</div>'; return; }
+    if(me&&me.status!=="active"){ body.innerHTML='<div class="hscroll">'+sw+hPending()+'</div>'; return; }
     var view=(hview==="roster"?hRoster():hview==="requests"?hRequests():hview==="manage"?hManage():hDay());
     body.innerHTML=sw+hHeader()+hTabs()+'<div class="hscroll">'+(hMsg?'<div class="hmsg">'+esc(hMsg)+'</div>':'')+view+'</div>';
     if(hview==="roster")filterRoster(); if(hview==="requests")markReqsSeen(); }
@@ -3607,7 +3633,7 @@ var TEN_CODES=[
   function hHeader(){ var admin=amAdmin();
     return '<div class="hhd"><div><h3 style="margin:0">🏠 '+esc(HD.name)+'</h3><div class="hsub">'+memList("active").length+' active'+(admin?' · you’re an admin':'')+'</div></div>'+
       '<div class="hhdbtns">'+(admin?'<button class="hcode" data-act="sharecode" title="Share join code">'+esc(HD.code)+' ⧉</button>':'')+'<button class="hcode haddbtn" data-act="addhouse" title="Join or create another house — e.g. a detail house">＋ house</button></div></div>'; }
-  function hTabs(){ var openReq=(HD.requests||[]).filter(function(r){return r.status==="open";}).length, pend=amAdmin()?memList("pending").length:0;
+  function hTabs(){ var openReq=(HD.requests||[]).filter(function(r){return r.status==="open"&&(!r.to||r.to===HS.m||r.by===HS.m||r.takenBy===HS.m);}).length, pend=amAdmin()?memList("pending").length:0;   // count only requests the FEED will show — a stranger's directed request must not inflate the badge (phantom count + existence leak)
     var badge=function(n,alert){return n?' <span class="hcount'+(alert?' alert':'')+'">'+n+'</span>':'';};
     var t=[["requests","🔁","Requests",badge(openReq,true)],["day","📅","Day",""],["roster","👥","Roster",badge(memList("active").length)]];   // Requests first — it's the tab you open to
     if(amAdmin())t.push(["manage","⚙️","Manage",badge(pend,true)]);
@@ -3741,7 +3767,8 @@ var TEN_CODES=[
   function isoLocal(y,m,d){return y+"-"+(m+1<10?"0":"")+(m+1)+"-"+(d<10?"0":"")+d;}
 
   // --- action dispatcher ---
-  function hErrMsg(e){ return e==="rsot-mismatch"?"an RSOT can only be swapped for another RSOT":e==="sync-failed"?"couldn’t sync your schedule — check your connection and try again":e==="author-gone"?"the person who posted this has left the house":e==="tour-taken"?"that tour is already part of another swap":e==="not-partners"?"even swaps only work with your confirmed mutual partner":e==="bad-partner"?"pick an active crewmate as your partner":e; }
+  function hErrMsg(e){ var M={"rsot-mismatch":"an RSOT can only be swapped for another RSOT","sync-failed":"couldn’t sync your schedule — check your connection and try again","author-gone":"the person who posted this has left the house","tour-taken":"that tour is already part of another swap","not-partners":"even swaps only work with your confirmed mutual partner","bad-partner":"pick an active crewmate as your partner","bad-date":"that date isn’t valid — use the YYYY-MM-DD format","no-house":"no house with that code — double-check it with your admin","bad-event":"give the event a name and a valid date","busy-retry":"the house is busy — try again in a second","too-many":"the house has hit its limit for these — clear some out first","not-open":"someone else already took that one","offline":"you’re offline — reconnect and try again","banned":"you can’t rejoin this house — talk to the admin","house-full":"that house is full","conflict":"someone else changed things at the same time — try again"};
+    if(M[e])return M[e]; if(/^http 5/.test(e||""))return "the server hiccuped — try again in a moment"; if(/^http 4/.test(e||""))return "that didn’t go through — refresh and try again"; return e; }   // raw codes are never user-facing copy
   var hBusy=false;
   function hReloadThen(p){ if(hBusy)return; hBusy=true; hBusyMsg("Working…"); Promise.resolve(p).then(function(res){ hBusy=false; hMsg=(res&&res.err)?("⚠ "+hErrMsg(res.err)):""; renderHouse(); }).catch(function(){ hBusy=false; renderHouse(); }); }   // drop a second tap while a write is in flight (no duplicate crew-visible requests)
   function hBusyMsg(t){ hMsg=t; var b=document.getElementById("houseBody"); if(b&&HS){/* keep current view, just note */} }
@@ -3773,7 +3800,9 @@ var TEN_CODES=[
     if(act==="switchhouse"){ hSwitch(el.getAttribute("data-hid")); return; }
     if(act==="forget"){ var fid=HS&&HS.id; hDrop(fid); renderHouse(); if(HS)hGet().then(function(){renderHouse();}); return; }   // this house only; land on another if any
     if(act==="sharecode"){ copyText(HD.code,el); appConfirm("Share this join code with your crew:\n\n"+HD.code+"\n\nThey enter it in House Calendar → Join.","Got it",function(){}); return; }
-    if(act==="leave"){ appConfirm("Leave this house? Your tours stay on your own calendar, and your other houses aren’t affected.","Leave",function(){ var lid=HS&&HS.id; hOp({type:"leave"}).then(function(){ hDrop(lid); renderHouse(); if(HS)hGet().then(function(){renderHouse();}); }); }); return; }
+    if(act==="leave"){ appConfirm("Leave this house? Your tours stay on your own calendar, and your other houses aren’t affected.","Leave",function(){ var lid=HS&&HS.id; hOp({type:"leave"}).then(function(res){
+      if(res&&res.err){ hMsg="⚠ Couldn’t leave — "+hErrMsg(res.err); renderHouse(); return; }   // offline/5xx must NOT throw away the local membership — you'd be locked out of a house you're still in
+      hDrop(lid); renderHouse(); if(HS)hGet().then(function(){renderHouse();}); }); }); return; }
     if(act==="approve"||act==="editmember"){ assignMember(who); return; }
     if(act==="reject"){ hReloadThen(hOp({type:"reject",who:who})); return; }
     if(act==="removem"){ appConfirm("Remove this member from the house?","Remove",function(){ hReloadThen(hOp({type:"remove",who:who})); }); return; }
@@ -3785,7 +3814,10 @@ var TEN_CODES=[
     if(act==="delco"){ var dco=el.getAttribute("data-co"); appConfirm("Remove “"+esc(dco)+"” from the house? Members assigned to it keep their assignment; it just drops from this list.","Remove",function(){ hReloadThen(hOp({type:"setCompanies",companies:HD.companies.filter(function(c){return c!==dco;})})); }); return; }
     if(act==="setpartner"){ var psel=document.getElementById("hPartnerSel"), pw=(psel&&psel.value)||""; if(!pw){hMsg="Pick a crewmate first.";renderHouse();return;} if(pw===HS.m){hMsg="Pick someone other than yourself.";renderHouse();return;} hReloadThen(hOp({type:"setPartner",who:pw})); return; }
     if(act==="unpartner"){ hReloadThen(hOp({type:"setPartner"})); return; }   // omit who → clears the link
-    if(act==="abcdpush"){ appPrompt("ABCD start date (YYYY-MM-DD):",(HD.abcd&&HD.abcd.s)||isoLocal(hVY,hVM,hVD),function(s){ appPrompt("End date (YYYY-MM-DD, blank = ongoing):",(HD.abcd&&HD.abcd.e)||"",function(e){ hReloadThen(hOp({type:"abcdPush",abcd:{s:(s||"").trim(),e:(e||"").trim()}})); },"text"); },"text"); return; }
+    if(act==="abcdpush"){ appPrompt("ABCD start date (YYYY-MM-DD):",(HD.abcd&&HD.abcd.s)||isoLocal(hVY,hVM,hVD),function(s){ appPrompt("End date (YYYY-MM-DD, blank = ongoing):",(HD.abcd&&HD.abcd.e)||"",function(e){
+      s=(s||"").trim(); e=(e||"").trim();
+      if(!isRealDate(s)||(e&&!isRealDate(e))){ hMsg="⚠ Date must be a real YYYY-MM-DD — nothing was changed."; renderHouse(); return; }   // a typo must never silently turn ABCD off for the whole house (the server rejects it too)
+      hReloadThen(hOp({type:"abcdPush",abcd:{s:s,e:e}})); },"text"); },"text"); return; }
     if(act==="abcdoff"){ hReloadThen(hOp({type:"abcdPush",abcd:null})); return; }
     if(act==="rotatecode"){ appConfirm("Generate a new join code? The current code stops working right away — you'll need to re-share the new one.","New code",function(){ hReloadThen(hOp({type:"rotateCode"})); }); return; }
     if(act==="postevent"){ appPrompt("Event name:","",function(t){ if(!t)return; appPrompt("Date (YYYY-MM-DD):",isoLocal(hVY,hVM,hVD),function(dt){ appPrompt("Note (optional):","",function(nt){ hReloadThen(hOp({type:"postEvent",ev:{title:t,dates:[(dt||"").trim()],note:nt||""}})); },"text"); },"text"); },"text"); return; }
@@ -3800,20 +3832,25 @@ var TEN_CODES=[
       function myTourVal(){ var sel=document.getElementById("hReqTourSel"); if(sel){ if(!sel.value)return null; var p=sel.value.split("|"),dp=p[0].split("-"); return {y:+dp[0],m:+dp[1],d:+dp[2],t:+p[1]}; } return iso2tour((document.getElementById("hReqDate")||{}).value, readSeg("hReqTour")); }   // tour comes from the my-tours picker, or the date-input fallback
       var req={type:type,note:note}; if(type!=="pickup"){req.tour=myTourVal(); if(!req.tour){hMsg="Pick your tour first.";renderHouse();return;}} if(type==="swap"){req.want=iso2tour(wv,wt); if(!req.want){hMsg="Pick the tour to swap for.";renderHouse();return;}}
       if(pre.toId&&type!=="pickup")req.to=pre.toId;
+      if(type==="cover")req.giveRsot=curState(req.tour.y,req.tour.m,req.tour.d,req.tour.t)==="rsot";   // an RSOT cover transfers paid OT to the taker (no debt mutual) — stamp the truth from my full calendar
       if(type==="swap"){ var gR=curState(req.tour.y,req.tour.m,req.tour.d,req.tour.t)==="rsot"; req.giveRsot=gR;   // stamp give-side RSOT from my full calendar (server trusts this)
-        if(req.to){ var toM=HD.members[req.to], wR=toM?memberRSOT(toM,req.want.y,req.want.m,req.want.d,req.want.t):false;   // directed: your tour & theirs must match on RSOT
+        var wFar=tourFar(req.want);   // beyond the ~130d synced-RSOT window, a crewmate's .ot list is BLIND — don't reject a legit far-out RSOT trade here; the take-time check still enforces
+        if(req.to&&!wFar){ var toM=HD.members[req.to], wR=toM?memberRSOT(toM,req.want.y,req.want.m,req.want.d,req.want.t):false;   // directed: your tour & theirs must match on RSOT
           if(gR!==wR){ hMsg=gR?("🔁 RSOT trades only for another RSOT — "+((toM&&toM.name)||"that")+"’s tour isn’t an RSOT."):("🔁 That’s an RSOT tour — only an RSOT of yours can swap for it."); renderHouse(); return; } }
-        else if(gR&&HD&&HD.members&&!houseHasRsot(req.want.y,req.want.m,req.want.d,req.want.t)){ hMsg="🔁 That’s an RSOT — it can only swap for another RSOT, and nobody holds an RSOT on "+reqTourLbl(req.want)+"."; renderHouse(); return; } }   // open swap: same guard as the long-press path (fail-open if roster unknown)
+        else if(!req.to&&gR&&!wFar&&HD&&HD.members&&!houseHasRsot(req.want.y,req.want.m,req.want.d,req.want.t)){ hMsg="🔁 That’s an RSOT — it can only swap for another RSOT, and nobody holds an RSOT on "+reqTourLbl(req.want)+"."; renderHouse(); return; } }   // open swap: same guard as the long-press path (fail-open if roster unknown)
       hReqPre=null; hReloadThen(hOp({type:"createRequest",req:req})); return; }
     if(act==="take"){ var rq=(HD&&HD.requests||[]).filter(function(x){return x.id===rid;})[0];
       var pt=rq&&(rq.type==="cover"||rq.type==="swap")?rq.tour:null;
       if(pt&&pt.t&&worked(pt.y,pt.m,pt.d,pt.t)){ appConfirm("You already work "+reqTourLbl(pt)+" — taking this would double-book you.","OK",function(){}); return; }   // guard: can't pick up a tour you're already on
       if(rq&&rq.type==="swap"&&rq.tour&&rq.want){ var giveR=(typeof rq.giveRsot==="boolean")?rq.giveRsot:memberRSOT(HD.members[rq.by],rq.tour.y,rq.tour.m,rq.tour.d,rq.tour.t), mineR=curState(rq.want.y,rq.want.m,rq.want.d,rq.want.t)==="rsot";
         if(giveR!==mineR){ appConfirm(giveR?("🔁 This is an RSOT swap — you can only take it if you hold an RSOT on "+reqTourLbl(rq.want)+"."):("🔁 This is a regular-tour swap — it can’t be taken with your RSOT."),"OK",function(){}); return; } }
-      hReloadThen(pushMyProfile().then(function(pr){ if(pr&&pr.err)return {err:"sync-failed"}; return hOp({type:"takeRequest",rid:rid}); })); return; }
+      var tOp={type:"takeRequest",rid:rid};
+      if(rq&&rq.type==="swap"&&rq.want)tOp.takeRsot=curState(rq.want.y,rq.want.m,rq.want.d,rq.want.t)==="rsot";   // self-stamp from my FULL calendar — the server's fallback (my synced .ot list) is blind past ~130 days
+      hReloadThen(pushMyProfile().then(function(pr){ if(pr&&pr.err)return {err:"sync-failed"}; return hOp(tOp); })); return; }
     if(act==="decline"){ hReloadThen(hOp({type:"declineRequest",rid:rid})); return; }
     if(act==="cancelreq"){ hReloadThen(hOp({type:"cancelRequest",rid:rid})); return; }
-    if(act==="resolve"){ appConfirm("Mark this swap/cover done? It'll be added to both calendars.","Done",function(){ hReloadThen(hOp({type:"resolveRequest",rid:rid})); }); return; }
+    if(act==="resolve"){ var rrq=(HD&&HD.requests||[]).filter(function(x){return x.id===rid;})[0];
+      appConfirm(rrq&&rrq.type==="pickup"?"Mark this pickup done? A pickup doesn't write anything automatically — add the tour you agreed on from the day view.":"Mark this swap/cover done? It'll be added to both calendars.","Done",function(){ hReloadThen(hOp({type:"resolveRequest",rid:rid})); }); return; }   // never promise a calendar write a pickup won't make
     if(act==="pushon"){ enablePush(); return; }
     if(act==="pushoff"){ disablePush(); return; }
     if(act==="pref"){ togglePref(el.getAttribute("data-k")); return; }
@@ -3895,7 +3932,7 @@ var TEN_CODES=[
   document.getElementById("rAdd").onclick=function(){
     var el=document.getElementById("rDate"),v=el.value; if(!v){el.focus();return;}
     var p=v.split("-");
-    ot[K(+p[0],+p[1]-1,+p[2],rTour)]="r"; save("ot",ot); render(); renderRsot();
+    setState(+p[0],+p[1]-1,+p[2],rTour,"rsot",true); render(); renderRsot();   // through the invariant-preserving setter: clears any mutual/comp shadowed under the RSOT so the Ledger can't keep counting a hidden debt (quiet=true skips the day-sheet popup; setState saves ov/ot/mx)
   };
 
   // ---- Status & time-off manager (vacation / medical leave / light duty; blank end = ongoing) ----
@@ -3933,6 +3970,15 @@ var TEN_CODES=[
     save("periods",periods);
   }
   function removeDetailEpochs(p){ if(!p)return; groups=groups.filter(function(g){return g.det!==p.s;}); save("groups",groups); syncCurGroups(); save("my",my); save("pt",pt); }   // only THIS detail's tagged epochs
+  function rebuildDetailReverts(){   // keep each detail's hidden REVERT epoch pointing at the group you'll ACTUALLY hold on return — i.e. the latest REAL (untagged) change dated on/before the return date, not the group frozen at detail creation
+    var ch=false;
+    (periods||[]).forEach(function(p){ if(!p||p.t!=="det"||!isRealDate(p.e))return;
+      var rev=groups.filter(function(g){return g.det===p.s&&g.s===p.e;})[0]; if(!rev)return;
+      var real=null; groups.forEach(function(g){ if(!g.det&&isoToNum(g.s)<=isoToNum(p.e)&&(!real||isoToNum(g.s)>isoToNum(real.s)))real=g; });
+      if(real&&(rev.my!==real.my||rev.pt!==(real.pt||0))){ rev.my=real.my; rev.pt=real.pt||0; ch=true; }
+    });
+    if(ch){ save("groups",groups); syncCurGroups(); save("my",my); save("pt",pt); }
+  }
   function setPType(t){pType=t;Array.prototype.forEach.call(document.querySelectorAll("#pTypes .stype"),function(x){x.classList.toggle("on",x.getAttribute("data-pt")===t);});updateEndReq();showLdCfg();}
   function resetSchedCfg(){   // restore the light-duty & training builders to their defaults so no prior period's schedule bleeds into the next Add
     ldEMode="group";ldELtr="A";
@@ -3955,10 +4001,17 @@ var TEN_CODES=[
       var mtag=(v.t==="ld"&&v.m)?' <span class="ldm">· '+ldModeLabel(v.m)+(v.m==="abcd"?" "+esc(v.ltr):"")+(v.gig?" · "+esc(v.gig):"")+'</span>':(v.t==="tr"&&v.name)?' <span class="ldm">· '+esc(v.name)+'</span>':(v.t==="det"&&v.grp)?' <span class="ldm">· group '+v.grp+' at detail house</span>':'';
       var tail=v.e?('<span class="rt night">'+(Math.round((vacMs(v.e)-vacMs(v.s))/864e5)+1)+'d</span>')
         :('<label class="pendset" title="Set the end date to return to regular tours">📅<input type="date" class="pendin" data-i="'+i+'" min="'+escA(v.s)+'" aria-label="Set end date"></label>');
-      var edit=(v.t==="ld"||v.t==="tr")?'<button class="cevedit pedit" data-i="'+i+'" aria-label="Edit schedule" type="button">✎</button>':'';
+      var edit='<button class="cevedit pedit" data-i="'+i+'" aria-label="Edit" type="button">✎</button>';   // every period type is editable in place — never force delete-and-retype a vacation
       return '<div class="ritem'+(v.e?'':' ongoing')+(pEditIdx===i?' editing':'')+'"><span class="ptag '+v.t+'">'+dutyEmoji(v.t)+' '+dutyTag(v.t)+'</span><span class="rd">'+span+mtag+'</span>'+tail+edit+'<button class="rx" data-i="'+i+'" aria-label="Remove">✕</button></div>';
     });
-    Array.prototype.forEach.call(list.querySelectorAll(".rx"),function(b){b.onclick=function(){var i=+b.getAttribute("data-i");var rp=periods[i];if(rp&&rp.t==="det")removeDetailEpochs(rp);if(pEditIdx===i)resetPForm();else if(pEditIdx>i)pEditIdx--;periods.splice(i,1);save("periods",periods);render();renderPeriods();};});
+    Array.prototype.forEach.call(list.querySelectorAll(".rx"),function(b){b.onclick=function(){var i=+b.getAttribute("data-i");var rp=periods[i];if(!rp)return;
+      var msg=rp.t==="det"?"Remove this detail? Your calendar's group history goes back to your home group for those dates."
+             :rp.t==="ld"&&rp.m==="custom"?"Remove this light-duty period? Any per-day schedule edits inside it are deleted too."
+             :"Remove this "+dutyLabel(rp.t).toLowerCase()+" ("+fmtVD(rp.s)+(rp.e?" – "+fmtVD(rp.e):"")+")?";
+      appConfirm(msg,"Remove",function(){   // one mis-tap must never silently destroy weeks of schedule data
+        if(rp.t==="det")removeDetailEpochs(rp);
+        if(pEditIdx===i)resetPForm();else if(pEditIdx>i)pEditIdx--;
+        periods.splice(i,1);save("periods",periods);render();renderPeriods();});};});
     Array.prototype.forEach.call(list.querySelectorAll(".pedit"),function(b){b.onclick=function(){startPeriodEdit(periods[+b.getAttribute("data-i")]);};});
     wireYrAcc(list);
     Array.prototype.forEach.call(list.querySelectorAll(".pendin"),function(inp){inp.onchange=function(){var i=+inp.getAttribute("data-i"),val=inp.value;if(!val)return;
@@ -3966,11 +4019,12 @@ var TEN_CODES=[
       periods[i].e=val;save("periods",periods);pErr("");render();renderPeriods();};});
   }
   function startPeriodEdit(p){var i=periods.indexOf(p);if(i<0)return;pEditIdx=i;
-    setPType(p.t==="tr"?"tr":"ld");
+    setPType(p.t);   // the form handles every type (vac/ml/ld/tr/det) — a vacation must edit as a vacation, not mutate into light duty
+    if(p.t==="det"){var dg=document.getElementById("detGrp");if(dg)dg.value=p.grp||"";}
     document.getElementById("pStart").value=p.s||""; document.getElementById("pEnd").value=p.e||"";
     if(p.t==="tr"){document.getElementById("trName").value=p.name||"";document.getElementById("trSs").value=p.ss||"09:00";document.getElementById("trSe").value=p.se||"18:00";
       Array.prototype.forEach.call(document.querySelectorAll("#trDays button"),function(x){x.classList.toggle("on",!!(p.days&&p.days[+x.getAttribute("data-d")]));});}
-    else{ldEMode=p.m||"group"; ldELtr=(p.m==="abcd"&&/^[ABCD]$/.test(p.ltr||""))?p.ltr:"A";
+    else if(p.t==="ld"){ldEMode=p.m||"group"; ldELtr=(p.m==="abcd"&&/^[ABCD]$/.test(p.ltr||""))?p.ltr:"A";
       document.getElementById("ldGig").value=p.gig||"";   // gig applies to all modes
       if(p.m==="custom"){document.getElementById("ldSs").value=p.ss||"09:00";document.getElementById("ldSe").value=p.se||"18:00";
         Array.prototype.forEach.call(document.querySelectorAll("#ldDays button"),function(x){x.classList.toggle("on",!!(p.days&&p.days[+x.getAttribute("data-d")]));});}}
@@ -4183,7 +4237,10 @@ var TEN_CODES=[
     if(navigator.serviceWorker)navigator.serviceWorker.addEventListener("message",function(e){ if(e&&e.data&&e.data.house){ var ob=document.getElementById("openHouse"); if(ob&&HS)ob.click(); } });
     window.addEventListener("visibilitychange",function(){
       if(document.visibilityState==="hidden"){flush();return;}
-      var pm=my,pp=pt; syncCurGroups(); if(my!==pm||pt!==pp){var v=document.getElementById("vMy");if(v)v.textContent=my;syncPt();render();}   // returned to a new day/epoch → refresh scalars + calendar
+      var o=now; now=new Date();   // refresh the module clock — a resident PWA re-opened tomorrow must move the "today" ring, the CFR countdown, and the "now" pay-period badge
+      var dayCh=(o.getDate()!==now.getDate()||o.getMonth()!==now.getMonth()||o.getFullYear()!==now.getFullYear());
+      var pm=my,pp=pt; syncCurGroups(); if(my!==pm||pt!==pp){var v=document.getElementById("vMy");if(v)v.textContent=my;syncPt();render();}   // returned to a new epoch → refresh scalars + calendar
+      else if(dayCh){render();renderCfrRem();}                // same epoch but a new calendar day → re-render for the today highlight + reminder banners
       if(HS)hGet().then(setHouseBadge).catch(function(){});   // refresh House requests when the app returns to the foreground
     });
     window.addEventListener("pagehide",flush);

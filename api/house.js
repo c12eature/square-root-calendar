@@ -71,8 +71,12 @@ function rsotSwapOK(giver, giveTour, taker, wantTour) { return hasRSOT(giver, gi
 function giveSideRsot(doc, req) { return (typeof req.giveRsot === "boolean") ? req.giveRsot : hasRSOT(doc.members[req.by], req.tour); }
 // when a member leaves/is removed: retire their live requests + drop any partner link pointing at them (no dangling refs)
 function cancelMemberReqs(doc, who) {
-  (doc.requests || []).forEach(function (r) { if ((r.by === who || r.takenBy === who) && (r.status === "open" || r.status === "taken")) { r.status = "cancelled"; r.takenBy = ""; } });
+  var told = [];   // counterparts of cancelled TAKEN deals — they were planning around the agreement and deserve a push
+  (doc.requests || []).forEach(function (r) { if ((r.by === who || r.takenBy === who) && (r.status === "open" || r.status === "taken")) {
+    if (r.status === "taken") { var other = (r.by === who) ? r.takenBy : r.by; if (other && other !== who && told.indexOf(other) < 0) told.push(other); }
+    r.status = "cancelled"; r.takenBy = ""; } });
   Object.keys(doc.members || {}).forEach(function (id) { if (doc.members[id].partner === who) delete doc.members[id].partner; });
+  return told;
 }
 function sameTour(a, b) { return !!a && !!b && a.y === b.y && a.m === b.m && a.d === b.d && a.t === b.t; }
 function gaveAway(r, mid, tour) { return (r.by === mid && sameTour(r.tour, tour)) || (r.takenBy === mid && sameTour(r.want, tour)); }   // mid handed this tour OFF in r (poster's give, or taker's hand-back)
@@ -84,11 +88,12 @@ function tourCommitted(doc, mid, tour, exceptId) {
   for (var i = 0; i < reqs.length; i++) { var r = reqs[i];
     if (r.id === exceptId) continue;
     if (r.status === "taken" && gaveAway(r, mid, tour)) return true;   // a pending deal already committed this tour
-    if (r.status === "done" && (gaveAway(r, mid, tour) || reGained(r, mid, tour)) && (!latest || r.at > latest.at)) latest = r;
+    if (r.status === "done" && (gaveAway(r, mid, tour) || reGained(r, mid, tour)) && (!latest || (r.doneAt || r.at) > (latest.doneAt || latest.at))) latest = r;   // order by COMPLETION time — an old open request taken late must not outrank an earlier re-gain
   }
   return !!latest && gaveAway(latest, mid, tour);
 }
 function tourFuture(t) { if (!t) return false; var et = etParts(); return Date.UTC(t.y, t.m, t.d) >= Date.UTC(et.y, et.m, et.d); }
+function tourFarFuture(t) { if (!t) return false; var et = etParts(); return Date.UTC(t.y, t.m, t.d) - Date.UTC(et.y, et.m, et.d) > 130 * 864e5; }   // beyond the ~130-day myRsotList sync horizon — a member's synced .ot list is BLIND here, not authoritative
 function reqTouchesFuture(r) { return tourFuture(r.tour) || tourFuture(r.want); }
 function etParts() {   // current wall-clock date + hour in America/New_York (DST handled by Intl)
   var f = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", hour12: false });
@@ -161,8 +166,12 @@ function notifyForOp(doc, op, actor) {
     else Object.keys(doc.members).forEach(function (k) { if (k !== actor && doc.members[k].status === "active") out.push({ to: k, category: "general", title: "🔁 New tour request", body: nameOf(doc, actor) + " " + reqVerbGen(r) }); });   // open board → fan out to opted-in members
   }
   else if (t === "takeRequest") { var rt = findReq(doc, op.rid); if (rt && rt.by && rt.by !== actor) out.push({ to: rt.by, category: "personal", title: rt.even ? "🤝 Partner swap confirmed" : "✅ Someone took your request", body: rt.even ? (nameOf(doc, actor) + " approved it — it's on both your calendars.") : (nameOf(doc, actor) + " picked it up — open to confirm.") }); }
-  else if (t === "resolveRequest" && !op.cancel) { var rr = findReq(doc, op.rid); if (rr) [rr.by, rr.takenBy].forEach(function (p) { if (p && p !== actor) out.push({ to: p, category: "personal", title: "✔️ Swap confirmed", body: "It's done and on both calendars." }); }); }
+  else if (t === "resolveRequest" && !op.cancel) { var rr = findReq(doc, op.rid); if (rr) [rr.by, rr.takenBy].forEach(function (p) { if (p && p !== actor) out.push({ to: p, category: "personal", title: rr.type === "pickup" ? "✔️ Pickup settled" : "✔️ Swap confirmed", body: rr.type === "pickup" ? "Marked done — remember to add the agreed tour to your calendars." : "It's done and on both calendars." }); }); }   // a pickup carries no tour, so nothing is auto-written — never claim it was
   else if (t === "declineRequest") { var rd = findReq(doc, op.rid); if (rd && rd.by && rd.by !== actor) { if (op._evenDeclined) out.push({ to: rd.by, category: "personal", title: "↩︎ Partner passed", body: nameOf(doc, actor) + " declined the even swap — nothing changed on either calendar." }); else if (op._toWas) out.push({ to: rd.by, category: "personal", title: "↩︎ " + nameOf(doc, op._toWas) + " passed", body: "Your request is now open to the whole house." }); } }
+  if (op && op._wasTaken && op._counterpart && op._counterpart !== actor && doc.members[op._counterpart])   // an AGREED (taken) deal was cancelled — the other party was planning around it
+    out.push({ to: op._counterpart, category: "personal", title: "↩︎ Swap cancelled", body: nameOf(doc, actor) + " cancelled your agreed swap" + (op._cxTour ? " for " + (op._cxTour.m + 1) + "/" + op._cxTour.d : "") + " — nothing was put on either calendar." });
+  if (op && op._cancelledTaken && op._cancelledTaken.length)   // a member left / was removed with deals pending — tell each counterpart
+    op._cancelledTaken.forEach(function (p) { if (p !== actor && doc.members[p]) out.push({ to: p, category: "personal", title: "↩︎ Swap cancelled", body: (op._deptName || "A crewmember") + " left the house — your agreed swap with them is off; nothing was put on either calendar." }); });
   return out;
 }
 function sanPrefs(p) { p = p || {}; return { personal: p.personal !== false, general: p.general === true, tours: p.tours !== false }; }   // personal/tours default on, general opt-in
@@ -286,12 +295,17 @@ function applyOp(doc, op, m) {
     var p = sanProfile(op);   // NOTE: company + group are admin-owned (set at join/approve) — not overwritten here
     me.name = p.name; me.letter = p.letter; me.phone = p.phone; me.spouse = p.spouse; me.spousePhone = p.spousePhone; me.duty = p.duty; me.ot = p.ot; me.mxoff = p.mxoff; me.mxon = p.mxon;
   } else if (t === "setPartner") {   // declare your mutual partner (a specific active member); "confirmed" once they name you back. Omit `who` to clear.
+    var oldP = me.partner;
     if (op.who != null) { if (op.who === m || !doc.members[op.who] || doc.members[op.who].status !== "active") throw { code: 400, error: "bad-partner" }; me.partner = op.who; }
     else delete me.partner;
+    if (oldP && oldP !== me.partner) (doc.requests || []).forEach(function (r) {   // un/re-linking strands any open even request between the ex-partners as an un-acceptable zombie — cancel them both ways
+      if (r.even && r.status === "open" && ((r.by === m && r.to === oldP) || (r.by === oldP && r.to === m))) { r.status = "cancelled"; r.takenBy = ""; }
+    });
   } else if (t === "leave") {
     if (isAdmin(doc, m) && doc.admins.length <= 1) throw { code: 409, error: "last-admin" };  // promote someone first
+    op._deptName = (me && me.name) || "";   // capture BEFORE tombstoning (notify runs after applyOp)
     doc.members[m] = tombstone(me, "left");   // keep a name-only tombstone so this person's past swaps still read right in the crew's history
-    doc.admins = doc.admins.filter(function (a) { return a !== m; }); cancelMemberReqs(doc, m); pruneTombstones(doc);
+    doc.admins = doc.admins.filter(function (a) { return a !== m; }); op._cancelledTaken = cancelMemberReqs(doc, m); pruneTombstones(doc);
   } else if (t === "approve") {
     admin(); var w = doc.members[op.who]; if (!w) throw { code: 404, error: "no-such-member" };
     if (w.status !== "pending" && w.status !== "active") throw { code: 403, error: "gone" };   // approve = confirm a pending join OR reassign an active member — NEVER resurrect a left/removed tombstone (which would also bypass the ban)
@@ -301,9 +315,10 @@ function applyOp(doc, op, m) {
     foundGuard(op.who);
     var wm = doc.members[op.who]; if (!wm) throw { code: 404, error: "no-such-member" };
     ban(doc, op.who);   // removed/rejected members can't silently re-join with the same identity
+    op._deptName = wm.name || "";
     if (wm.status === "pending") delete doc.members[op.who];   // a historyless pending join → drop it
     else doc.members[op.who] = tombstone(wm, "removed");        // active OR an already-departed member → keep/refresh a name tombstone (never lose the name from history)
-    doc.admins = doc.admins.filter(function (a) { return a !== op.who; }); cancelMemberReqs(doc, op.who); pruneTombstones(doc);
+    doc.admins = doc.admins.filter(function (a) { return a !== op.who; }); op._cancelledTaken = cancelMemberReqs(doc, op.who); pruneTombstones(doc);
   } else if (t === "promote") {
     admin(); var pm = doc.members[op.who]; if (!pm || pm.status !== "active") throw { code: 400, error: "not-active" };
     if (doc.admins.indexOf(op.who) < 0) doc.admins.push(op.who); pm.role = "admin";
@@ -320,24 +335,28 @@ function applyOp(doc, op, m) {
     var tr = validTour(rq.tour), wt = rq.want ? validTour(rq.want) : null;
     if (rq.type !== "pickup" && !tr) throw { code: 400, error: "bad-tour" };
     if (rq.type === "swap" && !wt) throw { code: 400, error: "bad-want" };
-    // bound growth: keep all open/taken, plus only the most recent TERMINAL_KEEP done/cancelled
+    // bound growth: keep all open/taken, plus done requests still needed (future tour OR completed <60d ago — every
+    // party's client needs a window to fetch + apply it to their calendar), plus the most recent TERMINAL_KEEP others
+    var DONE_KEEP_MS = 60 * 864e5;
+    var mustKeep = function (r) { return r.status === "done" && (reqTouchesFuture(r) || (r.doneAt && Date.now() - r.doneAt < DONE_KEEP_MS)); };
     var live = doc.requests.filter(function (r) { return r.status === "open" || r.status === "taken"; });
-    var keepDone = doc.requests.filter(function (r) { return r.status === "done" && reqTouchesFuture(r); });   // keep completed swaps on still-future tours so the commitment guard can't be defeated by pruning
-    var term = doc.requests.filter(function (r) { return r.status !== "open" && r.status !== "taken" && !(r.status === "done" && reqTouchesFuture(r)); }).sort(function (a, b) { return a.at - b.at; });
+    var keepDone = doc.requests.filter(mustKeep);
+    var term = doc.requests.filter(function (r) { return r.status !== "open" && r.status !== "taken" && !mustKeep(r); }).sort(function (a, b) { return (a.doneAt || a.at) - (b.doneAt || b.at); });
     if (term.length > TERMINAL_KEEP) term = term.slice(term.length - TERMINAL_KEEP);
     doc.requests = live.concat(keepDone, term);
     var toId = (rq.to && doc.members[rq.to] && doc.members[rq.to].status === "active" && rq.to !== m) ? rq.to : "";   // optional: directed at a specific ACTIVE member
     var gRsot = (typeof rq.giveRsot === "boolean") ? rq.giveRsot : hasRSOT(doc.members[m], tr);   // stamp: the poster's own RSOT status, computed from their full calendar (not the ±130d sync window)
     if ((rq.type === "swap" || rq.type === "cover") && tourCommitted(doc, m, tr)) throw { code: 409, error: "tour-taken" };   // you've already swapped/covered this exact tour — can't give it away twice
     if (rq.type === "swap" && toId && tourCommitted(doc, toId, wt)) throw { code: 409, error: "tour-taken" };   // directed: they've already committed the tour you want
-    if (rq.type === "swap" && toId && gRsot !== hasRSOT(doc.members[toId], wt)) throw { code: 400, error: "rsot-mismatch" };   // RSOT swaps only trade against another RSOT
+    if (rq.type === "swap" && toId && wt && !tourFarFuture(wt) && gRsot !== hasRSOT(doc.members[toId], wt)) throw { code: 400, error: "rsot-mismatch" };   // RSOT swaps only trade against another RSOT (a want beyond the ~130d sync window is UNKNOWN, not not-RSOT — the take-time check still enforces)
     var even = rq.even === true && (rq.type === "swap" || rq.type === "cover");   // "even" = ledger-neutral PARTNER swap; only between two CONFIRMED mutual partners
     if (even && !(toId && doc.members[m].partner === toId && doc.members[toId] && doc.members[toId].partner === m)) throw { code: 400, error: "not-partners" };
-    doc.requests.push({ id: rid(6), type: rq.type, by: m, to: toId, tour: tr, want: wt, giveRsot: (rq.type === "swap" ? gRsot : false), even: even, note: clip(rq.note, NOTE_MAX), status: "open", takenBy: "", at: Date.now() });
+    doc.requests.push({ id: rid(6), type: rq.type, by: m, to: toId, tour: tr, want: wt, giveRsot: (rq.type === "pickup" ? false : gRsot), even: even, note: clip(rq.note, NOTE_MAX), status: "open", takenBy: "", at: Date.now() });   // covers stamp giveRsot too: covering an RSOT transfers paid OT to the taker, NOT a debt mutual
   } else if (t === "cancelRequest") {
     var rc = findReq(doc, op.rid); if (!rc) throw { code: 404, error: "no-req" };
     if (rc.by !== m && !isAdmin(doc, m)) throw { code: 403, error: "not-yours" };
     if (rc.status !== "open" && rc.status !== "taken") throw { code: 409, error: "not-cancelable" };
+    if (rc.status === "taken") { op._wasTaken = true; op._counterpart = (m === rc.by) ? rc.takenBy : rc.by; op._cxTour = rc.tour; }   // a TAKEN deal is an agreement — tell the other party it's off
     rc.status = "cancelled"; rc.takenBy = "";
   } else if (t === "takeRequest") {
     var rt = findReq(doc, op.rid); if (!rt) throw { code: 404, error: "no-req" };
@@ -346,9 +365,13 @@ function applyOp(doc, op, m) {
     if (rt.to && rt.to !== m) throw { code: 403, error: "directed" };   // while aimed at someone, only they can accept (until they decline → released to the house)
     if (rt.tour && tourCommitted(doc, rt.by, rt.tour, rt.id)) throw { code: 409, error: "tour-taken" };   // the poster already committed this tour to another swap since posting
     if (rt.type === "swap" && rt.want && tourCommitted(doc, m, rt.want, rt.id)) throw { code: 409, error: "tour-taken" };   // you've already given away the tour you'd hand back
-    if (rt.type === "swap" && giveSideRsot(doc, rt) !== hasRSOT(doc.members[m], rt.want)) throw { code: 400, error: "rsot-mismatch" };   // taker can only fulfill an RSOT swap with their own RSOT (and vice versa)
+    if (rt.type === "swap") {   // taker can only fulfill an RSOT swap with their own RSOT (and vice versa). Trust the taker's self-stamp (their FULL calendar) like the poster's giveRsot; fall back to the synced ~130d .ot window.
+      var tRsot = (typeof op.takeRsot === "boolean") ? op.takeRsot : hasRSOT(doc.members[m], rt.want);
+      if (giveSideRsot(doc, rt) !== tRsot) throw { code: 400, error: "rsot-mismatch" };
+    }
     if (rt.even && !(rt.to === m && doc.members[m].partner === rt.by && doc.members[rt.by] && doc.members[rt.by].partner === m)) throw { code: 400, error: "not-partners" };   // an even swap can only be accepted by the confirmed partner it was sent to
     rt.takenBy = m; rt.status = rt.even ? "done" : "taken";   // a partner even-swap is settled the instant your partner approves it — no separate "Done" step, both calendars sync at once
+    if (rt.even) rt.doneAt = Date.now();   // completion timestamp — tourCommitted orders by it, and the done-retention window runs from it
     if (rt.tour) doc.requests.forEach(function (r) {   // poster side: a give-tour commits once — retire the poster's OTHER open requests giving away this same tour (the multi-"want" alternatives)
       if (r !== rt && r.by === rt.by && r.status === "open" && sameTour(r.tour, rt.tour)) { r.status = "cancelled"; r.takenBy = ""; }
     });
@@ -364,10 +387,14 @@ function applyOp(doc, op, m) {
   } else if (t === "resolveRequest") {
     var rr = findReq(doc, op.rid); if (!rr) throw { code: 404, error: "no-req" };
     if (rr.by !== m && rr.takenBy !== m && !isAdmin(doc, m)) throw { code: 403, error: "not-involved" };
-    if (op.cancel) { if (rr.status !== "open" && rr.status !== "taken") throw { code: 409, error: "not-cancelable" }; rr.status = "cancelled"; rr.takenBy = ""; }
-    else { if (rr.status !== "taken") throw { code: 409, error: "not-taken" }; rr.status = "done"; }   // only a genuinely-taken request can complete
+    if (op.cancel) { if (rr.status !== "open" && rr.status !== "taken") throw { code: 409, error: "not-cancelable" };
+      if (rr.status === "taken") { op._wasTaken = true; op._counterpart = (m === rr.by) ? rr.takenBy : rr.by; op._cxTour = rr.tour; }
+      rr.status = "cancelled"; rr.takenBy = ""; }
+    else { if (rr.status !== "taken") throw { code: 409, error: "not-taken" }; rr.status = "done"; rr.doneAt = Date.now(); }   // only a genuinely-taken request can complete; doneAt drives the guard's ordering + retention
   } else if (t === "abcdPush") {
-    admin(); doc.abcd = (op.abcd && /^\d{4}-\d\d?-\d\d?$/.test(op.abcd.s)) ? { s: clip(op.abcd.s, 10), e: /^\d{4}-\d\d?-\d\d?$/.test(op.abcd.e) ? clip(op.abcd.e, 10) : "" } : null;
+    admin();
+    if (op.abcd && !/^\d{4}-\d\d?-\d\d?$/.test(op.abcd.s)) throw { code: 400, error: "bad-date" };   // a typo'd date must ERROR, never silently turn ABCD off for the whole house (null = the explicit End-ABCD op only)
+    doc.abcd = op.abcd ? { s: clip(op.abcd.s, 10), e: /^\d{4}-\d\d?-\d\d?$/.test(op.abcd.e) ? clip(op.abcd.e, 10) : "" } : null;
   } else if (t === "postEvent") {
     admin(); var ev = op.ev || {}; if (doc.events.length >= MAX_EVENTS) throw { code: 403, error: "too-many" };
     var dts = (Array.isArray(ev.dates) ? ev.dates : []).filter(function (d) { return /^\d{4}-\d\d?-\d\d?$/.test(d); }).slice(0, EV_DATES_MAX);
