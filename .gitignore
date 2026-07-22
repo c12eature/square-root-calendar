@@ -4,3 +4,4 @@ app.src.html.bak
 
 node_modules/
 .vercel
+vapid-private.local.txt

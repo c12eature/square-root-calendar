@@ -1051,6 +1051,7 @@
     <div class="setlbl">Data</div>
     <div class="setlist">
       <button class="setrow" id="openBak"><span class="setico">💾</span><span class="settx"><span class="settl">Backup &amp; Restore</span><span class="setsub">Save your data · move to a new phone</span></span><span class="setchev">›</span></button>
+      <a class="setrow" href="privacy.html" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><span class="setico">🔒</span><span class="settx"><span class="settl">Privacy &amp; your data</span><span class="setsub">What's stored, where, and who can see it</span></span><span class="setchev">›</span></a>
     </div>
   </div>
   <div class="setsec">
@@ -3528,7 +3529,7 @@ var TEN_CODES=[
   function hseenMap(){ if(!HS)return {}; return hseen[HS.id]||(hseen[HS.id]={}); }         // this house's seen-request set
   var hpushOn=load("hpush",false);      // web-push enabled on this device
   var hpushPrefs=load("hpushprefs",{personal:true,general:false,tours:true});   // per-category notification toggles
-  var VAPID_PUB="BDcPsixcRRapSmss7LoUwIWsTKyeUtk4jLBzyOJMSgsD5cT0zq2qC1d1uzuTm48O7BOFE7DHXe09Kfr6e-08DUc";   // public VAPID key (safe to embed); private key is server env only
+  var VAPID_PUB="BMNSY0Mf5eklDSMpVH8Rv_6EFl0Rr2zdhU27YC1pGbxJSC4WRQKV1BpeE7jEIq56oTupAFOXCdKlz0gNMSFqi3c";   // public VAPID key (safe to embed); private key is server env only
   var hview="day", hVY=now.getFullYear(), hVM=now.getMonth(), hVD=now.getDate(), hMsg="", hRostOpen={}, hRostQ="", hReqPre=null, hNewCos=[], hReqOpen={};   // hReqOpen = which Requests-feed sections are collapsed (device-local); hNewCos = companies staged while creating a house
   function houseUnread(){ if(!HD||!HS)return {n:0,forme:0}; var sn=hseenMap(),n=0,fm=0; (HD.requests||[]).forEach(function(r){ if(r.status!=="open"||r.by===HS.m||sn[r.id])return; if(r.to&&r.to!==HS.m&&r.takenBy!==HS.m)return; n++; if(r.to===HS.m)fm++; }); return {n:n,forme:fm}; }   // count only what I can actually see (open board or directed at/taken by me) — no phantom count / directed-existence leak
   function markReqsSeen(){ if(!HD||!HS)return; var sn=hseenMap(),ch=false; (HD.requests||[]).forEach(function(r){ if(!sn[r.id]){sn[r.id]=1;ch=true;} }); if(ch)save("hseen",hseen); setHouseBadge(); }
