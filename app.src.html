@@ -4064,9 +4064,20 @@ var TEN_CODES=[
         obj.ex=(pEditIdx>=0&&periods[pEditIdx]&&periods[pEditIdx].ex)?periods[pEditIdx].ex:{};}
     } else if(pType==="tr"){obj=buildTraining(s,e);if(!obj)return;
     } else { obj={t:pType,s:s,e:e||""}; }
-    if(pEditIdx>=0)periods[pEditIdx]=obj; else periods.push(obj);
-    save("periods",periods); resetPForm();
-    render(); renderPeriods();
+    function commitP(){ if(pEditIdx>=0)periods[pEditIdx]=obj; else periods.push(obj);
+      save("periods",periods); resetPForm(); render(); renderPeriods(); }
+    if(pType==="vac"||pType==="ml"){   // going off-roster clears any mutuals/swaps/comp logged inside the dates — they can't happen, and a hidden one would keep counting in the ledger
+      var hits=[],lim=vacMs(s)+366*864e5,endMs=e?Math.min(vacMs(e),lim):lim;
+      for(var t0=vacMs(s);t0<=endMs;t0+=864e5){ var dd=new Date(t0+43200000),hy=dd.getUTCFullYear(),hm=dd.getUTCMonth(),hd=dd.getUTCDate();
+        [9,6].forEach(function(tt){ var cs=curState(hy,hm,hd,tt);
+          if(cs==="mxin"||cs==="mxout"||cs==="pmxin"||cs==="pmxout"||cs==="smxin"||cs==="smxout"||cs==="comp"){
+            var nm=mxName(hy,hm,hd,tt); hits.push({y:hy,m:hm,d:hd,t:tt,lbl:MON[hm].slice(0,3)+" "+hd+" "+(tt===9?"9×":"6×")+" — "+(cs==="comp"?"comp day":(cs.indexOf("p")===0?"partner swap":cs.indexOf("s")===0?"self-mutual":"mutual"+(nm?" with "+nm:"")))}); } }); }
+      if(hits.length){ var few=hits.slice(0,3).map(function(h){return h.lbl;}).join(" · ")+(hits.length>3?" · +"+(hits.length-3)+" more":"");
+        appConfirm("This "+dutyLabel(pType).toLowerCase()+" covers "+hits.length+" logged "+(hits.length===1?"entry":"entries")+" ("+few+"). Saving clears "+(hits.length===1?"it":"them")+" from your calendar and the Mutuals Ledger.","Clear & save",function(){
+          hits.forEach(function(h){ var k=K(h.y,h.m,h.d,h.t); delete ov[k]; delete mx[k]; });   // clear only the mutual/comp side — never touch OT records
+          save("ov",ov); save("mx",mx); commitP(); });
+        return; } }
+    commitP();
   };
   // ---- CFR Refresher: a MANUAL expiration date + a reminder banner when it's close; optional class-day calendar overlay ----
   var cfrTourSel="day";
