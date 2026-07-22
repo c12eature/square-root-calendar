@@ -425,16 +425,6 @@
   .setsub{font-size:11px; font-weight:600; color:var(--ink2);}
   .setchev{flex:none; color:var(--mut); font-size:20px; font-weight:400; line-height:1;}
   /* Backup & restore */
-  .bakrem{display:flex;align-items:center;gap:10px;margin:10px 0 0;padding:9px 12px;border:1px solid var(--amber);border-radius:10px;background:color-mix(in srgb,var(--amber) 13%,var(--panel));}
-  .bakremtxt{flex:1;min-width:0;font-size:12px;font-weight:700;color:var(--amber-soft-ink);line-height:1.4;}
-  .bakremact{display:flex;gap:6px;flex:none;}
-  .bakremact button{padding:7px 11px;min-height:34px;border:none;border-radius:10px;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;}
-  #bakRemGo{background:var(--amber);color:#3a2600;}
-  #bakRemX{background:transparent;color:var(--amber-soft-ink);border:1px solid var(--amber);min-width:34px;}
-  .cfrrem{border-color:var(--blue);background:color-mix(in srgb,#2563eb 12%,var(--panel));} .cfrrem .bakremtxt{color:var(--ink);}
-  .cfrrem.overdue{border-color:#dc2626;background:color-mix(in srgb,#dc2626 12%,var(--panel));}
-  #cfrRemGo{background:#2563eb;color:#fff;} .cfrrem.overdue #cfrRemGo{background:#dc2626;}
-  #cfrRemX{background:transparent;color:var(--ink2);border:1px solid var(--line);min-width:34px;}
   .baksec{margin:0 0 15px;padding:14px;border:1px solid var(--line);border-radius:13px;background:var(--panel2);}
   .bakh{font-size:13px;font-weight:800;color:var(--ink);margin-bottom:5px;}
   .baknote{font-size:12px;color:var(--ink2);line-height:1.45;margin:0 0 10px;font-weight:600;}
@@ -925,8 +915,6 @@
     </div>
   </div>
 
-  <div class="bakrem" id="bakRem" style="display:none"></div>
-  <div class="bakrem cfrrem" id="cfrRem" style="display:none"></div>
 
 
   <div class="mbar">
@@ -1474,6 +1462,14 @@
   </div>
 </div>
 
+<!-- reminder pop-up (backup nag, CFR due, …) — an overlay, so it NEVER pushes the calendar down -->
+<div class="cmodal" id="remindPop">
+  <div class="cbox">
+    <div class="cmsg" id="rpMsg"></div>
+    <div class="cbtns"><button class="cno" id="rpLater">Later</button><button class="cyes" id="rpGo">Open</button></div>
+  </div>
+</div>
+
 <script src="boxdata.js"></script>
 <script>
 (function(){
@@ -2016,9 +2012,7 @@
           attachLongPress(half,function(){startReq(y,m,d,t);});});})(y,m,d);
       grid.appendChild(cell);
     }
-    renderBakRem();
     updateCfrRowSub();
-    renderCfrRem();
   }
 
   // ---- day detail sheet ----
@@ -2542,7 +2536,7 @@
   function backupObj(){return {app:"square-root-calendar",v:1,ts:isoNow(),data:collectData()};}
   function makeCode(){return "SQRTCAL1:"+b64enc(JSON.stringify(backupObj()));}
   function bakSay(msg,bad){var el=document.getElementById("bakMsg");if(!el)return;el.textContent=msg;el.className="bakmsg show"+(bad?" bad":" ok");}
-  function markBackup(){save("bakts",isoNow());bakUpdate();renderBakRem();}
+  function markBackup(){save("bakts",isoNow());bakUpdate();}
   function bakUpdate(){var t=load("bakts",null),el=document.getElementById("bakLast");if(el){el.textContent=t?("Last backup: "+new Date(t).toLocaleDateString()):"Not backed up yet.";el.className="baklast"+(t?"":" warn");}var out=document.getElementById("bakOut");if(out)out.value=makeCode();try{cloudStatus();}catch(e){}}
   function downloadBackup(){try{var json=JSON.stringify(backupObj(),null,2),blob=new Blob([json],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="square-root-backup-"+isoNow().slice(0,10)+".json";document.body.appendChild(a);a.click();setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);},1500);markBackup();bakSay("Backup file downloaded. If nothing showed up, use Copy backup code instead.",false);}catch(e){bakSay("Couldn't download here — use Copy backup code instead.",true);}}
   function copyBackup(){var code=makeCode(),ta=document.getElementById("bakOut");ta.value=code;ta.removeAttribute("readonly");ta.focus();ta.select();try{ta.setSelectionRange(0,code.length);}catch(e){}var done=function(ok){ta.setAttribute("readonly","readonly");markBackup();bakSay(ok?"Backup code copied — paste it somewhere safe (Notes, email, password manager).":"Couldn't auto-copy — select the code below and copy it manually.",!ok);};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(code).then(function(){done(true);},function(){var ok=false;try{ok=document.execCommand("copy");}catch(e){}done(ok);});}else{var ok=false;try{ok=document.execCommand("copy");}catch(e){}done(ok);}}
@@ -2571,7 +2565,32 @@
   function hasData(){if((periods&&periods.length)||(events&&events.length)||(cev&&cev.length)||(abcd&&abcd.length)||(cfr&&(cfr.exp||cfr.ses)))return true;var m=[ov,ot,ar,mx,add,fh,note,sb],j,kk;for(j=0;j<m.length;j++){for(kk in m[j])return true;}return false;}
   function bakAgeDays(){var t=load("bakts",null);if(!t)return 1e9;return (Date.now()-new Date(t).getTime())/864e5;}
   function bakSnoozed(){var s=load("baksnooze",null);if(!s)return false;return (Date.now()-new Date(s).getTime())<7*864e5;}
-  function renderBakRem(){var el=document.getElementById("bakRem");if(!el)return;var never=(load("bakts",null)==null),show=hasData()&&bakAgeDays()>21&&!bakSnoozed()&&!(cloudOn&&rcode);if(!show){el.style.display="none";el.innerHTML="";return;}el.style.display="";el.innerHTML='<span class="bakremtxt">⚠︎ '+(never?"Your data isn’t backed up yet":"Your backup is out of date")+' — save it so a new phone or cleared browser can’t wipe it.</span><span class="bakremact"><button type="button" id="bakRemGo">Back up</button><button type="button" id="bakRemX" aria-label="Dismiss for a week">✕</button></span>';document.getElementById("bakRemGo").onclick=function(){setSheet.classList.remove("show");document.getElementById("bakMsg").className="bakmsg";document.getElementById("bakIn").value="";bakUpdate();openSheet(bakSheet);};document.getElementById("bakRemX").onclick=function(){save("baksnooze",isoNow());renderBakRem();};}
+  // Reminders (backup nag, CFR due) are a POP-UP overlay — never an in-flow banner that pushes the calendar down.
+  // At most one per app-open; dismissing (any way) snoozes it exactly like the old banner's ✕ (backup 7d, CFR 30d).
+  var remindShown=false;
+  function maybeRemindPop(){
+    if(remindShown)return;
+    if(document.querySelector(".cmodal.show,.onb.show,.sheet.show,.swpick.show"))return;   // never pop over onboarding, another modal, or an open sheet
+    var inf=cfrExpInfo(), cfrDue=(inf.state!=="none"&&inf.days<=120)&&!cfrSnoozed();
+    var bakDue=hasData()&&bakAgeDays()>21&&!bakSnoozed()&&!(cloudOn&&rcode);
+    var pick=(cfrDue&&inf.state==="overdue")?"cfr":bakDue?"bak":cfrDue?"cfr":null;   // an overdue CFR outranks the backup nag
+    if(!pick)return;
+    remindShown=true;
+    var rp=document.getElementById("remindPop"),msg=document.getElementById("rpMsg"),go=document.getElementById("rpGo"),later=document.getElementById("rpLater");
+    function close(sn){ rp.classList.remove("show"); save(pick==="bak"?"baksnooze":"cfrsnooze",isoNow()); if(sn)sn(); }
+    if(pick==="bak"){ var never=(load("bakts",null)==null);
+      msg.textContent="⚠︎ "+(never?"Your data isn’t backed up yet":"Your backup is out of date")+" — save it so a new phone or a cleared browser can’t wipe it.";
+      go.textContent="Back up";
+      go.onclick=function(){ close(function(){ setSheet.classList.remove("show"); document.getElementById("bakMsg").className="bakmsg"; document.getElementById("bakIn").value=""; bakUpdate(); openSheet(bakSheet); }); };
+    } else {
+      msg.textContent=inf.state==="overdue"?("📘 Your CFR expired "+fmtVD(inf.exp)+" — schedule a refresher."):("📘 CFR expires "+fmtVD(inf.exp)+" — "+inf.months+" month"+(inf.months===1?"":"s")+" left. Time to schedule a refresher.");
+      go.textContent="Open";
+      go.onclick=function(){ close(function(){ setSheet.classList.remove("show"); openCfrSheet(); }); };
+    }
+    later.onclick=function(){ close(); };
+    rp.onclick=function(e){ if(e.target===rp)close(); };   // scrim tap = Later
+    rp.classList.add("show");
+  }
 
   // ============================================================================
   //  DURABILITY — persistent storage · IndexedDB mirror · encrypted cloud backup
@@ -4121,14 +4140,7 @@ var TEN_CODES=[
   document.getElementById("cfrDone").onclick=closeSheets;
   document.getElementById("cfrSaveExp").onclick=function(){var v=document.getElementById("cfrExpIn").value;if(!isRealDate(v)){cfrErr("Pick your CFR expiration date.");return;}cfr.exp=v;save("cfrsnooze","");saveCfr();cfrErr("");render();renderCfr();};   // clear any snoozed reminder when a fresh date is set
   function cfrSnoozed(){var s=load("cfrsnooze",null);if(!s)return false;return (Date.now()-new Date(s).getTime())<30*864e5;}   // dismiss the reminder for 30 days
-  function renderCfrRem(){var el=document.getElementById("cfrRem");if(!el)return;var inf=cfrExpInfo();
-    var show=(inf.state!=="none"&&inf.days<=120)&&!cfrSnoozed();   // pop the reminder once it's within ~4 months or overdue
-    if(!show){el.style.display="none";el.innerHTML="";return;}
-    var msg=inf.state==="overdue"?("📘 Your CFR expired "+fmtVD(inf.exp)+" — schedule a refresher."):("📘 CFR expires "+fmtVD(inf.exp)+" — "+inf.months+" month"+(inf.months===1?"":"s")+" left. Time to schedule a refresher.");
-    el.className="bakrem cfrrem "+inf.state; el.style.display="";
-    el.innerHTML='<span class="bakremtxt">'+msg+'</span><span class="bakremact"><button type="button" id="cfrRemGo">Open</button><button type="button" id="cfrRemX" aria-label="Dismiss for a month">✕</button></span>';
-    document.getElementById("cfrRemGo").onclick=function(){setSheet.classList.remove("show");openCfrSheet();};
-    document.getElementById("cfrRemX").onclick=function(){save("cfrsnooze",isoNow());renderCfrRem();};}
+  // (the CFR reminder now shows via maybeRemindPop — the pop-up overlay — instead of an in-flow banner)
   Array.prototype.forEach.call(document.querySelectorAll("#cfrTour button"),function(b){b.onclick=function(){cfrTourSel=b.getAttribute("data-tr");Array.prototype.forEach.call(document.querySelectorAll("#cfrTour button"),function(x){x.classList.toggle("on",x===b);});};});
   document.getElementById("cfrSchedule").onclick=function(){
     var ds=["cfrD1","cfrD2","cfrD3","cfrD4","cfrD5"].map(function(id){return document.getElementById(id).value;});
@@ -4250,6 +4262,7 @@ var TEN_CODES=[
     requestPersist().then(cloudStatus,cloudStatus);
     if(!load("seen",false)){ if(isFreshInstall()){startOnboarding();} else {save("seen",1);maybeInstallLater();} }   // only brand-new (no sqrt data at all) gets onboarding
     else { maybeInstallLater(); }
+    setTimeout(maybeRemindPop,900);   // due reminders pop AFTER the calendar has settled (the guard skips if onboarding/a sheet is up)
     if(cloudOn&&rcode&&cloudDirty&&!cloudConflict)schedulePush();   // only push UNSYNCED local changes on boot — never clobber the cloud with a clean/stale device
     var flush=function(){flushPush();flushMirror();};
     if(HS){ setHouseBadge(); hGet().then(setHouseBadge).catch(function(){}); }   // refresh the House unread badge on boot (without opening the sheet)
@@ -4260,7 +4273,7 @@ var TEN_CODES=[
       var o=now; now=new Date();   // refresh the module clock — a resident PWA re-opened tomorrow must move the "today" ring, the CFR countdown, and the "now" pay-period badge
       var dayCh=(o.getDate()!==now.getDate()||o.getMonth()!==now.getMonth()||o.getFullYear()!==now.getFullYear());
       var pm=my,pp=pt; syncCurGroups(); if(my!==pm||pt!==pp){var v=document.getElementById("vMy");if(v)v.textContent=my;syncPt();render();}   // returned to a new epoch → refresh scalars + calendar
-      else if(dayCh){render();renderCfrRem();}                // same epoch but a new calendar day → re-render for the today highlight + reminder banners
+      else if(dayCh){render();maybeRemindPop();}              // same epoch but a new calendar day → re-render for the today highlight + maybe a due reminder
       if(HS)hGet().then(setHouseBadge).catch(function(){});   // refresh House requests when the app returns to the foreground
     });
     window.addEventListener("pagehide",flush);
