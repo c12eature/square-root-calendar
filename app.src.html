@@ -405,8 +405,11 @@
   .setsec{margin-top:12px;}
   .setlbl{font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:.05em; color:var(--ink2); margin:0 3px 6px;}
   /* collapsible settings sections (You / Your Groups) — set-once fields fold away so the sheet stays tight */
-  .setcolhd{display:flex;align-items:center;gap:8px;width:100%;background:none;border:none;padding:4px 3px;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent;}
-  .setcolhd .setlbl{margin:0;}
+  .setcolhd{display:flex;align-items:center;gap:10px;width:100%;background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:13px 14px;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent;}
+  .setcolhd:active{background:var(--line);}
+  .setcolhd .setlbl{margin:0;font-size:13px;letter-spacing:.03em;color:var(--ink);white-space:nowrap;}
+  .setcol:not(.collapsed) .setcolhd{border-bottom-left-radius:0;border-bottom-right-radius:0;}
+  .setcol:not(.collapsed) .setcolbody{border:1px solid var(--line);border-top:none;border-radius:0 0 13px 13px;padding:12px 12px 10px;background:var(--panel);}
   .setcolsum{flex:1;min-width:0;text-align:right;font-size:12px;font-weight:700;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .setcol .hrgchev{flex:none;}
   .setcol:not(.collapsed) .hrgchev{transform:rotate(180deg);}
@@ -1001,10 +1004,6 @@
     <p class="rsub" style="margin:0 3px; line-height:1.4">Shown to your crew when you join a <b>House Calendar</b>.</p>
     </div>
   </div>
-  <div class="setsec">
-    <div class="setlbl">🔔 Notifications</div>
-    <div id="setNotif"></div>
-  </div>
   <div class="setsec setcol collapsed" id="secGroups">
     <button class="setcolhd" type="button"><span class="setlbl">🔢 Your Groups</span><span class="setcolsum" id="grpSum"></span><span class="hrgchev">▾</span></button>
     <div class="setcolbody">
@@ -1061,6 +1060,10 @@
       <button data-th="light">☀ Light</button>
       <button data-th="dark">☾ Dark</button>
     </div>
+  </div>
+  <div class="setsec">
+    <div class="setlbl">🔔 Notifications</div>
+    <div id="setNotif"></div>
   </div>
   <div class="setsec">
     <div class="setlbl">Get the App</div>
