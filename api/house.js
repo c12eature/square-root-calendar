@@ -427,7 +427,11 @@ async function handler(req, res) {
       if (!CRON_SECRET || (H["authorization"] || "") !== "Bearer " + CRON_SECRET) { res.status(401).json({ error: "bad-cron" }); return; }
       var et = etParts();
       var tour = (q.tour === "9" || q.tour === "6") ? parseInt(q.tour, 10) : (et.hour >= 16 ? 6 : 9);   // explicit, else infer (evening→night tour)
-      var ids = (await redis(["SMEMBERS", HOUSES_SET])) || [], sends = [], reminded = 0, checked = 0;
+      // The NEXT tour on the timeline — its workers get the ADVANCE heads-up at the start of the tour BEFORE theirs:
+      // the evening run (6× starting 1800) alerts tomorrow's 9× workers; the morning run (9× starting 0900) alerts tonight's 6× workers.
+      var nx; if (tour === 9) nx = { y: et.y, m: et.m, d: et.d, t: 6 };
+      else { var nd2 = new Date(Date.UTC(et.y, et.m, et.d + 1)); nx = { y: nd2.getUTCFullYear(), m: nd2.getUTCMonth(), d: nd2.getUTCDate(), t: 9 }; }
+      var ids = (await redis(["SMEMBERS", HOUSES_SET])) || [], sends = [], reminded = 0, ahead = 0, checked = 0;
       for (var ci = 0; ci < ids.length && ci < MAX_CRON_HOUSES; ci++) {   // bound per-run cost so the cron can't exceed the function timeout as the registry grows
         var hraw = await redis(["GET", HOUSE_PREFIX + ids[ci]]);
         if (!hraw) { redis(["SREM", HOUSES_SET, ids[ci]]).catch(function () {}); continue; }   // expired house → deregister
@@ -435,13 +439,18 @@ async function handler(req, res) {
         var mids = Object.keys(hdoc.members);
         for (var cj = 0; cj < mids.length && checked < 20000; cj++) {
           checked++; var mem = hdoc.members[mids[cj]]; if (mem.status !== "active") continue;
-          if (!memberWorksTour(hdoc, mem, et.y, et.m, et.d, tour)) continue;
-          reminded++;
-          sends.push(sendPush(mids[cj], { title: "🚒 Tour reminder", body: "You're working the " + (tour === 9 ? "☀️ 9× day tour" : "🌙 6× night tour") + " today.", url: "/?house=1", tag: "tour" }, "tours"));
+          if (memberWorksTour(hdoc, mem, et.y, et.m, et.d, tour)) {
+            reminded++;
+            sends.push(sendPush(mids[cj], { title: "🚒 Tour reminder", body: "You're working the " + (tour === 9 ? "☀️ 9× day tour" : "🌙 6× night tour") + " today.", url: "/?house=1", tag: "tour" }, "tours"));
+          }
+          if (memberWorksTour(hdoc, mem, nx.y, nx.m, nx.d, nx.t)) {   // one tour ahead — "this Saturday 9×? you hear about it Friday at 1800"
+            ahead++;
+            sends.push(sendPush(mids[cj], { title: "⏰ Next tour is yours", body: nx.t === 9 ? "You're working tomorrow's ☀️ 9× day tour — starts 0900." : "You're working tonight's 🌙 6× night tour — starts 1800.", url: "/?house=1", tag: "tour-ahead" }, "tours"));
+          }
         }
       }
       try { await Promise.race([Promise.all(sends), new Promise(function (rz) { setTimeout(rz, 25000); })]); } catch (e3) {}
-      res.status(200).json({ ok: true, tour: tour, houses: ids.length, reminded: reminded });
+      res.status(200).json({ ok: true, tour: tour, houses: ids.length, reminded: reminded, ahead: ahead });
       return;
     }
 
