@@ -404,6 +404,14 @@
   /* grouped settings list */
   .setsec{margin-top:12px;}
   .setlbl{font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:.05em; color:var(--ink2); margin:0 3px 6px;}
+  /* collapsible settings sections (You / Your Groups) — set-once fields fold away so the sheet stays tight */
+  .setcolhd{display:flex;align-items:center;gap:8px;width:100%;background:none;border:none;padding:4px 3px;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent;}
+  .setcolhd .setlbl{margin:0;}
+  .setcolsum{flex:1;min-width:0;text-align:right;font-size:12px;font-weight:700;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .setcol .hrgchev{flex:none;}
+  .setcol:not(.collapsed) .hrgchev{transform:rotate(180deg);}
+  .setcol.collapsed .setcolbody{display:none;}
+  .setcolbody{padding-top:8px;}
   .setgrps{border:1px solid var(--line); border-radius:13px; background:var(--panel2); padding:11px;}
   .setgrps .field:last-child{margin-bottom:0;}
   .setgrps2{display:flex; gap:12px;}
@@ -982,21 +990,24 @@
 <div class="sheet set" id="setSheet">
   <div class="grip"></div>
   <h3>Settings</h3>
-  <div class="setsec">
-    <div class="setlbl">You</div>
+  <div class="setsec setcol collapsed" id="secYou">
+    <button class="setcolhd" type="button"><span class="setlbl">👤 You</span><span class="setcolsum" id="youSum"></span><span class="hrgchev">▾</span></button>
+    <div class="setcolbody">
     <div class="field"><label>Full name</label><input class="cevin" id="setName" type="text" autocomplete="name" placeholder="First Last — shown to your crew" style="margin-bottom:0"></div>
     <div class="field"><label>Company / assignment</label><input class="cevin" id="setCo" type="text" autocomplete="off" placeholder="e.g. E295, L144, Squad 1" style="margin-bottom:0"></div>
     <div class="field"><label>Cell phone <span class="opt">(optional)</span></label><input class="cevin" id="setPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="Shown to your house crew" style="margin-bottom:0"></div>
     <div class="setgrps setgrps2" style="margin-bottom:5px"><div class="field" style="margin-bottom:0"><label>Spouse / emergency name <span class="opt">(optional)</span></label><input class="cevin" id="setSpouse" type="text" autocomplete="off" placeholder="Name" style="margin-bottom:0"></div><div class="field" style="margin-bottom:0"><label>Their phone</label><input class="cevin" id="setSphone" type="tel" inputmode="tel" autocomplete="off" placeholder="Phone" style="margin-bottom:0"></div></div>
     <div class="field"><label>On the job since <span class="opt">(for overtime $ estimates)</span></label><input class="cevin" id="setAppt" type="date" style="margin-bottom:2px"><div class="setsub" id="apptSub"></div></div>
     <p class="rsub" style="margin:0 3px; line-height:1.4">Shown to your crew when you join a <b>House Calendar</b>.</p>
+    </div>
   </div>
   <div class="setsec">
     <div class="setlbl">🔔 Notifications</div>
     <div id="setNotif"></div>
   </div>
-  <div class="setsec">
-    <div class="setlbl">Your Groups</div>
+  <div class="setsec setcol collapsed" id="secGroups">
+    <button class="setcolhd" type="button"><span class="setlbl">🔢 Your Groups</span><span class="setcolsum" id="grpSum"></span><span class="hrgchev">▾</span></button>
+    <div class="setcolbody">
     <div class="setgrps setgrps2">
       <div class="field">
         <label>My group <span class="gc gred">(red)</span></label>
@@ -1011,6 +1022,7 @@
     <div class="field" style="margin:9px 0 0"><label>Your ABCD letter <span class="opt">(only for house ABCD pushes)</span></label><select class="cevin" id="setLetter" style="margin-bottom:0"><option value="">— none</option><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select></div>
     <button class="setrow gcrow" id="openGroups"><span class="setico">🔄</span><span class="settx"><span class="settl">Group change</span><span class="setsub">Reassigned? Set the start date &amp; your new groups</span></span><span class="setchev">›</span></button>
     <button class="setrow gcrow" id="openAbcd"><span class="setico">🔤</span><span class="settx"><span class="settl">ABCD Chart</span><span class="setsub">Switch to letter tours — set the dates &amp; your letter</span></span><span class="setchev">›</span></button>
+    </div>
   </div>
   <div class="setsec">
     <div class="setlbl">Mark On Every Tour</div>
@@ -2419,7 +2431,13 @@
 
   // ---- settings ----
   function syncPt(){document.getElementById("vPt").textContent=pt?pt:"None";var b=document.getElementById("ptClear");if(b)b.textContent=pt?"✕ No partner":"＋ Add partner";}
-  document.getElementById("gear").onclick=function(){syncCurGroups();document.getElementById("vMy").textContent=my;syncPt();syncDefSw();document.getElementById("setName").value=uname;document.getElementById("setCo").value=uco;document.getElementById("setPhone").value=uphone;document.getElementById("setSpouse").value=uspouse;document.getElementById("setSphone").value=usphone;document.getElementById("setLetter").value=hletter;document.getElementById("setAppt").value=isRealDate(apptDate)?apptDate:"";document.getElementById("apptSub").textContent=apptSubText();renderSetNotif();openSheet(setSheet);};
+  document.getElementById("gear").onclick=function(){syncCurGroups();document.getElementById("vMy").textContent=my;syncPt();syncDefSw();document.getElementById("setName").value=uname;document.getElementById("setCo").value=uco;document.getElementById("setPhone").value=uphone;document.getElementById("setSpouse").value=uspouse;document.getElementById("setSphone").value=usphone;document.getElementById("setLetter").value=hletter;document.getElementById("setAppt").value=isRealDate(apptDate)?apptDate:"";document.getElementById("apptSub").textContent=apptSubText();
+    document.getElementById("youSum").textContent=uname?(uname+(uco?" · "+uco:"")):"add your name";                       // the collapsed header still tells you what's set
+    document.getElementById("grpSum").textContent="Group "+my+(pt?" · partner "+pt:" · no partner")+(hletter?" · "+hletter:"");
+    document.getElementById("secYou").classList.toggle("collapsed",!!uname);                                             // fresh users see the fields; everyone else gets the tight sheet
+    document.getElementById("secGroups").classList.add("collapsed");
+    renderSetNotif();openSheet(setSheet);};
+  Array.prototype.forEach.call(document.querySelectorAll(".setcolhd"),function(b){b.onclick=function(){b.parentNode.classList.toggle("collapsed");};});
   document.getElementById("setNotif").addEventListener("click",function(e){ var b=e.target.closest("[data-act]"); if(!b)return; var act=b.getAttribute("data-act"); if(act==="pushon")enablePush(); else if(act==="pushoff")disablePush(); else if(act==="pref")togglePref(b.getAttribute("data-k")); });
   document.getElementById("setName").oninput=function(){uname=this.value;save("name",uname);};   // save-as-you-type (no calendar rebuild)
   document.getElementById("setCo").oninput=function(){uco=this.value.trim();save("co",uco);};
@@ -2930,7 +2948,7 @@
       (haveAppt?'<div class="stdisc">Dollars are estimates from the UFA '+UFA_ASOF+' firefighter chart, at your step when each tour was worked (night tours at the night-shift OT rate). Your check is the real number.</div>'
                :'<button class="stdisc stset" type="button" id="stSetAppt">💵 Add the date you got on the job (Settings → You) and every hour here shows a dollar estimate — tap to set it.</button>');
     var sa=document.getElementById("stSetAppt");
-    if(sa)sa.onclick=function(){statsSheet.classList.remove("show");document.getElementById("gear").onclick();setTimeout(function(){var f=document.getElementById("setAppt");if(f){f.scrollIntoView({block:"center"});f.focus();}},150);};
+    if(sa)sa.onclick=function(){statsSheet.classList.remove("show");document.getElementById("gear").onclick();document.getElementById("secYou").classList.remove("collapsed");setTimeout(function(){var f=document.getElementById("setAppt");if(f){f.scrollIntoView({block:"center"});f.focus();}},150);};
     var list=document.getElementById("stList");
     if(!ks.length){list.innerHTML='<div class="rempty">No overtime or extras recorded yet — add MSOT/RSOT/Other OT, AR, P2P or a washup on a worked tour and it lands here.</div>';return;}
     list.innerHTML=renderYMP(byK);
