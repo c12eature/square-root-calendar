@@ -2786,8 +2786,8 @@
   function enableCloud(cb){ if(!hasCrypto()){if(cb)cb(null);return;} if(!rcode){rcode=genCode();save("rcode",rcode);} cloudOn=true;save("cloud",true); cloudStatus(); if(cb)cb(rcode); cloudPush().then(cloudStatus); }
 
   // ===== Paid unlock ($9.99 one time) — the recovery code doubles as the license, no accounts =====
-  var PAYLINK_APP="";    // Stripe Payment Link for the $9.99 unlock — filled in at launch
-  var PAYLINK_HOUSE="";  // Stripe Payment Link for the $20/mo House subscription
+  var PAYLINK_APP="https://buy.stripe.com/3cIaEY9VB7Xa1AA9qx5c400";    // Stripe Payment Link — $9.99 one-time App Unlock
+  var PAYLINK_HOUSE="https://buy.stripe.com/eVq3cw5Flelya760U15c401";  // Stripe Payment Link — $20/mo House Calendar subscription
   var TRIAL_DAYS=30;     // one full 25-day rotation + change
   var unlockSt=load("unlock",null);
   if(!unlockSt&&load("seen",false)){ unlockSt={k:"gf"}; save("unlock",unlockSt); }   // grandfather: set up before billing shipped → free forever
