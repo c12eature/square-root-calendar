@@ -662,6 +662,8 @@
   .mktsm{font-size:11.5px; font-weight:700; color:var(--ink2);}
   .mktcap{margin:9px 2px 0; font-size:12.5px; line-height:1.45; color:var(--ink2);}
   .mktcap b{color:var(--ink);}
+  .gatediv{display:flex; align-items:center; gap:10px; margin:16px 0 10px; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.6px; color:var(--mut);}
+  .gatediv:before,.gatediv:after{content:""; flex:1; height:1px; background:var(--line);}
   .mktdots{display:flex; gap:6px; justify-content:center; margin-top:10px;}
   .mktdots i{width:6px; height:6px; border-radius:999px; background:var(--line); transition:all .25s;}
   .mktdots i.on{background:var(--red); width:16px;}
@@ -1565,6 +1567,28 @@
       </div>
       <button class="onbdone" id="onbFinish" type="button">Finish</button>
     </div>
+  </div>
+</div>
+
+<div class="onb" id="gate" aria-hidden="true">
+  <div class="onbcard">
+    <div class="onbmark">√</div>
+    <h2>Unlock Square Root</h2>
+    <p class="onbp" id="gateStatus">Your calendar is set up and saved on this phone — unlock it to open.</p>
+    <div class="mktviz mktprice" style="margin-bottom:12px"><div class="mktbig">$9.99</div><div class="mktsm">once &middot; yours forever &middot; every phone you own</div></div>
+    <button class="onbnext" id="gateBuy" type="button">🔓 Unlock &middot; $9.99</button>
+    <button class="onblink" id="gateActivate" type="button">I&rsquo;ve paid — activate</button>
+    <div class="gatediv">or get in with your firehouse</div>
+    <input class="bakcodein" id="gateHouseCode" placeholder="House invite code" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" style="margin-bottom:8px">
+    <button class="onbnext sm" id="gateJoin" type="button">🏠 Join my house &mdash; the crew rides free</button>
+    <button class="onbnext sm" id="gateResub" type="button" hidden>⏸ Reactivate the house &middot; $20/mo</button>
+    <button class="onblink" id="gateHasCode" type="button">Already have a recovery code? Restore it</button>
+    <div class="onbrestore" id="gateRestoreBox" hidden>
+      <input class="bakcodein" id="gateCodeIn" placeholder="SQRT-XXXX-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" inputmode="text" aria-label="Recovery code">
+      <button class="onbnext sm" id="gateCodeRestore" type="button">Restore my calendar</button>
+    </div>
+    <div class="onbrestmsg" id="gateMsg"></div>
+    <p class="paysub" style="margin-top:10px">Bought it already? Restore with your recovery code &mdash; or email <b>support@squarerootcalendar.com</b> with your receipt.</p>
   </div>
 </div>
 
@@ -2874,6 +2898,58 @@
       lic.innerHTML="Bought it but locked out? Email <b>support@squarerootcalendar.com</b> with your receipt and this license ID: "; var c=document.createElement("b"); c.textContent=id; lic.appendChild(c); lic.hidden=false; }); }
     payMsg(""); openSheet(paySheet); }
   function requireUnlock(){ if(unlocked())return true; openPay(); return false; }
+  // ===== the ENTRY GATE: nobody reaches the calendar without paying, a house membership, or a restored purchase =====
+  var _gatePollT=null;
+  function gateMsg(t,bad){ var el=document.getElementById("gateMsg"); if(el){el.textContent=t||""; el.className="onbrestmsg"+(bad?" bad":"");} }
+  function gateSync(){ var st=document.getElementById("gateStatus"), rs=document.getElementById("gateResub");
+    var pendingHouse=(HS&&hLoad==="pending"), lapsedHouse=(houses&&houses.length&&!houseCovered()&&!pendingHouse);
+    if(st)st.textContent = pendingHouse ? "⏳ Your join request is in — the app opens the moment your house admin approves you."
+      : lapsedHouse ? "⏸ Your house's subscription has lapsed — any member can reactivate it, or unlock the app just for you."
+      : "Your calendar is set up and saved on this phone — unlock it to open.";
+    if(rs)rs.hidden=!lapsedHouse; }
+  function showGate(){ var g=document.getElementById("gate"); if(!g||unlocked())return; gateSync(); gateMsg("");
+    g.classList.add("show"); g.setAttribute("aria-hidden","false");
+    if(_gatePollT)clearInterval(_gatePollT);
+    _gatePollT=setInterval(function(){ if(unlocked()){hideGate();return;}   // approval / cross-device purchase lands → straight in
+      if(HS)hGet().then(function(){ if(unlocked())hideGate(); else gateSync(); })["catch"](function(){}); },15000); }
+  function hideGate(){ var g=document.getElementById("gate"); if(!g)return;
+    g.classList.remove("show"); g.setAttribute("aria-hidden","true");
+    if(_gatePollT){clearInterval(_gatePollT);_gatePollT=null;}
+    syncUnlockRow(); render(); }
+  (function wireGate(){
+    var b=document.getElementById("gateBuy"); if(!b)return;
+    b.onclick=function(){ if(!PAYLINK_APP){gateMsg("Purchases open very soon — check back shortly.",true);return;}
+      function go(){ licenseIdP().then(function(id){ if(!id){gateMsg("Couldn't create your license — try again.",true);return;}
+        var u=PAYLINK_APP+(PAYLINK_APP.indexOf("?")<0?"?":"&")+"client_reference_id="+encodeURIComponent("app_"+id);
+        if(!window.open(u,"_blank"))location.href=u;
+        gateMsg("After paying, come back here and tap “I've paid — activate”."); }); }
+      if(!rcode){ appConfirm("First you'll get a RECOVERY CODE — it's your receipt AND your restore key on any phone. Save it somewhere safe.","Get my code",function(){
+        enableCloud(function(code){ if(!code){gateMsg("This device can't create a secure code.",true);return;}
+          appConfirm("Your recovery code:\n\n"+code+"\n\nScreenshot it or write it down, then continue to payment.","Continue",go); }); }); }
+      else go(); };
+    document.getElementById("gateActivate").onclick=function(){ licenseIdP().then(function(id){
+      if(!id){gateMsg("Tap Unlock first — you'll get your recovery code (the license).",true);return;}
+      gateMsg("Checking…");
+      fetch("/api/billing?check="+id).then(function(r){ if(!r.ok)throw new Error("http"); return r.json(); }).then(function(j){
+        if(j&&j.app){ unlockSt={k:"paid",id:id}; save("unlock",unlockSt); gateMsg(""); hideGate();
+          appConfirm("🎉 Unlocked — thank you! The whole calendar is yours, on every phone that carries your recovery code.","Let's go",function(){}); }
+        else gateMsg("No purchase found for this code yet. If you just paid, give it a few seconds and tap again.",true);
+      })["catch"](function(){ gateMsg("Couldn't check right now — your payment is safe. Try again in a minute.",true); }); }); };
+    document.getElementById("gateJoin").onclick=function(){ var code=(document.getElementById("gateHouseCode").value||"").trim();
+      if(!code){gateMsg("Ask a crew member for your house's invite code, then enter it here.",true);return;}
+      gateMsg("Joining…");
+      houseJoin(code).then(function(res){ if(res&&res.ok){ gateMsg(""); if(unlocked()){hideGate();return;} hLoad="pending"; gateSync();
+          if(HS)hGet().then(function(){ if(unlocked())hideGate(); else gateSync(); })["catch"](function(){}); }
+        else gateMsg("⚠ "+hErrMsg((res&&res.err)||"offline"),true); }); };
+    document.getElementById("gateResub").onclick=function(){ if(!PAYLINK_HOUSE||!HS)return;
+      var u=PAYLINK_HOUSE+(PAYLINK_HOUSE.indexOf("?")<0?"?":"&")+"client_reference_id="+encodeURIComponent("house_"+HS.id);
+      if(!window.open(u,"_blank"))location.href=u;
+      gateMsg("After the subscription is active, this screen opens the calendar on its own (within a minute)."); };
+    document.getElementById("gateHasCode").onclick=function(){var x=document.getElementById("gateRestoreBox");x.hidden=!x.hidden;};
+    document.getElementById("gateCodeRestore").onclick=function(){ gateMsg("Checking…");
+      restoreByCode(document.getElementById("gateCodeIn").value,function(res){
+        gateMsg(res==="empty"?"Enter your recovery code first.":res==="none"?"No cloud backup found for that code — double-check it.":res==="unavail"?"Cloud isn't reachable right now. Try again shortly.":"Couldn't read that code. Check for typos.",true); }); };
+  })();
   function startPurchase(){
     if(!PAYLINK_APP){ payMsg("Purchases open very soon \u2014 check back shortly.",true); return; }
     function go(){ licenseIdP().then(function(id){ if(!id){payMsg("Couldn\u2019t create your license \u2014 try again.",true);return;}
@@ -3105,7 +3181,7 @@
     groups=[{s:"1970-01-01",my:my,pt:pt}]; save("groups",groups); save("my",my); save("pt",pt); save("seen",1);   // fresh user → one base epoch
     if(!unlockSt){ unlockSt={k:"none",ts:Date.now()}; save("unlock",unlockSt); }   // marker, NOT an unlock — without it a new install would look like a pre-billing device and get grandfathered at next boot
     var vMy=document.getElementById("vMy");if(vMy)vMy.textContent=my; syncPt();render(); }
-  function finishOnboarding(){ closeOnboarding(); }   // install now leads the flow (step 2); skippers still get the maybeInstallLater nudge
+  function finishOnboarding(){ closeOnboarding(); if(!unlocked())showGate(); }   // setup done → the ENTRY GATE decides if the calendar opens (pay / house / restore)
   (function wireOnb(){
     Array.prototype.forEach.call(document.querySelectorAll("#onbMyStep button"),function(b){b.onclick=function(){onbMyVal=mod(onbMyVal-1+(+b.getAttribute("data-d")),G)+1;updOnbMy();};});
     Array.prototype.forEach.call(document.querySelectorAll("#onbPtStep button"),function(b){b.onclick=function(){onbPtVal=mod(onbPtVal-1+(+b.getAttribute("data-d")),G)+1;updOnbPt();};});
@@ -4637,6 +4713,7 @@ var TEN_CODES=[
   function afterBoot(){
     requestPersist().then(cloudStatus,cloudStatus);
     if(!load("seen",false)){ if(isFreshInstall()){startOnboarding();} else {save("seen",1);maybeInstallLater();} }   // only brand-new (no sqrt data at all) gets onboarding
+    else if(!unlocked()){ showGate(); }   // set up but not paid / not in a live house / not restored → the calendar stays behind the gate
     else { maybeInstallLater(); }
     setTimeout(maybeRemindPop,900);   // due reminders pop AFTER the calendar has settled (the guard skips if onboarding/a sheet is up)
     if(cloudOn&&rcode&&cloudDirty&&!cloudConflict)schedulePush();   // only push UNSYNCED local changes on boot — never clobber the cloud with a clean/stale device
