@@ -3,8 +3,8 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "com.nyfirestudyapp.calendar",
-      "sha256_cert_fingerprints": ["0F:C3:27:46:72:D2:B9:C4:9E:F7:DF:00:03:BC:AC:32:A3:CA:9F:04:01:B6:49:5B:09:99:EF:B4:84:8F:65:4F"]
+      "package_name": "com.squarerootcalendar.app",
+      "sha256_cert_fingerprints": ["FF:92:34:CC:11:65:AF:5A:B5:DD:6B:9A:16:3A:60:1A:F8:B6:6A:3A:90:B6:ED:68:49:7C:98:B6:89:3B:B0:95"]
     }
   }
 ]
