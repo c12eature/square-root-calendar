@@ -2849,6 +2849,24 @@
       var doIt=function(){applyBackup(data);};   // applyBackup reloads the page
       if(hasData())appConfirm("Restore your cloud backup? It REPLACES the calendar on THIS device.","Replace & restore",doIt); else doIt();
     })["catch"](function(e){onResult(e&&e.code==="unavailable"?"unavail":"bad");}); }
+  // ---- pull-on-open: fast-forward this device to a newer cloud copy. Only fires when NOTHING local
+  // is unsynced (clean device), so it can never lose a change — simultaneous edits on two phones still
+  // land in the existing push-conflict flow and stay local until resolved in Backup & Restore.
+  var _ffAt=0;
+  function cloudFastForward(){
+    if(!cloudOn||!rcode||!hasCrypto()||cloudDirty||cloudConflict)return;
+    if(Date.now()-_ffAt<60000)return; _ffAt=Date.now();
+    cloudPull(rcode).then(function(rec){
+      if(!rec||rec.none||!(rec.ts>cloudBase))return;         // cloud isn't ahead of what this device last synced
+      if(cloudDirty||cloudConflict||anySheetOpen())return;   // changed mid-fetch / user mid-flow → the next open catches it
+      var data=rec.data||{};
+      if(!Object.keys(data).filter(function(k){return typeof data[k]==="string";}).length)return;
+      data.rcode=JSON.stringify(rcode); data.cloud="true"; data.seen="1";
+      var st=JSON.stringify(rec.ts||0);
+      data.cbase=st; data.cloudts=st; data.cdirty="false"; data.cconf="false";   // already in sync with what we just pulled
+      applyBackup(data);                                     // clean load of the newer copy (reloads the page)
+    })["catch"](function(){});
+  }
   function relTime(ms){var s=(Date.now()-ms)/1000;if(s<60)return "just now";if(s<3600)return Math.round(s/60)+" min ago";if(s<86400)return Math.round(s/3600)+" hr ago";return new Date(ms).toLocaleDateString();}
   function copyText(txt,btn){ var done=function(good){if(btn){var t=btn.getAttribute("data-lbl")||btn.textContent;btn.setAttribute("data-lbl",t);btn.textContent=good?"✓ Copied":"Copy failed";setTimeout(function(){btn.textContent=t;},1600);}};
     if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(function(){done(true);},function(){done(false);});} else {done(false);} }
@@ -4461,6 +4479,7 @@ var TEN_CODES=[
     else { maybeInstallLater(); }
     setTimeout(maybeRemindPop,900);   // due reminders pop AFTER the calendar has settled (the guard skips if onboarding/a sheet is up)
     if(cloudOn&&rcode&&cloudDirty&&!cloudConflict)schedulePush();   // only push UNSYNCED local changes on boot — never clobber the cloud with a clean/stale device
+    setTimeout(cloudFastForward,600);   // …and a CLEAN device pulls a newer copy from another phone (pull-on-open sync)
     var flush=function(){flushPush();flushMirror();};
     if(HS){ setHouseBadge(); hGet().then(setHouseBadge).catch(function(){}); }   // refresh the House unread badge on boot (without opening the sheet)
     if(HS&&/[?&]house=1/.test(location.search)){ var _ob=document.getElementById("openHouse"); if(_ob)setTimeout(function(){_ob.click();},350); try{history.replaceState({},"",location.pathname+location.hash);}catch(e){} }   // opened from a push notification (strip the param so reloads don't re-open)
@@ -4472,6 +4491,7 @@ var TEN_CODES=[
       var pm=my,pp=pt; syncCurGroups(); if(my!==pm||pt!==pp){var v=document.getElementById("vMy");if(v)v.textContent=my;syncPt();render();}   // returned to a new epoch → refresh scalars + calendar
       else if(dayCh){render();maybeRemindPop();}              // same epoch but a new calendar day → re-render for the today highlight + maybe a due reminder
       if(HS)hGet().then(setHouseBadge).catch(function(){});   // refresh House requests when the app returns to the foreground
+      cloudFastForward();                                     // returned to the foreground → adopt the other phone's newer copy if this one is clean
     });
     window.addEventListener("pagehide",flush);
   }
