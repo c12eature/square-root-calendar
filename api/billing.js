@@ -96,7 +96,7 @@ module.exports = async function (req, res) {
 
     if (ev.type === "checkout.session.completed" || ev.type === "checkout.session.async_payment_succeeded") {   // async = delayed-notification methods (ACH etc.) paying after the session closed
       var ref = String(obj.client_reference_id || "");
-      if (ref.indexOf("app_") === 0 && obj.mode === "payment" && obj.payment_status === "paid") {
+      if (ref.indexOf("app_") === 0 && obj.mode === "payment" && (obj.payment_status === "paid" || obj.payment_status === "no_payment_required")) {   // no_payment_required = a 100%-off promo code — comped copies go through the same pipeline
         var lid = ref.slice(4);
         if (validId(lid)) {
           await redis(["SET", ENT_APP + lid, "1"]);   // permanent — a one-time purchase never expires
