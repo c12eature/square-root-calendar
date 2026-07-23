@@ -434,6 +434,16 @@
   .setcol:not(.collapsed) .hrgchev{transform:rotate(180deg);}
   .setcol.collapsed .setcolbody{display:none;}
   .setcolbody{padding-top:8px;}
+  /* paywall */
+  .paytrial{font-size:13px;font-weight:700;color:var(--amber-soft-ink);background:color-mix(in srgb,var(--amber) 13%,var(--panel));border:1px solid var(--amber);border-radius:10px;padding:9px 12px;margin-bottom:12px;}
+  .paycard{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;}
+  .payprice{font-size:26px;font-weight:900;color:var(--red);letter-spacing:-.01em;margin-bottom:8px;}
+  .payprice span{font-size:12px;font-weight:700;color:var(--mut);letter-spacing:0;}
+  .paylist{list-style:none;margin:0 0 14px;padding:0;display:flex;flex-direction:column;gap:7px;}
+  .paylist li{font-size:13px;font-weight:600;}
+  .paymsg{font-size:12px;font-weight:700;color:var(--mut);margin-top:8px;min-height:15px;}
+  .paymsg.warn{color:var(--red);}
+  .paysub{font-size:11px;color:var(--mut);line-height:1.55;margin:12px 0 0;}
   .setgrps{border:1px solid var(--line); border-radius:13px; background:var(--panel2); padding:11px;}
   .setgrps .field:last-child{margin-bottom:0;}
   .setgrps2{display:flex; gap:12px;}
@@ -1013,6 +1023,7 @@
 <div class="sheet set" id="setSheet">
   <div class="grip"></div>
   <h3>Settings</h3>
+  <button class="setrow" id="openUnlock" hidden><span class="setico">🔓</span><span class="settx"><span class="settl">Unlock Square Root · $9.99</span><span class="setsub" id="unlockSub">One-time — yours forever</span></span><span class="setchev">›</span></button>
   <div class="setsec setcol collapsed" id="secYou">
     <button class="setcolhd" type="button"><span class="setlbl">👤 You</span><span class="setcolsum" id="youSum"></span><span class="hrgchev">▾</span></button>
     <div class="setcolbody">
@@ -1492,6 +1503,26 @@
       </div>
       <button class="onbdone" id="onbFinish" type="button">Finish</button>
     </div>
+  </div>
+</div>
+
+<div class="sheet set" id="paySheet">
+  <div class="grip"></div>
+  <h3>Unlock Square Root</h3>
+  <div class="paytrial" id="payTrial"></div>
+  <div class="paycard">
+    <div class="payprice">$9.99 <span>one time &middot; yours forever</span></div>
+    <ul class="paylist">
+      <li>&#128257; Mutuals, swaps &amp; comp &mdash; with the who-owes-who ledger</li>
+      <li>&#128181; Overtime tracking with dollar estimates off the UFA chart</li>
+      <li>&#127796; Vacation, medical, light duty, training &amp; 6-month details</li>
+      <li>&#128216; CFR tracker &middot; ABCD chart &middot; tour notes &middot; RSOT list</li>
+      <li>&#9729;&#65039; Encrypted cloud backup &mdash; every phone you own, one code</li>
+    </ul>
+    <button class="raddbtn" id="payBuy" style="width:100%">Unlock &middot; $9.99</button>
+    <button class="ldbtn" id="payActivate" style="width:100%;margin-top:6px">I&rsquo;ve paid &mdash; activate</button>
+    <div class="paymsg" id="payMsg"></div>
+    <p class="paysub">Always free: seeing your 9&times;/6&times; tours on the chart, the reference tools, and riding along in a subscribed House Calendar. Your <b>recovery code</b> is your license &mdash; it restores the purchase and your data on any phone.</p>
   </div>
 </div>
 
@@ -2058,7 +2089,7 @@
   }
 
   // ---- day detail sheet ----
-  var scrim=document.getElementById("scrim"),sheet=document.getElementById("sheet"),setSheet=document.getElementById("setSheet"),rsotSheet=document.getElementById("rsotSheet"),statSheet=document.getElementById("statSheet"),mxSheet=document.getElementById("mxSheet"),dirSheet=document.getElementById("dirSheet"),statsSheet=document.getElementById("statsSheet"),refSheet=document.getElementById("refSheet"),bakSheet=document.getElementById("bakSheet"),evSheet=document.getElementById("evSheet"),cevSheet=document.getElementById("cevSheet"),legendPop=document.getElementById("legendPop"),instSheet=document.getElementById("instSheet"),groupSheet=document.getElementById("groupSheet"),tenSheet=document.getElementById("tenSheet"),abcdSheet=document.getElementById("abcdSheet"),cfrSheet=document.getElementById("cfrSheet"),boxSheet=document.getElementById("boxSheet"),houseSheet=document.getElementById("houseSheet");
+  var scrim=document.getElementById("scrim"),sheet=document.getElementById("sheet"),setSheet=document.getElementById("setSheet"),rsotSheet=document.getElementById("rsotSheet"),statSheet=document.getElementById("statSheet"),mxSheet=document.getElementById("mxSheet"),dirSheet=document.getElementById("dirSheet"),statsSheet=document.getElementById("statsSheet"),refSheet=document.getElementById("refSheet"),bakSheet=document.getElementById("bakSheet"),evSheet=document.getElementById("evSheet"),cevSheet=document.getElementById("cevSheet"),legendPop=document.getElementById("legendPop"),instSheet=document.getElementById("instSheet"),groupSheet=document.getElementById("groupSheet"),tenSheet=document.getElementById("tenSheet"),abcdSheet=document.getElementById("abcdSheet"),cfrSheet=document.getElementById("cfrSheet"),boxSheet=document.getElementById("boxSheet"),houseSheet=document.getElementById("houseSheet"),paySheet=document.getElementById("paySheet");
   var navStack=[];   // sheets in the open path — so the phone/browser Back (swipe-back) closes the current sheet, not the app
   function openSheet(s){
     if(navStack.length&&navStack[navStack.length-1]===s){scrim.classList.add("show");s.classList.add("show");return;}   // re-render of the same sheet — no new history entry
@@ -2067,7 +2098,7 @@
     try{history.pushState({sqSheet:navStack.length},"");}catch(e){}
   }
   function closeSheets(){var n=navStack.length;navStack=[];
-    [sheet,setSheet,rsotSheet,statSheet,mxSheet,dirSheet,statsSheet,refSheet,bakSheet,evSheet,cevSheet,legendPop,instSheet,groupSheet,tenSheet,abcdSheet,cfrSheet,boxSheet,houseSheet].forEach(function(x){x.classList.remove("show");});
+    [sheet,setSheet,rsotSheet,statSheet,mxSheet,dirSheet,statsSheet,refSheet,bakSheet,evSheet,cevSheet,legendPop,instSheet,groupSheet,tenSheet,abcdSheet,cfrSheet,boxSheet,houseSheet,paySheet].forEach(function(x){x.classList.remove("show");});
     scrim.classList.remove("show");
     if(n>0){try{history.go(-n);}catch(e){}}   // unwind the states we pushed
   }
@@ -2115,7 +2146,7 @@
     sheet.addEventListener("touchend",end,{passive:true});
     sheet.addEventListener("touchcancel",end,{passive:true});
   }
-  [sheet,setSheet,rsotSheet,statSheet,mxSheet,dirSheet,statsSheet,refSheet,bakSheet,evSheet,cevSheet,instSheet,groupSheet,tenSheet,abcdSheet,cfrSheet,boxSheet,houseSheet].forEach(initSheetDrag);
+  [sheet,setSheet,rsotSheet,statSheet,mxSheet,dirSheet,statsSheet,refSheet,bakSheet,evSheet,cevSheet,instSheet,groupSheet,tenSheet,abcdSheet,cfrSheet,boxSheet,houseSheet,paySheet].forEach(initSheetDrag);
   // ---- in-app confirm/prompt (the artifact sandbox blocks window.confirm/prompt/alert) ----
   var cmodal=document.getElementById("cmodal"),cmsg=document.getElementById("cmsg"),cfield=document.getElementById("cfield"),cinput=document.getElementById("cinput"),cinlab=document.getElementById("cinlab"),cselwrap=document.getElementById("cselwrap"),cselect=document.getElementById("cselect"),csellab=document.getElementById("csellab"),cyes=document.getElementById("cyes"),cno=document.getElementById("cno"),cCB=null,cMode="confirm";
   function appHideModal(){cmodal.classList.remove("show");cCB=null;}
@@ -2460,7 +2491,12 @@
     document.getElementById("grpSum").textContent="Group "+my+(pt?" · partner "+pt:" · no partner")+(hletter?" · "+hletter:"");
     document.getElementById("secYou").classList.toggle("collapsed",!!uname);                                             // fresh users see the fields; everyone else gets the tight sheet
     document.getElementById("secGroups").classList.add("collapsed");
-    renderSetNotif();openSheet(setSheet);};
+    renderSetNotif();syncUnlockRow();openSheet(setSheet);};
+  function syncUnlockRow(){ var u=document.getElementById("openUnlock"); if(!u)return;
+    u.hidden=!!(unlockSt&&(unlockSt.k==="paid"||unlockSt.k==="gf"));                                                     // paid + grandfathered crews don't see an ask
+    var d=trialDaysLeft(), s=document.getElementById("unlockSub");
+    if(s)s.textContent=(unlockSt&&unlockSt.k==="trial")?(d>0?(d+" day"+(d===1?"":"s")+" left in your trial · restore a purchase"):"Trial over — one-time, yours forever"):"One-time — yours forever · restore a purchase"; }
+  document.getElementById("openUnlock").onclick=function(){setSheet.classList.remove("show");openPay();};
   Array.prototype.forEach.call(document.querySelectorAll(".setcolhd"),function(b){b.onclick=function(){b.parentNode.classList.toggle("collapsed");};});
   document.getElementById("setNotif").addEventListener("click",function(e){ var b=e.target.closest("[data-act]"); if(!b)return; var act=b.getAttribute("data-act"); if(act==="pushon")enablePush(); else if(act==="pushoff")disablePush(); else if(act==="pref")togglePref(b.getAttribute("data-k")); });
   document.getElementById("setName").oninput=function(){uname=this.value;save("name",uname);};   // save-as-you-type (no calendar rebuild)
@@ -2509,7 +2545,7 @@
   Array.prototype.forEach.call(document.querySelectorAll("#gcMyStep button"),function(b){b.onclick=function(){gcMyVal=mod(gcMyVal-1+(+b.getAttribute("data-d")),G)+1;updGcMy();};});
   Array.prototype.forEach.call(document.querySelectorAll("#gcPtStep button"),function(b){b.onclick=function(){gcPtVal=mod(gcPtVal-1+(+b.getAttribute("data-d")),G)+1;updGcPt();};});
   Array.prototype.forEach.call(document.querySelectorAll("#gcPtSeg button"),function(b){b.onclick=function(){gcHasPt=(b.getAttribute("data-p")==="yes");Array.prototype.forEach.call(document.querySelectorAll("#gcPtSeg button"),function(x){x.classList.toggle("on",x===b);});document.getElementById("gcPtWrap").hidden=!gcHasPt;};});
-  document.getElementById("openGroups").onclick=function(){
+  document.getElementById("openGroups").onclick=function(){if(!requireUnlock())return;
     setSheet.classList.remove("show");
     var t=new Date();
     document.getElementById("gcDate").value=t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0");
@@ -2551,7 +2587,7 @@
       appConfirm("Remove this ABCD period? Those dates go back to your square-root chart. Nothing you logged is deleted.","Remove",function(){abcd.splice(i,1);save("abcd",abcd);renderAbcd();render();});};});
   }
   Array.prototype.forEach.call(document.querySelectorAll("#abLtrSeg button"),function(b){b.onclick=function(){abLtr=b.getAttribute("data-l");Array.prototype.forEach.call(document.querySelectorAll("#abLtrSeg button"),function(x){x.classList.toggle("on",x===b);});};});
-  document.getElementById("openAbcd").onclick=function(){
+  document.getElementById("openAbcd").onclick=function(){if(!requireUnlock())return;
     setSheet.classList.remove("show");
     var t=new Date();
     document.getElementById("abStart").value=t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0");
@@ -2748,6 +2784,46 @@
       return r.json(); }); }).then(function(rec){ if(rec.none)return {none:true};
       return decryptBlob(code,rec.blob).then(function(plain){var o=JSON.parse(plain);return {data:(o&&o.data)?o.data:o,ts:rec.ts};}); }); }
   function enableCloud(cb){ if(!hasCrypto()){if(cb)cb(null);return;} if(!rcode){rcode=genCode();save("rcode",rcode);} cloudOn=true;save("cloud",true); cloudStatus(); if(cb)cb(rcode); cloudPush().then(cloudStatus); }
+
+  // ===== Paid unlock ($9.99 one time) — the recovery code doubles as the license, no accounts =====
+  var PAYLINK_APP="";    // Stripe Payment Link for the $9.99 unlock — filled in at launch
+  var PAYLINK_HOUSE="";  // Stripe Payment Link for the $20/mo House subscription
+  var TRIAL_DAYS=30;     // one full 25-day rotation + change
+  var unlockSt=load("unlock",null);
+  if(!unlockSt&&load("seen",false)){ unlockSt={k:"gf"}; save("unlock",unlockSt); }   // grandfather: set up before billing shipped → free forever
+  function unlocked(){ if(!unlockSt)return false; if(unlockSt.k==="gf"||unlockSt.k==="paid")return true;
+    if(unlockSt.k==="trial")return (Date.now()-unlockSt.ts)<TRIAL_DAYS*864e5; return false; }
+  function trialDaysLeft(){ if(!unlockSt||unlockSt.k!=="trial")return 0; return Math.max(0,Math.ceil((unlockSt.ts+TRIAL_DAYS*864e5-Date.now())/864e5)); }
+  function licenseIdP(){ return rcode?hex256("sqrtcal-id-v1:"+rcode):Promise.resolve(null); }   // the RAW code never leaves the device
+  function payMsg(t,warn){ var el=document.getElementById("payMsg"); if(el){el.textContent=t||""; el.className="paymsg"+(warn?" warn":"");} }
+  function openPay(){ var st=document.getElementById("payTrial"), d=trialDaysLeft();
+    st.textContent = (unlockSt&&unlockSt.k==="trial") ? (d>0?("\u23F3 "+d+" day"+(d===1?"":"s")+" left in your free trial \u2014 everything works until then."):"Your 30-day trial is over \u2014 everything you logged is safe and unlocks with the app.") : "Unlock the full calendar.";
+    payMsg(""); openSheet(paySheet); }
+  function requireUnlock(){ if(unlocked())return true; openPay(); return false; }
+  function startPurchase(){
+    if(!PAYLINK_APP){ payMsg("Purchases open very soon \u2014 check back shortly.",true); return; }
+    function go(){ licenseIdP().then(function(id){ if(!id){payMsg("Couldn\u2019t create your license \u2014 try again.",true);return;}
+      var u=PAYLINK_APP+(PAYLINK_APP.indexOf("?")<0?"?":"&")+"client_reference_id="+encodeURIComponent("app_"+id);   // underscore \u2014 Stripe drops the value entirely if it holds a colon
+      if(!window.open(u,"_blank"))location.href=u;   // Safari blocks window.open after the async digest hop
+      payMsg("After paying, come back here and tap \u201CI\u2019ve paid \u2014 activate\u201D."); }); }
+    if(!rcode){ appConfirm("First you\u2019ll get a RECOVERY CODE \u2014 it\u2019s your receipt AND your restore key on any phone. Save it somewhere safe.","Get my code",function(){
+      enableCloud(function(code){ if(!code){payMsg("This device can\u2019t create a secure code.",true);return;}
+        appConfirm("Your recovery code:\n\n"+code+"\n\nScreenshot it or write it down, then continue to payment.","Continue",go); }); }); }
+    else go(); }
+  function activatePurchase(){
+    licenseIdP().then(function(id){ if(!id){payMsg("Tap Unlock first \u2014 you\u2019ll get your recovery code (the license).",true);return;}
+      payMsg("Checking\u2026");
+      fetch("/api/billing?check="+id).then(function(r){ if(!r.ok)throw new Error("http"); return r.json(); }).then(function(j){
+        if(j&&j.app){ unlockSt={k:"paid",id:id}; save("unlock",unlockSt); payMsg(""); closeSheets(); syncUnlockRow();
+          appConfirm("\uD83C\uDF89 Unlocked \u2014 thank you! The whole calendar is yours, on every phone that carries your recovery code.","Let\u2019s go",function(){}); }
+        else payMsg("No purchase found for this code yet. If you just paid, give it a few seconds and tap again.",true);
+      }).catch(function(){ payMsg("Couldn\u2019t check right now \u2014 your payment is safe. Try again in a minute.",true); }); }); }
+  (function(){ var b=document.getElementById("payBuy"),a=document.getElementById("payActivate");
+    if(b)b.onclick=startPurchase; if(a)a.onclick=activatePurchase; })();
+  (function(){ var st=document.getElementById("shTours"); if(!st)return;   // free tier VIEWS the day sheet; logging is paid — one capture-phase gate covers every control in it
+    st.addEventListener("click",function(e){ if(unlocked())return; var b=e.target.closest(".seg button,.sbseg button,.abseg button,.arseg button,.ldotseg button,.ldbtn,.ldedit,.setsplit [data-sp],.chkrow input,.chkrow label,button.dutygo,button.evgo,button.cevgo"); if(b){ e.stopPropagation(); e.preventDefault(); openPay(); } },true);   // preventDefault on capture also cancels checkbox toggles before onchange
+    st.addEventListener("focusin",function(e){ if(unlocked())return; var t=e.target; if(t&&(t.tagName==="INPUT"||t.tagName==="TEXTAREA")){ t.blur(); openPay(); } },true);
+  })();
   function disableCloud(){ cloudOn=false;save("cloud",false);cloudStatus(); }
   function restoreByCode(code,onResult){ code=(code||"").trim();
     if(!code){onResult("empty");return;} if(!hasCrypto()){onResult("bad");return;}
@@ -2831,6 +2907,7 @@
     var nEl=document.getElementById("onbName"),cEl=document.getElementById("onbCo");
     if(nEl){uname=nEl.value;save("name",uname);} if(cEl){uco=cEl.value.trim();save("co",uco);}   // capture name/company from onboarding
     groups=[{s:"1970-01-01",my:my,pt:pt}]; save("groups",groups); save("my",my); save("pt",pt); save("seen",1);   // fresh user → one base epoch
+    if(!unlockSt){ unlockSt={k:"trial",ts:Date.now()}; save("unlock",unlockSt); }   // new install → the 30-day clock starts when setup completes
     var vMy=document.getElementById("vMy");if(vMy)vMy.textContent=my; syncPt();render(); }
   function finishOnboarding(){ closeOnboarding(); if(!isStandalone()&&!load("instdone",false)&&!instSnoozed())setTimeout(function(){save("instsnooze",isoNow());openInstall();},350); }
   (function wireOnb(){
@@ -2891,7 +2968,7 @@
       return '<div class="ritem"><span class="rd">'+esc(n)+'<span class="mxbreak">'+e.credit+' in · '+e.debit+' out</span></span>'+badge+'</div>';
     }).join("");
   }
-  document.getElementById("openMx").onclick=function(){setSheet.classList.remove("show");renderLedger();openSheet(mxSheet);};
+  document.getElementById("openMx").onclick=function(){if(!requireUnlock())return;setSheet.classList.remove("show");renderLedger();openSheet(mxSheet);};
   document.getElementById("mxDone").onclick=closeSheets;
 
   // ---- Overtime dollars: "on the job since" date → hourly OT rate from the UFA chart (8/1/2024). OVERTIME ONLY — no salary tracking. ----
@@ -2979,7 +3056,7 @@
     Array.prototype.forEach.call(list.querySelectorAll(".styhd, .stmhd, .stphd"),function(b){b.onclick=function(){b.parentNode.classList.toggle("open");};});   // year / month / pay-period headers collapse
     Array.prototype.forEach.call(list.querySelectorAll(".stday"),function(b){b.onclick=function(){var p=b.getAttribute("data-nav").split("-");goToDate(+p[0],+p[1],+p[2]);};});   // tap a day → jump to it on the calendar
   }
-  document.getElementById("openStats").onclick=function(){setSheet.classList.remove("show");renderStats();openSheet(statsSheet);};
+  document.getElementById("openStats").onclick=function(){if(!requireUnlock())return;setSheet.classList.remove("show");renderStats();openSheet(statsSheet);};
   document.getElementById("stDone").onclick=closeSheets;
 
   var FH=[["Engine 4/Ladder 15","42 South Street","M","10005",40.703694,-74.007717,"212-570-4204"],
@@ -3616,11 +3693,12 @@ var TEN_CODES=[
     if(hg===cur) return;   // house already matches my calendar → nothing to offer
     appConfirm("🏠 "+((HD&&HD.name)||"Your house")+" has you in group "+hg+", but your calendar shows group "+cur+". Update your calendar to group "+hg+", starting today?","Update to group "+hg,function(){ applyHouseGroup(hg); });
   }
+  var hSub=null;   // {mode:"trial"|"active"|"grace"|"lapsed",daysLeft} from the server (set on every GET)
   var hLoad="";   // what we KNOW about the active house when HD isn't cached: "loading" | "pending" | "err:<code>" — never guess "waiting for approval" from a missing doc
   function hGet(){ if(!HS)return Promise.resolve({none:true}); var reqId=HS.id; if(!HD)hLoad="loading";
     return hFetch("GET","?id="+encodeURIComponent(reqId),null,{"X-House-M":HS.m,"X-House-S":HS.s}).then(function(r){
     if(!HS||HS.id!==reqId)return {stale:true};   // the active house changed while this fetch was in flight → ignore it (never render another house's data)
-    if(r.status===200&&r.j.doc){hLoad="";HD=r.j.doc;hSyncActive();hSave();applyDoneRequests();setHouseBadge();maybePromptHouseGroup();return {doc:HD};}
+    if(r.status===200&&r.j.doc){hLoad="";HD=r.j.doc;hSub=r.j.sub||null;hSyncActive();hSave();applyDoneRequests();setHouseBadge();maybePromptHouseGroup();return {doc:HD};}
     if(r.status===200&&r.j.pending){hLoad="pending";return {pending:true};}
     if(r.status===403||r.status===404){hDrop(reqId);return HS?hGet():Promise.resolve({gone:true});}   // drop just this (gone) house; if another membership remains, fetch IT so we never show a false "pending" screen for a house you're active in
     hLoad="err:"+((r.j&&r.j.error)||("http "+r.status));
@@ -3721,7 +3799,11 @@ var TEN_CODES=[
       body.innerHTML='<div class="hscroll">'+sw+noDoc+'</div>'; return; }
     if(me&&me.status!=="active"){ body.innerHTML='<div class="hscroll">'+sw+hPending()+'</div>'; return; }
     var view=(hview==="roster"?hRoster():hview==="requests"?hRequests():hview==="manage"?hManage():hDay());
-    body.innerHTML=sw+hHeader()+hTabs()+'<div class="hscroll">'+(hMsg?'<div class="hmsg">'+esc(hMsg)+'</div>':'')+view+'</div>';
+    var subBn="";   // subscription banner: quiet during a healthy trial, loud when action is needed. Anyone can pay — the commissar isn't necessarily the admin
+    if(hSub){ if(hSub.mode==="lapsed") subBn='<div class="hmsg warn">\u23F8 This house\u2019s subscription has lapsed \u2014 the crew can look, but nothing changes until it\u2019s reactivated ($20/mo covers the whole house). <button class="raddbtn sm" data-act="paysub">Reactivate</button></div>';
+      else if(hSub.mode==="grace") subBn='<div class="hmsg warn">\u26A0 Payment issue \u2014 the house keeps working for '+hSub.daysLeft+' more day'+(hSub.daysLeft===1?'':'s')+' while it\u2019s sorted out. <button class="raddbtn sm" data-act="paysub">Fix billing</button></div>';
+      else if(hSub.mode==="trial"&&hSub.daysLeft<=7) subBn='<div class="hmsg">\u23F3 House trial: '+hSub.daysLeft+' day'+(hSub.daysLeft===1?'':'s')+' left \u2014 $20/month keeps the whole crew synced (one person pays for everyone). <button class="raddbtn sm" data-act="paysub">Activate</button></div>'; }
+    body.innerHTML=sw+hHeader()+hTabs()+'<div class="hscroll">'+subBn+(hMsg?'<div class="hmsg">'+esc(hMsg)+'</div>':'')+view+'</div>';
     if(hview==="roster")filterRoster(); if(hview==="requests")markReqsSeen(); }
   function hGate(){ var ready=(uname&&uco);
     return '<h3>🏠 House Calendar</h3><p class="rsub">Sync your firehouse — see who’s reporting for each tour, swap &amp; cover tours, and keep the crew in one place.</p>'+
@@ -3871,10 +3953,10 @@ var TEN_CODES=[
   function isoLocal(y,m,d){return y+"-"+(m+1<10?"0":"")+(m+1)+"-"+(d<10?"0":"")+d;}
 
   // --- action dispatcher ---
-  function hErrMsg(e){ var M={"rsot-mismatch":"an RSOT can only be swapped for another RSOT","sync-failed":"couldn’t sync your schedule — check your connection and try again","author-gone":"the person who posted this has left the house","tour-taken":"that tour is already part of another swap","not-partners":"even swaps only work with your confirmed mutual partner","bad-partner":"pick an active crewmate as your partner","bad-date":"that date isn’t valid — use the YYYY-MM-DD format","no-house":"no house with that code — double-check it with your admin","bad-event":"give the event a name and a valid date","busy-retry":"the house is busy — try again in a second","too-many":"the house has hit its limit for these — clear some out first","not-open":"someone else already took that one","offline":"you’re offline — reconnect and try again","banned":"you can’t rejoin this house — talk to the admin","house-full":"that house is full","conflict":"someone else changed things at the same time — try again"};
+  function hErrMsg(e){ var M={"rsot-mismatch":"an RSOT can only be swapped for another RSOT","sync-failed":"couldn’t sync your schedule — check your connection and try again","author-gone":"the person who posted this has left the house","tour-taken":"that tour is already part of another swap","not-partners":"even swaps only work with your confirmed mutual partner","bad-partner":"pick an active crewmate as your partner","bad-date":"that date isn’t valid — use the YYYY-MM-DD format","no-house":"no house with that code — double-check it with your admin","bad-event":"give the event a name and a valid date","busy-retry":"the house is busy — try again in a second","too-many":"the house has hit its limit for these — clear some out first","not-open":"someone else already took that one","offline":"you’re offline — reconnect and try again","banned":"you can’t rejoin this house — talk to the admin","house-full":"that house is full","conflict":"someone else changed things at the same time — try again","sub-lapsed":"the house subscription has lapsed — tap Reactivate in the banner (any member can pay)"};
     if(M[e])return M[e]; if(/^http 5/.test(e||""))return "the server hiccuped — try again in a moment"; if(/^http 4/.test(e||""))return "that didn’t go through — refresh and try again"; return e; }   // raw codes are never user-facing copy
   var hBusy=false;
-  function hReloadThen(p){ if(hBusy)return; hBusy=true; hBusyMsg("Working…"); Promise.resolve(p).then(function(res){ hBusy=false; hMsg=(res&&res.err)?("⚠ "+hErrMsg(res.err)):""; renderHouse(); }).catch(function(){ hBusy=false; renderHouse(); }); }   // drop a second tap while a write is in flight (no duplicate crew-visible requests)
+  function hReloadThen(p){ if(hBusy)return; hBusy=true; hBusyMsg("Working…"); Promise.resolve(p).then(function(res){ hBusy=false; hMsg=(res&&res.err)?("⚠ "+hErrMsg(res.err)):""; if(res&&res.err==="sub-lapsed")hSub={mode:"lapsed",daysLeft:0}; renderHouse(); }).catch(function(){ hBusy=false; renderHouse(); }); }   // drop a second tap while a write is in flight (no duplicate crew-visible requests)
   function hBusyMsg(t){ hMsg=t; var b=document.getElementById("houseBody"); if(b&&HS){/* keep current view, just note */} }
   function readSeg(id){ var on=document.querySelector("#"+id+" button.on"); return on?on.getAttribute(on.hasAttribute("data-rt")?"data-rt":"data-t"):""; }
   function assignMember(who){ var mm=(HD&&HD.members&&HD.members[who])||{}, cos=(HD&&HD.companies||[]).slice(), nm=mm.name||"this member";   // approve a pending member OR reassign an active one: company (from the HOUSE list) AND group in one dialog
@@ -3899,6 +3981,10 @@ var TEN_CODES=[
     if(act==="create"){ var nm=(document.getElementById("hCreateName")||{}).value||""; if(!nm.trim()){hMsg="Name your house first.";renderHouse();return;} hReloadThen(houseCreate(nm.trim(),hNewCos.slice())); return; }
     if(act==="join"){ var cd=((document.getElementById("hJoinCode")||{}).value||"").trim(); if(!cd){hMsg="Enter the join code.";renderHouse();return;} if(hBusy)return; hBusy=true; houseJoin(cd).then(function(res){ hBusy=false; hMsg=res.err?("⚠ "+res.err):(res.pending?"Request sent — waiting for approval.":""); renderHouse(); }).catch(function(){ hBusy=false; renderHouse(); }); return; }
     if(act==="refresh"){ hGet().then(function(){renderHouse();}); return; }
+    if(act==="paysub"){ if(!PAYLINK_HOUSE){ hMsg="House subscriptions open very soon \u2014 check back shortly."; renderHouse(); return; }
+      var subU=PAYLINK_HOUSE+(PAYLINK_HOUSE.indexOf("?")<0?"?":"&")+"client_reference_id="+encodeURIComponent("house_"+HS.id);
+      if(!window.open(subU,"_blank"))location.href=subU;
+      hMsg="After paying, reopen the house \u2014 it activates within seconds."; renderHouse(); return; }
     if(act==="addhouse"){ hAddMode=true; hMsg=""; renderHouse(); return; }              // join/create ANOTHER house (e.g. a 6-month detail house)
     if(act==="addcancel"){ hAddMode=false; hMsg=""; renderHouse(); return; }
     if(act==="switchhouse"){ hSwitch(el.getAttribute("data-hid")); return; }
@@ -4028,7 +4114,7 @@ var TEN_CODES=[
     Array.prototype.forEach.call(list.querySelectorAll(".rx"),function(b){b.onclick=function(){delete ot[b.getAttribute("data-k")];save("ot",ot);render();renderRsot();};});
     wireYrAcc(list);
   }
-  document.getElementById("openRsot").onclick=function(){setSheet.classList.remove("show");renderRsot();openSheet(rsotSheet);};
+  document.getElementById("openRsot").onclick=function(){if(!requireUnlock())return;setSheet.classList.remove("show");renderRsot();openSheet(rsotSheet);};
   document.getElementById("rDone").onclick=closeSheets;
   Array.prototype.forEach.call(document.querySelectorAll("#rsotSheet .rseg button"),function(b){
     b.onclick=function(){rTour=parseInt(b.getAttribute("data-rt"),10);Array.prototype.forEach.call(b.parentNode.children,function(c){c.classList.remove("on");});b.classList.add("on");};
@@ -4141,7 +4227,7 @@ var TEN_CODES=[
   Array.prototype.forEach.call(document.querySelectorAll("#ldLtr button"),function(b){b.onclick=function(){ldELtr=b.getAttribute("data-l");showLdCfg();};});
   Array.prototype.forEach.call(document.querySelectorAll("#ldDays button"),function(b){b.onclick=function(){b.classList.toggle("on");};});
   Array.prototype.forEach.call(document.querySelectorAll("#trDays button"),function(b){b.onclick=function(){b.classList.toggle("on");};});
-  document.getElementById("openStat").onclick=function(){setSheet.classList.remove("show");resetPForm();setPType("vac");renderPeriods();openSheet(statSheet);};
+  document.getElementById("openStat").onclick=function(){if(!requireUnlock())return;setSheet.classList.remove("show");resetPForm();setPType("vac");renderPeriods();openSheet(statSheet);};
   document.getElementById("pDone").onclick=closeSheets;
   var pCancelBtn=document.getElementById("pCancel"); if(pCancelBtn)pCancelBtn.onclick=function(){resetPForm();renderPeriods();};
   document.getElementById("pAdd").onclick=function(){
@@ -4212,7 +4298,7 @@ var TEN_CODES=[
     cfrTourSel=(cfr.ses&&cfr.ses.tour)||"day"; document.getElementById("cfrSesTime").value=(cfr.ses&&cfr.ses.t)||"09:00";
     if(!cfr.ses)["cfrD1","cfrD2","cfrD3","cfrD4","cfrD5"].forEach(function(id){var el=document.getElementById(id);if(el)el.value="";});
     renderCfr();openSheet(cfrSheet);}
-  document.getElementById("openCfr").onclick=function(){setSheet.classList.remove("show");openCfrSheet();};
+  document.getElementById("openCfr").onclick=function(){if(!requireUnlock())return;setSheet.classList.remove("show");openCfrSheet();};
   document.getElementById("cfrDone").onclick=closeSheets;
   document.getElementById("cfrSaveExp").onclick=function(){var v=document.getElementById("cfrExpIn").value;if(!isRealDate(v)){cfrErr("Pick your CFR expiration date.");return;}cfr.exp=v;save("cfrsnooze","");saveCfr();cfrErr("");render();renderCfr();};   // clear any snoozed reminder when a fresh date is set
   function cfrSnoozed(){var s=load("cfrsnooze",null);if(!s)return false;return (Date.now()-new Date(s).getTime())<30*864e5;}   // dismiss the reminder for 30 days
@@ -4242,7 +4328,7 @@ var TEN_CODES=[
       evErr("");
     };
   });
-  document.getElementById("openEv").onclick=function(){setSheet.classList.remove("show");evErr("");renderEvents();openSheet(evSheet);};
+  document.getElementById("openEv").onclick=function(){if(!requireUnlock())return;setSheet.classList.remove("show");evErr("");renderEvents();openSheet(evSheet);};
   document.getElementById("evDone").onclick=closeSheets;
   document.getElementById("evAdd").onclick=function(){
     var s=document.getElementById("evDate").value;
@@ -4281,7 +4367,7 @@ var TEN_CODES=[
     cevDates=cevDatesOf(e).slice();document.getElementById("cevDate").value="";resetCevRep();renderChips();
     cevErr("");syncCevMode();
     var sh=document.getElementById("cevSheet");if(sh)sh.scrollTop=0;document.getElementById("cevName").focus();}
-  document.getElementById("openCev").onclick=function(){setSheet.classList.remove("show");clearCevForm();renderCev();openSheet(cevSheet);};
+  document.getElementById("openCev").onclick=function(){if(!requireUnlock())return;setSheet.classList.remove("show");clearCevForm();renderCev();openSheet(cevSheet);};
   document.getElementById("cevDone").onclick=closeSheets;
   document.getElementById("cevCancel").onclick=function(){clearCevForm();};
   Array.prototype.forEach.call(document.querySelectorAll("#cevRep button"),function(b){

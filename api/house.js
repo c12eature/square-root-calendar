@@ -114,6 +114,27 @@ function redis(cmd) {
   }).then(function (r) { if (!r.ok) throw new Error("redis " + r.status); return r.json(); })
     .then(function (j) { return j.result; });
 }
+// ---- House subscription (set by api/billing.js from Stripe webhooks) ----
+// Every house gets a free trial from creation; after that a live subscription (sqrtcal:ent:house:<id>)
+// keeps it read-write. Lapsed = reads still work (with a flag the client banners), writes 402 except "leave".
+// Known accepted risk: a crew could dodge paying by re-creating the house every 30 days — but that wipes
+// all history/requests and forces every member to rejoin, which is deterrent enough for a $20/mo product.
+var SUB_TRIAL_DAYS = (function () { var n = parseInt(process.env.SUB_TRIAL_DAYS || "30", 10); return isFinite(n) && n > 0 ? n : 30; })();
+var SUB_GRACE_DAYS = 7;
+async function houseSubStatus(doc) {
+  var now = Date.now(), ent = null, raw = null;
+  try { raw = await redis(["GET", "sqrtcal:ent:house:" + doc.id]); }
+  catch (e) { return { mode: "active", daysLeft: 1, degraded: true }; }   // billing store unreachable ≠ unpaid — fail open, never 402 a paid house on an infra blip
+  try { if (raw) ent = JSON.parse(raw); } catch (e) {}
+  if (ent) {
+    if (ent.st === "active" && ent.end > now) return { mode: "active", daysLeft: Math.ceil((ent.end - now) / 864e5) };
+    if (ent.end + SUB_GRACE_DAYS * 864e5 > now && ent.st !== "canceled") return { mode: "grace", daysLeft: Math.ceil((ent.end + SUB_GRACE_DAYS * 864e5 - now) / 864e5) };   // payment hiccup ≠ instant lockout
+    return { mode: "lapsed", daysLeft: 0 };
+  }
+  var trialEnd = (doc.createdAt || 0) + SUB_TRIAL_DAYS * 864e5;
+  if (trialEnd > now) return { mode: "trial", daysLeft: Math.ceil((trialEnd - now) / 864e5) };
+  return { mode: "lapsed", daysLeft: 0 };
+}
 // ---- Web Push (VAPID) ----
 // Public key is embedded in the client (safe); the PRIVATE key is env-only, never committed.
 // Subscriptions are stored in a PRIVATE per-member key (never in the house doc), so no member
@@ -463,7 +484,7 @@ async function handler(req, res) {
       var doc = JSON.parse(raw), me = doc.members[gm];
       if (!me || me.status === "left" || me.status === "removed") { res.status(403).json({ error: "not-member" }); return; }   // a tombstone reads as GONE → the caller's client drops this house
       if (me.status !== "active") { res.status(200).json({ pending: true, id: doc.id, name: doc.name, status: me.status }); return; }
-      res.status(200).json({ doc: doc });
+      res.status(200).json({ doc: doc, sub: await houseSubStatus(doc) });   // trial/active/grace/lapsed — the client banners it (reads keep working when lapsed; writes don't)
       return;
     }
     if (req.method !== "POST") { res.status(405).json({ error: "method-not-allowed" }); return; }
@@ -525,6 +546,7 @@ async function handler(req, res) {
         if (live.length >= MAX_MEMBERS) { res.status(403).json({ error: "house-full" }); return; }
         var pend = d2.members ? Object.keys(d2.members).filter(function (k) { return d2.members[k].status === "pending"; }).length : 0;
         if (pend >= MAX_PENDING) { res.status(403).json({ error: "too-many-pending" }); return; }
+        if ((await houseSubStatus(d2)).mode === "lapsed") { res.status(402).json({ error: "sub-lapsed" }); return; }   // join mutates the doc — same gate as every other write
         d2.members[m] = newMember(body, "member", "pending"); d2.ver++;
         if (await casSet(HOUSE_PREFIX + hid, raw2, JSON.stringify(d2))) {
           redis(["EXPIRE", CODE_PREFIX + code2, String(TTL)]).catch(function () {});   // keep the code alive while the house is active
@@ -554,6 +576,10 @@ async function handler(req, res) {
       res.status(403).json({ error: "not-active" }); return;
     }
     if (!isNaN(base) && doc3.ver !== base) { res.status(409).json({ error: "conflict", ver: doc3.ver, doc: doc3 }); return; }
+    if (op.type !== "leave") {   // leaving is ALWAYS allowed — nobody gets held hostage by a lapsed bill
+      var subSt = await houseSubStatus(doc3);
+      if (subSt.mode === "lapsed") { res.status(402).json({ error: "sub-lapsed" }); return; }   // trial over + no live subscription → writes stop until the commissar activates
+    }
 
     if (op.type === "rotateCode") {   // admin-only; needs Redis side effects, so handled here (not in applyOp)
       if (!isAdmin(doc3, m)) { res.status(403).json({ error: "admins-only" }); return; }
