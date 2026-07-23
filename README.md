@@ -15,9 +15,10 @@
 > 4. **House Calendar (multi-user) also needs, in the Vercel env:** `HOUSE_ENABLED=1`, `CRON_SECRET`, and `VAPID_PUBLIC` / `VAPID_PRIVATE` (the private key is **not** in the repo — it lives in the local `scratchpad/vapid.txt`). Without these, `/api/house` stays 503 and tour/swap Web Push is off.
 
 Free firehouse tour-tracking calendar. Single self-contained page, works fully offline,
-stores everything in the browser (`localStorage`, `sqrt:*` keys). Target URL: **calendar.nyfirestudyapp.com**.
+stores everything in the browser (`localStorage`, `sqrt:*` keys). Target URL: **squarerootcalendar.com**.
 
-> ## ✅ LIVE at calendar.nyfirestudyapp.com
+> ## ✅ LIVE at squarerootcalendar.com
+> (legacy alias: calendar.nyfirestudyapp.com — same Vercel project; Android APK regeneration for the new domain pending)
 > Deployed on Vercel + Porkbun; PWA installs on iPhone & Android; branded `.apk` hosted; wired into the study
 > app's Free Tools. **Newest feature (2026-07-18): first-run onboarding + install nudges + bulletproof data
 > durability (persistent storage + IndexedDB mirror + encrypted cloud backup).**
@@ -50,9 +51,9 @@ stores everything in the browser (`localStorage`, `sqrt:*` keys). Target URL: **
 ## Deploy (same pattern as the other free tools)
 1. Push this folder to a GitHub repo (e.g. `github.com/c12eature/square-root-calendar`).
 2. Vercel → **Add New Project** → import the repo → Framework preset **Other** (it's static, no build step) → Deploy.
-3. Vercel → Project → **Settings → Domains** → add `calendar.nyfirestudyapp.com`.
+3. Vercel → Project → **Settings → Domains** → add `squarerootcalendar.com`.
 4. Porkbun DNS → add the CNAME Vercel shows (usually `cname.vercel-dns.com`) for the `calendar` subdomain.
-5. Visit `https://calendar.nyfirestudyapp.com` — it should load, register the service worker, and be installable.
+5. Visit `https://squarerootcalendar.com` — it should load, register the service worker, and be installable.
 
 ## How people install it
 - **iPhone (Safari):** Share → **Add to Home Screen**. Launches full-screen, no browser bars, works offline.
@@ -81,7 +82,7 @@ new phone → it pulls + decrypts → done. There are **no accounts** — the re
    - This auto-adds env vars. The endpoint accepts either naming: `KV_REST_API_URL`/`KV_REST_API_TOKEN`
      **or** `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN`.
 2. **Redeploy** (Vercel → Deployments → ⋯ → Redeploy, or push a commit) so the function picks up the env vars.
-3. Verify: `curl "https://calendar.nyfirestudyapp.com/api/sync?id=abc"` should return **400 `bad-id`** (not 501).
+3. Verify: `curl "https://squarerootcalendar.com/api/sync?id=abc"` should return **400 `bad-id`** (not 501).
    A 501 `cloud-not-configured` means the env vars aren't set yet.
 
 No secrets live in this repo. Data stored server-side is opaque ciphertext only — good for privacy **and** for the
@@ -91,7 +92,7 @@ pending legal/privacy-policy posture.
 The PWA above already installs on Android. You only need an actual `.apk` for the **Google Play Store** or for
 a direct download/sideload. Easiest path — **PWABuilder** (no Android SDK required):
 
-1. Deploy the PWA first (must be live at `https://calendar.nyfirestudyapp.com`).
+1. Deploy the PWA first (must be live at `https://squarerootcalendar.com`).
 2. Go to **https://www.pwabuilder.com**, enter the URL, click **Package for stores → Android**.
 3. Package id: `com.nyfirestudyapp.calendar`. Download the package (it includes a signing key — **keep `signing.keystore` + passwords safe**).
 4. PWABuilder shows the **SHA-256 fingerprint** of the signing key. Put it into
@@ -110,7 +111,7 @@ Add to `src/freeTools.js` in the study-app repo, alongside the other tools:
   id: 'calendar',
   name: 'Square Root Calendar',
   desc: 'Track your tours, mutual swaps, overtime, RSOT, time off & company events. Works offline.',
-  href: 'https://calendar.nyfirestudyapp.com',
+  href: 'https://squarerootcalendar.com',
   icon: '🗓️',
 }
 ```
