@@ -142,7 +142,7 @@ async function houseSubStatus(doc) {
 // backend still runs locally without the package or env set.
 var VAPID_PUBLIC = process.env.VAPID_PUBLIC || "";
 var VAPID_PRIVATE = process.env.VAPID_PRIVATE || "";
-var VAPID_SUBJECT = process.env.VAPID_SUBJECT || "mailto:support@nyfirestudyapp.com";
+var VAPID_SUBJECT = process.env.VAPID_SUBJECT || "mailto:support@squarerootcalendar.com";
 var PUSH_PREFIX = "sqrtcal:push:";
 // Only these real push-service origins are accepted as subscription endpoints — blocks SSRF via a hostile endpoint.
 var PUSH_HOSTS = ["fcm.googleapis.com", "android.googleapis.com", "web.push.apple.com", "updates.push.services.mozilla.com"];
