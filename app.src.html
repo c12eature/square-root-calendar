@@ -1571,7 +1571,9 @@
   function load(k,def){try{var v=LS.getItem("sqrt:"+k);return v==null?def:JSON.parse(v);}catch(e){return def;}}
   var saveWarned=false;
   function warnNoSave(){if(saveWarned)return;saveWarned=true;try{var b=document.createElement("div");b.setAttribute("role","alert");b.style.cssText="position:fixed;left:8px;right:8px;bottom:8px;z-index:9999;background:#7f1d1d;color:#fff;padding:11px 13px;border-radius:11px;font:600 12.5px/1.45 -apple-system,BlinkMacSystemFont,system-ui,sans-serif;box-shadow:0 8px 26px rgba(0,0,0,.45)";b.textContent="⚠︎ Changes aren’t being saved — storage is full or you’re in Private Browsing. Entries will be lost when you close the app. (Tap to dismiss.)";b.onclick=function(){b.remove();};document.body.appendChild(b);}catch(e){}}
-  function save(k,v){try{LS.setItem("sqrt:"+k,JSON.stringify(v));afterWrite(k);return true;}catch(e){warnNoSave();return false;}}
+  var _staleTab=false;   // another tab/window rewrote our state (merge, adoption, restore) — this tab's memory is stale and must never write over it
+  window.addEventListener("storage",function(e){ if(e.key==="sqrt:editat"||e.key==="sqrtmergebase"){ _staleTab=true; try{ if(!document.querySelector(".sheet.show,.onb.show,.cmodal.show"))location.reload(); }catch(_){location.reload();} } });
+  function save(k,v){if(_staleTab){location.reload();return false;}try{LS.setItem("sqrt:"+k,JSON.stringify(v));afterWrite(k);return true;}catch(e){warnNoSave();return false;}}
   var my=load("my",7), pt=load("pt",19), spot=load("spot",false), ov=load("ov",{}), ot=load("ot",{}), ar=load("ar",{}), mx=load("mx",{}), add=load("add",{}), note=load("note",{}), events=load("ev",[]), cev=load("cev",[]);
   var uname=load("name",""), uco=load("co","");   // your identity — full name + company/assignment (shown to your House Calendar crew)
   // ---- group assignments over time (reassignment = new groups + maybe a new partner) ----
@@ -2089,7 +2091,7 @@
     scrim.classList.add("show");s.classList.add("show");navStack.push(s);
     try{history.pushState({sqSheet:navStack.length},"");}catch(e){}
   }
-  function closeSheets(){var n=navStack.length;navStack=[];
+  function closeSheets(){if(_staleTab){location.reload();return;}var n=navStack.length;navStack=[];
     [sheet,setSheet,rsotSheet,statSheet,mxSheet,dirSheet,statsSheet,refSheet,bakSheet,evSheet,cevSheet,legendPop,instSheet,groupSheet,tenSheet,abcdSheet,cfrSheet,boxSheet,houseSheet,paySheet].forEach(function(x){x.classList.remove("show");});
     scrim.classList.remove("show");
     if(n>0){try{history.go(-n);}catch(e){}}   // unwind the states we pushed
@@ -2618,20 +2620,21 @@
   function downloadBackup(){try{var json=JSON.stringify(backupObj(),null,2),blob=new Blob([json],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="square-root-backup-"+isoNow().slice(0,10)+".json";document.body.appendChild(a);a.click();setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);},1500);markBackup();bakSay("Backup file downloaded. If nothing showed up, use Copy backup code instead.",false);}catch(e){bakSay("Couldn't download here — use Copy backup code instead.",true);}}
   function copyBackup(){var code=makeCode(),ta=document.getElementById("bakOut");ta.value=code;ta.removeAttribute("readonly");ta.focus();ta.select();try{ta.setSelectionRange(0,code.length);}catch(e){}var done=function(ok){ta.setAttribute("readonly","readonly");markBackup();bakSay(ok?"Backup code copied — paste it somewhere safe (Notes, email, password manager).":"Couldn't auto-copy — select the code below and copy it manually.",!ok);};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(code).then(function(){done(true);},function(){var ok=false;try{ok=document.execCommand("copy");}catch(e){}done(ok);});}else{var ok=false;try{ok=document.execCommand("copy");}catch(e){}done(ok);}}
   function parseBackup(raw){raw=(raw||"").trim();if(!raw)return null;if(raw.indexOf("SQRTCAL1:")===0){try{raw=b64dec(raw.slice(9));}catch(e){return null;}}var o;try{o=JSON.parse(raw);}catch(e){return null;}var data=(o&&o.data&&typeof o.data==="object")?o.data:o;if(!data||typeof data!=="object"||data.constructor!==Object)return null;return {meta:(o&&o.data)?o:null,data:data};}
-  function applyBackup(data){var keys=Object.keys(data).filter(function(k){return typeof data[k]==="string";});if(!keys.length)return false;/* never wipe unless there's real data to write back */
+  function applyBackup(data,noReload){var keys=Object.keys(data).filter(function(k){return typeof data[k]==="string";});if(!keys.length)return false;/* never wipe unless there's real data to write back */
     var snap={},i,k;for(i=0;i<LS.length;i++){k=LS.key(i);if(k&&k.indexOf("sqrt:")===0)snap[k]=LS.getItem(k);}   // snapshot so a mid-write failure can't corrupt/half-wipe existing data
     try{
-      for(k in snap)LS.removeItem(k);
+      for(k in snap){if(noReload&&(k==="sqrt:bakts"||k==="sqrt:baksnooze"||k==="sqrt:cfrsnooze"))continue;LS.removeItem(k);}   // a background merge must not re-pop snoozed reminders
       keys.forEach(function(kk){LS.setItem("sqrt:"+kk,data[kk]);});
-      LS.setItem("sqrt:bakts",JSON.stringify(isoNow()));
+      if(!noReload)LS.setItem("sqrt:bakts",JSON.stringify(isoNow()));
+      try{LS.removeItem("sqrtmergebase");}catch(_){}   // whatever ancestry the old base described no longer applies — the next sync point rebuilds it
     }catch(e){
       for(i=LS.length-1;i>=0;i--){var bad=LS.key(i);if(bad&&bad.indexOf("sqrt:")===0)LS.removeItem(bad);}   // roll back to the snapshot
       for(k in snap){try{LS.setItem(k,snap[k]);}catch(_){}}
       bakSay("Restore failed — storage may be full. Your existing data was kept, nothing was changed.",true);
       return false;
     }
-    location.reload();return true;}
-  function doRestore(raw){var p=parseBackup(raw);if(!p){bakSay("That's not a valid backup. Paste the whole code (it starts with SQRTCAL1:) or choose your .json file.",true);return;}var has=Object.keys(p.data).filter(function(k){return typeof p.data[k]==="string";});if(!has.length){   /* accept ANY sqrt key (notes, events, company events, theme…) — mirror collectData so the two can't drift */bakSay("That backup has no readable Square Root data — it may be incomplete or hand-edited. Nothing was changed.",true);return;}var when=(p.meta&&p.meta.ts)?(" from "+new Date(p.meta.ts).toLocaleDateString()):"";appConfirm("Restore this backup"+when+"? It REPLACES all swaps, overtime, ledger, and settings on THIS device.","Replace & restore",function(){applyBackup(p.data);});}
+    if(!noReload)location.reload();return true;}
+  function doRestore(raw){var p=parseBackup(raw);if(!p){bakSay("That's not a valid backup. Paste the whole code (it starts with SQRTCAL1:) or choose your .json file.",true);return;}var has=Object.keys(p.data).filter(function(k){return typeof p.data[k]==="string";});if(!has.length){   /* accept ANY sqrt key (notes, events, company events, theme…) — mirror collectData so the two can't drift */bakSay("That backup has no readable Square Root data — it may be incomplete or hand-edited. Nothing was changed.",true);return;}var when=(p.meta&&p.meta.ts)?(" from "+new Date(p.meta.ts).toLocaleDateString()):"";appConfirm("Restore this backup"+when+"? It REPLACES all swaps, overtime, ledger, and settings on THIS device.","Replace & restore",function(){p.data.cdirty=JSON.stringify(true);p.data.cconf=JSON.stringify(false);applyBackup(p.data);});}   // a file restore has unknown ancestry — mark dirty so it MERGES with the cloud (base-less union) instead of sitting stale or mass-deleting
   document.getElementById("openBak").onclick=function(){setSheet.classList.remove("show");document.getElementById("bakMsg").className="bakmsg";document.getElementById("bakIn").value="";bakUpdate();openSheet(bakSheet);};
   document.getElementById("bakDone").onclick=closeSheets;
   document.getElementById("bakCopy").onclick=copyBackup;
@@ -2677,10 +2680,11 @@
   // every save() runs this: keep the on-device mirror fresh + queue a cloud push.
   // NOTE: pure sync-metadata keys must NOT re-trigger a push, or cloudPush's own
   // save("cloudts") would loop forever (push → save cloudts → push → …).
-  var _mirrorT=null, NOSYNC={cloudts:1,cbase:1,cdirty:1,cconf:1,bakts:1,baksnooze:1,cfrsnooze:1,hgack:1,curhouse:1};   // sync-metadata keys never re-trigger a push (curhouse = which house you're currently viewing, device-local)
+  var _mirrorT=null, NOSYNC={cloudts:1,cbase:1,cdirty:1,cconf:1,bakts:1,baksnooze:1,cfrsnooze:1,hgack:1,curhouse:1,editat:1};   // sync-metadata keys never re-trigger a push (curhouse = which house you're currently viewing, device-local)
   // NOSYNC-guard is null-safe: during module init (before the var above is assigned) NOSYNC is
   // undefined, so an early save() (e.g. mutual-name seeding) must NOT throw here.
   function afterWrite(k){ if(NOSYNC&&NOSYNC[k])return;
+    try{LS.setItem("sqrt:editat",JSON.stringify(Date.now()));}catch(e){}   // device-level last-edit clock — the merge tiebreak (rides the blob; direct write skips recursion)
     if(_mirrorT)clearTimeout(_mirrorT); _mirrorT=setTimeout(function(){_mirrorT=null;idbMirror();},600);
     if(cloudOn&&rcode){ if(!cloudDirty){cloudDirty=true;save("cdirty",true);} schedulePush(); } }
   function flushMirror(){ if(_mirrorT){clearTimeout(_mirrorT);_mirrorT=null;idbMirror();} }
@@ -2751,17 +2755,22 @@
   // (409) if another device advanced the copy since — we then flag a conflict instead of clobbering it.
   // `force` (the "Back up now" button) overwrites regardless, to resolve a conflict in this device's favor.
   function cloudPush(force){ if(!cloudOn||!rcode||!hasCrypto())return Promise.resolve(false);
-    var plain=JSON.stringify(backupObj());
+    var snap=collectData(), snapEdit=LS.getItem("sqrt:editat");   // freeze what this push carries — edits landing mid-flight stay dirty for the follow-up push
+    var plain=JSON.stringify({app:"square-root-calendar",v:1,ts:isoNow(),data:snap});
     return encryptBlob(rcode,plain).then(function(blob){ return idFor(rcode).then(function(id){ var ts=Date.now();
       return fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:id,ts:ts,blob:blob,base:cloudBase,force:!!force})}).then(function(r){
         if(r.status===501){cloudAvail=false;cloudStatus();return false;}
-        if(r.status===409){ cloudAvail=true; return r.json().then(function(j){ cloudConflict=true;save("cconf",true); cloudStatus(); return false; },function(){ cloudConflict=true;save("cconf",true); cloudStatus(); return false; }); }
+        if(r.status===409){ cloudAvail=true; cloudStatus();
+          if(_mergeTries<2){ _mergeTries++; setTimeout(mergeFromCloud,80); }   // another phone pushed first — pull + three-way merge instead of giving up
+          else { cloudConflict=true;save("cconf",true); cloudStatus(); }       // merge keeps losing the race → the old manual-resolve fallback
+          return false; }
         if(!r.ok)throw new Error("push "+r.status);
         return r.json().then(function(j){ var nts=(j&&j.ts)||ts;
-          cloudAvail=true; if(cloudConflict){cloudConflict=false;save("cconf",false);}
+          cloudAvail=true; _mergeTries=0; if(cloudConflict){cloudConflict=false;save("cconf",false);}
           cloudBase=nts;save("cbase",nts); cloudLastTs=nts;save("cloudts",nts);
-          if(cloudDirty){cloudDirty=false;save("cdirty",false);} cloudStatus(); return true;
-        },function(){ cloudAvail=true;cloudLastTs=ts;save("cloudts",ts);cloudBase=ts;save("cbase",ts);if(cloudDirty){cloudDirty=false;save("cdirty",false);}cloudStatus();return true; }); }); }); })["catch"](function(){cloudStatus();return false;}); }
+          if(cloudDirty&&LS.getItem("sqrt:editat")===snapEdit){cloudDirty=false;save("cdirty",false);}   // an edit landed mid-flight → stay dirty so the follow-up push carries it
+          saveMergeBase(snap); cloudStatus(); return true;
+        },function(){ cloudAvail=true;_mergeTries=0;cloudLastTs=ts;save("cloudts",ts);cloudBase=ts;save("cbase",ts);if(cloudDirty&&LS.getItem("sqrt:editat")===snapEdit){cloudDirty=false;save("cdirty",false);}saveMergeBase(snap);cloudStatus();return true; }); }); }); })["catch"](function(){cloudStatus();return false;}); }
   function forcePush(){ cloudConflict=false;save("cconf",false); return cloudPush(true); }
   var _pushT=null,_pushInFlight=false,_pushAgain=false;
   function schedulePush(){ if(!cloudOn||!rcode||cloudConflict)return; if(_pushT)clearTimeout(_pushT); _pushT=setTimeout(runPush,2500); }
@@ -2829,16 +2838,104 @@
       var doIt=function(){applyBackup(data);};   // applyBackup reloads the page
       if(hasData())appConfirm("Restore your cloud backup? It REPLACES the calendar on THIS device.","Replace & restore",doIt); else doIt();
     })["catch"](function(e){onResult(e&&e.code==="unavailable"?"unavail":"bad");}); }
-  // ---- pull-on-open: fast-forward this device to a newer cloud copy. Only fires when NOTHING local
-  // is unsynced (clean device), so it can never lose a change — simultaneous edits on two phones still
-  // land in the existing push-conflict flow and stay local until resolved in Backup & Restore.
+  // ===== three-way merge: both phones logged things between syncs =====
+  // Base = a snapshot of this device's state as of its last successful sync (stored OUTSIDE the
+  // sqrt: prefix so it never rides a backup). Per-tour granularity for the maps, set-style for the
+  // lists (adds from both sides survive, a deletion by either side sticks), and the device that
+  // edited most recently wins the rare both-changed-the-exact-same-thing conflict.
+  var MERGE_MAPS={ov:1,ot:1,mx:1,ar:1,add:1,note:1,sb:1,fh:1,hqapplied:1,hseen:1,hsub:1};
+  var MERGE_ARRS={ev:1,mxnames:1,cev:1,abcd:1,periods:1,groups:1,houses:1};
+  var MERGE_LOCAL={rcode:1,cloud:1,seen:1,curhouse:1,hgack:1,hpush:1,housedoc:1,instdone:1,instsnooze:1,cbase:1,cloudts:1,cdirty:1,cconf:1,editat:1,bakts:1,baksnooze:1,cfrsnooze:1};
+  function saveMergeBase(d){ try{LS.setItem("sqrtmergebase",JSON.stringify(d||collectData()));}catch(e){} }   // d = the EXACT snapshot that reached the cloud (never live state — an edit landing mid-push must not be recorded as synced)
+  function loadMergeBase(){ try{return JSON.parse(LS.getItem("sqrtmergebase"))||null;}catch(e){return null;} }
+  function parseJ(s){ if(typeof s!=="string")return undefined; try{return JSON.parse(s);}catch(e){return undefined;} }
+  function isObj(x){ return !!x&&typeof x==="object"&&!Array.isArray(x); }
+  function unlockRank(s){ var u=parseJ(s); if(!u)return 0; return u.k==="paid"?3:u.k==="gf"?2:1; }
+  function mergeVal(k,B,L,R,remWins){
+    if(k==="unlock")return unlockRank(R)>unlockRank(L)?R:L;   // an unlock only ever upgrades
+    var b=parseJ(B),l=parseJ(L),r=parseJ(R);
+    if(MERGE_MAPS[k]&&isObj(l)&&isObj(r)){ var bo=isObj(b)?b:{},o={},ks={},e;
+      for(e in l)ks[e]=1; for(e in r)ks[e]=1;
+      for(e in ks){ var lv=(e in l)?JSON.stringify(l[e]):undefined, rv=(e in r)?JSON.stringify(r[e]):undefined, bv=(e in bo)?JSON.stringify(bo[e]):undefined, v;
+        if(lv===rv)v=lv; else if(rv===bv)v=lv; else if(lv===bv)v=rv; else v=remWins?rv:lv;   // per-tour three-way; both changed → later editor
+        if(v!==undefined)o[e]=JSON.parse(v); }
+      return JSON.stringify(o); }
+    if(k==="groups"&&Array.isArray(l)&&Array.isArray(r)){ var gb=Array.isArray(b)?b:[];   // epochs are KEYED by (start,det) — same-date edits on two phones must resolve to ONE epoch, not duplicate shadows
+      var gk=function(x){return (x&&x.s||"")+"|"+((x&&x.det)||"");},toM=function(a){var m2={};a.forEach(function(x){if(x)m2[gk(x)]=x;});return m2;};
+      var lm=toM(l),rm=toM(r),bm=toM(gb),go={},gks={},ge;
+      for(ge in lm)gks[ge]=1; for(ge in rm)gks[ge]=1;
+      for(ge in gks){ var glv=(ge in lm)?JSON.stringify(lm[ge]):undefined, grv=(ge in rm)?JSON.stringify(rm[ge]):undefined, gbv=(ge in bm)?JSON.stringify(bm[ge]):undefined, gv;
+        if(glv===grv)gv=glv; else if(grv===gbv)gv=glv; else if(glv===gbv)gv=grv; else gv=remWins?grv:glv;
+        if(gv!==undefined)go[ge]=JSON.parse(gv); }
+      var garr=Object.keys(go).map(function(x){return go[x];});
+      garr.sort(function(x,y){return String(x.s).localeCompare(String(y.s));});
+      return JSON.stringify(garr); }
+    if(MERGE_ARRS[k]&&Array.isArray(l)&&Array.isArray(r)){ var ba=Array.isArray(b)?b:[],bs={},rs={},ls={},i;
+      for(i=0;i<ba.length;i++)bs[JSON.stringify(ba[i])]=1;
+      for(i=0;i<r.length;i++)rs[JSON.stringify(r[i])]=1;
+      for(i=0;i<l.length;i++)ls[JSON.stringify(l[i])]=1;
+      var seen={},out=[];
+      for(i=0;i<l.length;i++){ var s1=JSON.stringify(l[i]); if(seen[s1])continue; if(bs[s1]&&!rs[s1])continue; seen[s1]=1; out.push(l[i]); }   // in base but gone remotely → deleted there
+      for(i=0;i<r.length;i++){ var s2=JSON.stringify(r[i]); if(seen[s2])continue; if(bs[s2]&&!ls[s2])continue; seen[s2]=1; out.push(r[i]); }   // in base but gone locally → deleted here
+      return JSON.stringify(out); }
+    return remWins?R:L;   // scalars: both changed → the device that edited later wins
+  }
+  function mergeStates(base,loc,rem,remWins){ var out={},ks={},k;
+    for(k in loc)ks[k]=1; for(k in rem)ks[k]=1;
+    for(k in ks){ var L=loc[k],R=rem[k],B=base?base[k]:undefined;
+      if(MERGE_LOCAL[k]){ if(L!==undefined)out[k]=L; continue; }   // device-local (push sub, install flags, sync meta) never crosses phones
+      if(k==="unlock"){ var u=mergeVal(k,B,L,R,remWins); if(u!==undefined)out[k]=u; continue; }   // rank rule ALWAYS — a fresh phone's "none" must never displace paid/gf via the generic three-way path
+      if(L===R){ if(L!==undefined)out[k]=L; continue; }
+      if(R===B){ if(L!==undefined)out[k]=L; continue; }            // remote untouched → local wins (including a local delete)
+      if(L===B){ if(R!==undefined)out[k]=R; continue; }            // local untouched → remote wins (including a remote delete)
+      var m=mergeVal(k,B,L,R,remWins); if(m!==undefined)out[k]=m; }
+    return out; }
+  var _pendingMergeT=null;
+  function attemptMerge(rec){   // rec = freshly pulled {data,ts}. Applied only with no sheet open — stale in-memory state must never write over a merge.
+    if(anySheetOpen()){ if(!_pendingMergeT)_pendingMergeT=setInterval(function(){ if(!anySheetOpen()){clearInterval(_pendingMergeT);_pendingMergeT=null;mergeFromCloud();} },3000); return Promise.resolve(false); }
+    var loc=collectData(), base=loadMergeBase();
+    var remWins=(parseJ(rec.data&&rec.data.editat)||0)>(parseJ(loc.editat)||0);
+    var merged=mergeStates(base,loc,rec.data||{},remWins);
+    try{ var hs=JSON.parse(merged.houses||"null");                  // same house joined separately on each phone → two identities; keep THIS device's as primary, carry the other as an alt (it may be the admin!)
+      if(Array.isArray(hs)){ var lh=parseJ(loc.houses),pref={},kept={},dd=[];(Array.isArray(lh)?lh:[]).forEach(function(h){if(h&&h.id)pref[h.id]=h;});
+        hs.forEach(function(h){ if(!h||!h.id){dd.push(h);return;}
+          var Kp=kept[h.id];
+          if(!Kp){ Kp=pref[h.id]?JSON.parse(JSON.stringify(pref[h.id])):h; kept[h.id]=Kp; dd.push(Kp); }
+          if(h.m&&h.m!==Kp.m&&!(Kp.alts||[]).some(function(a){return a&&a.m===h.m;}))Kp.alts=(Kp.alts||[]).concat([{m:h.m,s:h.s}]); });
+        merged.houses=JSON.stringify(dd); } }catch(e){}
+    try{ var hm2=parseJ(merged.hsub);                               // app-unlock coverage only ever rides a CURRENT membership — a left house must not keep unlocking the app
+      if(isObj(hm2)){ var ids2={},q2,ch2=false; (JSON.parse(merged.houses||"[]")||[]).forEach(function(h){if(h&&h.id)ids2[h.id]=1;});
+        for(q2 in hm2)if(!ids2[q2]){delete hm2[q2];ch2=true;}
+        if(ch2)merged.hsub=JSON.stringify(hm2); } }catch(e){}
+    try{ var per=JSON.parse(merged.periods||"null"), po=parseJ(merged.ov), pmx=parseJ(merged.mx);   // vacation/medical clears mutuals — re-assert it over entries the OTHER phone logged inside the window
+      if(Array.isArray(per)&&isObj(po)){ var MUT={"in":1,"out":1,"pin":1,"pout":1,"sin":1,"sout":1,"comp":1},chg=false;
+        per.forEach(function(p){ if(!p||(p.t!=="vac"&&p.t!=="ml")||!p.s)return;
+          var s0=Date.parse(p.s+"T12:00:00Z"),e0=p.e?Date.parse(p.e+"T12:00:00Z"):s0; if(!isFinite(s0)||!isFinite(e0))return;
+          for(var t0=s0,n0=0;t0<=e0&&n0<366;t0+=864e5,n0++){ var dd0=new Date(t0),kk0=dd0.getUTCFullYear()+"-"+dd0.getUTCMonth()+"-"+dd0.getUTCDate();
+            [9,6].forEach(function(tt0){ var key0=kk0+"|"+tt0; if(MUT[po[key0]]){ delete po[key0]; if(pmx&&pmx[key0]!==undefined)delete pmx[key0]; chg=true; } }); } });
+        if(chg){ merged.ov=JSON.stringify(po); if(pmx)merged.mx=JSON.stringify(pmx); } } }catch(e){}
+    merged.rcode=JSON.stringify(rcode); merged.cloud="true"; merged.seen="1";
+    merged.cbase=JSON.stringify(rec.ts||0); merged.cloudts=JSON.stringify(rec.ts||0);
+    merged.cdirty="true"; merged.cconf="false";                     // merged ≠ what the server holds → the post-reload boot pushes it
+    if(!applyBackup(merged,true))return Promise.resolve(false);     // atomic write, rolled back on failure
+    location.reload();                                              // SAME TICK as the write — no event can save stale in-memory state over the merge; boot pushes the merged copy
+    return Promise.resolve(true);
+  }
+  var _mergeTries=0;
+  function mergeFromCloud(){ if(!cloudOn||!rcode||!hasCrypto())return;
+    cloudPull(rcode).then(function(rec){ if(!rec||rec.none){forcePush();return;} attemptMerge(rec); })["catch"](function(){}); }
+
+  // ---- pull-on-open: fast-forward this device to a newer cloud copy. A clean device silently
+  // adopts; a device with its own unsynced changes runs the three-way merge above instead.
   var _ffAt=0;
   function cloudFastForward(){
-    if(!cloudOn||!rcode||!hasCrypto()||cloudDirty||cloudConflict)return;
+    if(!cloudOn||!rcode||!hasCrypto()||cloudConflict)return;
     if(Date.now()-_ffAt<60000)return; _ffAt=Date.now();
     cloudPull(rcode).then(function(rec){
       if(!rec||rec.none||!(rec.ts>cloudBase))return;         // cloud isn't ahead of what this device last synced
-      if(cloudDirty||cloudConflict||anySheetOpen())return;   // changed mid-fetch / user mid-flow → the next open catches it
+      if(cloudConflict)return;
+      if(cloudDirty){ attemptMerge(rec); return; }           // both phones moved → three-way merge, nothing dropped
+      if(anySheetOpen())return;                              // user mid-flow → the next open catches it
       var data=rec.data||{};
       if(!Object.keys(data).filter(function(k){return typeof data[k]==="string";}).length)return;
       data.rcode=JSON.stringify(rcode); data.cloud="true"; data.seen="1";
@@ -3728,12 +3825,13 @@ var TEN_CODES=[
   function setHSub(id,mode){ var m=load("hsub",null)||{}; if(m[id]===mode)return; m[id]=mode; save("hsub",m); }
   function dropHSub(id){ var m=load("hsub",null)||{}; if(!(id in m))return; delete m[id]; save("hsub",m); }
   var hLoad="";   // what we KNOW about the active house when HD isn't cached: "loading" | "pending" | "err:<code>" — never guess "waiting for approval" from a missing doc
-  function hGet(){ if(!HS)return Promise.resolve({none:true}); var reqId=HS.id; if(!HD)hLoad="loading";
+  function hGet(tried){ if(!HS)return Promise.resolve({none:true}); var reqId=HS.id; if(!HD)hLoad="loading";
+    var rot=function(){ var alt=HS.alts.shift(); HS.alts.push({m:HS.m,s:HS.s}); HS.m=alt.m; HS.s=alt.s; hSave(); return hGet((tried||0)+1); };   // a merge can carry a second join identity (alts) — the ACTIVE one may not be the primary
     return hFetch("GET","?id="+encodeURIComponent(reqId),null,{"X-House-M":HS.m,"X-House-S":HS.s}).then(function(r){
     if(!HS||HS.id!==reqId)return {stale:true};   // the active house changed while this fetch was in flight → ignore it (never render another house's data)
     if(r.status===200&&r.j.doc){hLoad="";HD=r.j.doc;hSub=r.j.sub||null;setHSub(reqId,(hSub&&hSub.mode)||"active");hSyncActive();hSave();applyDoneRequests();setHouseBadge();maybePromptHouseGroup();return {doc:HD};}
-    if(r.status===200&&r.j.pending){hLoad="pending";dropHSub(reqId);return {pending:true};}   // pending isn't membership — no coverage until approved
-    if(r.status===403||r.status===404){hDrop(reqId);return HS?hGet():Promise.resolve({gone:true});}   // drop just this (gone) house; if another membership remains, fetch IT so we never show a false "pending" screen for a house you're active in
+    if(r.status===200&&r.j.pending){ if(HS.alts&&HS.alts.length&&(tried||0)<3)return rot(); hLoad="pending";dropHSub(reqId);return {pending:true};}   // pending isn't membership — but try the other identity first (it may be the approved one)
+    if(r.status===403||r.status===404){ if(r.status===403&&HS.alts&&HS.alts.length&&(tried||0)<3)return rot(); hDrop(reqId);return HS?hGet():Promise.resolve({gone:true});}   // drop just this (gone) house; if another membership remains, fetch IT so we never show a false "pending" screen for a house you're active in
     hLoad="err:"+((r.j&&r.j.error)||("http "+r.status));
     return {err:(r.j&&r.j.error)||("http "+r.status)}; }); }
   function hOp(op){ if(!HS)return Promise.resolve({err:"no-house"}); var rqId=HS.id,rqM=HS.m,rqS=HS.s;   // freeze the identity at entry — a response landing after hSwitch must never write house A's doc/applied-ids over house B's
@@ -4459,7 +4557,10 @@ var TEN_CODES=[
     else { maybeInstallLater(); }
     setTimeout(maybeRemindPop,900);   // due reminders pop AFTER the calendar has settled (the guard skips if onboarding/a sheet is up)
     if(cloudOn&&rcode&&cloudDirty&&!cloudConflict)schedulePush();   // only push UNSYNCED local changes on boot — never clobber the cloud with a clean/stale device
-    setTimeout(cloudFastForward,600);   // …and a CLEAN device pulls a newer copy from another phone (pull-on-open sync)
+    if(cloudOn&&rcode&&!cloudDirty)saveMergeBase();                 // a clean device's state IS the synced state — refresh the three-way merge base
+    if(cloudOn&&rcode&&cloudConflict)setTimeout(mergeFromCloud,1500);   // a device stuck in the conflict fallback self-heals by re-merging at next open
+    setTimeout(cloudFastForward,600);   // …and pull a newer copy from another phone (clean device adopts, dirty device merges)
+    (function(){var _bm=my,_bp=pt;syncCurGroups();if(my!==_bm||pt!==_bp){save("my",my);save("pt",pt);var v=document.getElementById("vMy");if(v)v.textContent=my;syncPt();render();}})();   // a merged groups[] must win over stale scalar mirrors
     var flush=function(){flushPush();flushMirror();};
     if(HS){ setHouseBadge(); hGet().then(setHouseBadge).catch(function(){}); }   // refresh the House unread badge on boot (without opening the sheet)
     if(HS&&/[?&]house=1/.test(location.search)){ var _ob=document.getElementById("openHouse"); if(_ob)setTimeout(function(){_ob.click();},350); try{history.replaceState({},"",location.pathname+location.hash);}catch(e){} }   // opened from a push notification (strip the param so reloads don't re-open)
@@ -4471,7 +4572,7 @@ var TEN_CODES=[
       var pm=my,pp=pt; syncCurGroups(); if(my!==pm||pt!==pp){var v=document.getElementById("vMy");if(v)v.textContent=my;syncPt();render();}   // returned to a new epoch → refresh scalars + calendar
       else if(dayCh){render();maybeRemindPop();}              // same epoch but a new calendar day → re-render for the today highlight + maybe a due reminder
       if(HS)hGet().then(setHouseBadge).catch(function(){});   // refresh House requests when the app returns to the foreground
-      cloudFastForward();                                     // returned to the foreground → adopt the other phone's newer copy if this one is clean
+      if(cloudConflict)mergeFromCloud();else cloudFastForward();   // foreground → adopt/merge the other phone's copy; a conflicted device retries the merge instead of staying dead
     });
     window.addEventListener("pagehide",flush);
   }
