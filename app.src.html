@@ -1505,7 +1505,7 @@
     <button class="raddbtn" id="payBuy" style="width:100%">Unlock &middot; $9.99</button>
     <button class="ldbtn" id="payActivate" style="width:100%;margin-top:6px">I&rsquo;ve paid &mdash; activate</button>
     <div class="paymsg" id="payMsg"></div>
-    <p class="paysub">Always free: seeing your 9&times;/6&times; tours on the chart, the reference tools, and riding along in a subscribed House Calendar. Your <b>recovery code</b> is your license &mdash; it restores the purchase and your data on any phone.</p>
+    <p class="paysub">Always free: seeing your 9&times;/6&times; tours on the chart and the reference tools. In a house with an active <b>House Calendar</b>? The invite code unlocks everything &mdash; no separate purchase. Your <b>recovery code</b> is your license &mdash; it restores the purchase and your data on any phone.</p>
   </div>
 </div>
 
@@ -2477,8 +2477,8 @@
     renderSetNotif();syncUnlockRow();openSheet(setSheet);};
   function syncUnlockRow(){ var u=document.getElementById("openUnlock"); if(!u)return;
     u.hidden=!!(unlockSt&&(unlockSt.k==="paid"||unlockSt.k==="gf"));                                                     // paid + grandfathered crews don't see an ask
-    var d=trialDaysLeft(), s=document.getElementById("unlockSub");
-    if(s)s.textContent=(unlockSt&&unlockSt.k==="trial")?(d>0?(d+" day"+(d===1?"":"s")+" left in your trial · restore a purchase"):"Trial over — one-time, yours forever"):"One-time — yours forever · restore a purchase"; }
+    var s=document.getElementById("unlockSub");
+    if(s)s.textContent=houseCovered()?"Covered by your House Calendar · restore a purchase":"One-time — yours forever · restore a purchase"; }
   document.getElementById("openUnlock").onclick=function(){setSheet.classList.remove("show");openPay();};
   Array.prototype.forEach.call(document.querySelectorAll(".setcolhd"),function(b){b.onclick=function(){b.parentNode.classList.toggle("collapsed");};});
   document.getElementById("setNotif").addEventListener("click",function(e){ var b=e.target.closest("[data-act]"); if(!b)return; var act=b.getAttribute("data-act"); if(act==="pushon")enablePush(); else if(act==="pushoff")disablePush(); else if(act==="pref")togglePref(b.getAttribute("data-k")); });
@@ -2771,16 +2771,15 @@
   // ===== Paid unlock ($9.99 one time) — the recovery code doubles as the license, no accounts =====
   var PAYLINK_APP="https://buy.stripe.com/3cIaEY9VB7Xa1AA9qx5c400";    // Stripe Payment Link — $9.99 one-time App Unlock
   var PAYLINK_HOUSE="https://buy.stripe.com/eVq3cw5Flelya760U15c401";  // Stripe Payment Link — $20/mo House Calendar subscription
-  var TRIAL_DAYS=30;     // one full 25-day rotation + change
   var unlockSt=load("unlock",null);
   if(!unlockSt&&load("seen",false)){ unlockSt={k:"gf"}; save("unlock",unlockSt); }   // grandfather: set up before billing shipped → free forever
-  function unlocked(){ if(!unlockSt)return false; if(unlockSt.k==="gf"||unlockSt.k==="paid")return true;
-    if(unlockSt.k==="trial")return (Date.now()-unlockSt.ts)<TRIAL_DAYS*864e5; return false; }
-  function trialDaysLeft(){ if(!unlockSt||unlockSt.k!=="trial")return 0; return Math.max(0,Math.ceil((unlockSt.ts+TRIAL_DAYS*864e5-Date.now())/864e5)); }
+  function houseCovered(){ var m=load("hsub",null)||{}; for(var k in m){ if(m[k]&&m[k]!=="lapsed")return true; } return false; }   // active member of a house whose trial/subscription is live → the house covers the whole app
+  function unlocked(){ if(unlockSt&&(unlockSt.k==="gf"||unlockSt.k==="paid"))return true; return houseCovered(); }   // no free trial — pay up front, or ride your house's subscription
   function licenseIdP(){ return rcode?hex256("sqrtcal-id-v1:"+rcode):Promise.resolve(null); }   // the RAW code never leaves the device
   function payMsg(t,warn){ var el=document.getElementById("payMsg"); if(el){el.textContent=t||""; el.className="paymsg"+(warn?" warn":"");} }
-  function openPay(){ var st=document.getElementById("payTrial"), d=trialDaysLeft();
-    st.textContent = (unlockSt&&unlockSt.k==="trial") ? (d>0?("\u23F3 "+d+" day"+(d===1?"":"s")+" left in your free trial \u2014 everything works until then."):"Your 30-day trial is over \u2014 everything you logged is safe and unlocks with the app.") : "Unlock the full calendar.";
+  function openPay(){ var st=document.getElementById("payTrial");
+    st.textContent = (houses&&houses.length&&!houseCovered()) ? "\u23F8 Your house\u2019s subscription has lapsed \u2014 any member can reactivate it in the \uD83C\uDFE0 House tab, or unlock the app just for you."
+      : "In a firehouse with the House Calendar? Ask for the invite code \u2014 the house subscription covers the whole crew.";
     payMsg(""); openSheet(paySheet); }
   function requireUnlock(){ if(unlocked())return true; openPay(); return false; }
   function startPurchase(){
@@ -2890,7 +2889,7 @@
     var nEl=document.getElementById("onbName"),cEl=document.getElementById("onbCo");
     if(nEl){uname=nEl.value;save("name",uname);} if(cEl){uco=cEl.value.trim();save("co",uco);}   // capture name/company from onboarding
     groups=[{s:"1970-01-01",my:my,pt:pt}]; save("groups",groups); save("my",my); save("pt",pt); save("seen",1);   // fresh user → one base epoch
-    if(!unlockSt){ unlockSt={k:"trial",ts:Date.now()}; save("unlock",unlockSt); }   // new install → the 30-day clock starts when setup completes
+    if(!unlockSt){ unlockSt={k:"none",ts:Date.now()}; save("unlock",unlockSt); }   // marker, NOT an unlock — without it a new install would look like a pre-billing device and get grandfathered at next boot
     var vMy=document.getElementById("vMy");if(vMy)vMy.textContent=my; syncPt();render(); }
   function finishOnboarding(){ closeOnboarding(); if(!isStandalone()&&!load("instdone",false)&&!instSnoozed())setTimeout(function(){save("instsnooze",isoNow());openInstall();},350); }
   (function wireOnb(){
@@ -3623,7 +3622,7 @@ var TEN_CODES=[
     if(HD)save("housedoc",HD); else localStorage.removeItem("sqrt:housedoc"); }
   function hSyncActive(){ if(!HS)return; if(HD&&HD.id===HS.id){ HS.name=HD.name||HS.name; HS.code=HD.code||HS.code; } }   // keep the list entry's name/code fresh from the fetched doc
   function hEnter(mem){ houses=houses.filter(function(h){return h.id!==mem.id;}); houses.push(mem); HS=mem; curHouse=mem.id; hAddMode=false; }   // join/create → add to the list + make active
-  function hDrop(id){ houses=houses.filter(function(h){return h.id!==id;}); if(curHouse===id){ HS=houses[0]||null; curHouse=(HS&&HS.id)||""; HD=null; } hSave(); }   // leave/removed → remove just THAT house, switch to another (or none)
+  function hDrop(id){ houses=houses.filter(function(h){return h.id!==id;}); if(curHouse===id){ HS=houses[0]||null; curHouse=(HS&&HS.id)||""; HD=null; } dropHSub(id); hSave(); }   // leave/removed → remove just THAT house (and its app-unlock coverage), switch to another (or none)
   function hSwitch(id){ if(id===curHouse)return; var m=houses.filter(function(h){return h.id===id;})[0]; if(!m)return;
     HS=m; curHouse=id; HD=null; localStorage.removeItem("sqrt:housedoc"); save("curhouse",curHouse);   // clear the previous house's cached doc; refetch the new one
     hAddMode=false; hview="day"; hMsg=""; hReqPre=null; renderHouse();
@@ -3677,12 +3676,15 @@ var TEN_CODES=[
     appConfirm("🏠 "+((HD&&HD.name)||"Your house")+" has you in group "+hg+", but your calendar shows group "+cur+". Update your calendar to group "+hg+", starting today?","Update to group "+hg,function(){ applyHouseGroup(hg); });
   }
   var hSub=null;   // {mode:"trial"|"active"|"grace"|"lapsed",daysLeft} from the server (set on every GET)
+  // persistent per-house sub cache — houseCovered() reads it so an active membership unlocks the app (and a lapse re-locks it on the next sync)
+  function setHSub(id,mode){ var m=load("hsub",null)||{}; if(m[id]===mode)return; m[id]=mode; save("hsub",m); }
+  function dropHSub(id){ var m=load("hsub",null)||{}; if(!(id in m))return; delete m[id]; save("hsub",m); }
   var hLoad="";   // what we KNOW about the active house when HD isn't cached: "loading" | "pending" | "err:<code>" — never guess "waiting for approval" from a missing doc
   function hGet(){ if(!HS)return Promise.resolve({none:true}); var reqId=HS.id; if(!HD)hLoad="loading";
     return hFetch("GET","?id="+encodeURIComponent(reqId),null,{"X-House-M":HS.m,"X-House-S":HS.s}).then(function(r){
     if(!HS||HS.id!==reqId)return {stale:true};   // the active house changed while this fetch was in flight → ignore it (never render another house's data)
-    if(r.status===200&&r.j.doc){hLoad="";HD=r.j.doc;hSub=r.j.sub||null;hSyncActive();hSave();applyDoneRequests();setHouseBadge();maybePromptHouseGroup();return {doc:HD};}
-    if(r.status===200&&r.j.pending){hLoad="pending";return {pending:true};}
+    if(r.status===200&&r.j.doc){hLoad="";HD=r.j.doc;hSub=r.j.sub||null;setHSub(reqId,(hSub&&hSub.mode)||"active");hSyncActive();hSave();applyDoneRequests();setHouseBadge();maybePromptHouseGroup();return {doc:HD};}
+    if(r.status===200&&r.j.pending){hLoad="pending";dropHSub(reqId);return {pending:true};}   // pending isn't membership — no coverage until approved
     if(r.status===403||r.status===404){hDrop(reqId);return HS?hGet():Promise.resolve({gone:true});}   // drop just this (gone) house; if another membership remains, fetch IT so we never show a false "pending" screen for a house you're active in
     hLoad="err:"+((r.j&&r.j.error)||("http "+r.status));
     return {err:(r.j&&r.j.error)||("http "+r.status)}; }); }
