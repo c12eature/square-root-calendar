@@ -1496,16 +1496,16 @@
   <div class="paycard">
     <div class="payprice">$9.99 <span>one time &middot; yours forever</span></div>
     <ul class="paylist">
-      <li>&#128257; Mutuals, swaps &amp; comp &mdash; with the who-owes-who ledger</li>
-      <li>&#128181; Overtime tracking with dollar estimates off the UFA chart</li>
-      <li>&#127796; Vacation, medical, light duty, training &amp; 6-month details</li>
-      <li>&#128216; CFR tracker &middot; ABCD chart &middot; tour notes &middot; RSOT list</li>
-      <li>&#9729;&#65039; Encrypted cloud backup &mdash; every phone you own, one code</li>
+      <li>&#128202; Overtime Statistics &mdash; your hours priced in dollars off the UFA chart</li>
+      <li>&#129309; Mutuals Ledger &mdash; who owes who, always straight</li>
+      <li>&#127970; Firehouse directory &mdash; every house, tap-to-call &amp; directions</li>
+      <li>&#128288; Radio 10-codes &mdash; searchable, tap for the full meaning</li>
+      <li>&#128230; Box numbers &mdash; look up any box, straight to the map</li>
     </ul>
     <button class="raddbtn" id="payBuy" style="width:100%">Unlock &middot; $9.99</button>
     <button class="ldbtn" id="payActivate" style="width:100%;margin-top:6px">I&rsquo;ve paid &mdash; activate</button>
     <div class="paymsg" id="payMsg"></div>
-    <p class="paysub">Always free: seeing your 9&times;/6&times; tours on the chart and the reference tools. In a house with an active <b>House Calendar</b>? The invite code unlocks everything &mdash; no separate purchase. Your <b>recovery code</b> is your license &mdash; it restores the purchase and your data on any phone.</p>
+    <p class="paysub">Always free: your full calendar &mdash; tours, mutuals, overtime &amp; time-off logging, CFR, events, notes, and encrypted cloud backup. In a house with an active <b>House Calendar</b>? The invite code unlocks everything &mdash; no separate purchase. Your <b>recovery code</b> is your license &mdash; it restores the purchase and your data on any phone.</p>
   </div>
 </div>
 
@@ -2528,7 +2528,7 @@
   Array.prototype.forEach.call(document.querySelectorAll("#gcMyStep button"),function(b){b.onclick=function(){gcMyVal=mod(gcMyVal-1+(+b.getAttribute("data-d")),G)+1;updGcMy();};});
   Array.prototype.forEach.call(document.querySelectorAll("#gcPtStep button"),function(b){b.onclick=function(){gcPtVal=mod(gcPtVal-1+(+b.getAttribute("data-d")),G)+1;updGcPt();};});
   Array.prototype.forEach.call(document.querySelectorAll("#gcPtSeg button"),function(b){b.onclick=function(){gcHasPt=(b.getAttribute("data-p")==="yes");Array.prototype.forEach.call(document.querySelectorAll("#gcPtSeg button"),function(x){x.classList.toggle("on",x===b);});document.getElementById("gcPtWrap").hidden=!gcHasPt;};});
-  document.getElementById("openGroups").onclick=function(){if(!requireUnlock())return;
+  document.getElementById("openGroups").onclick=function(){
     setSheet.classList.remove("show");
     var t=new Date();
     document.getElementById("gcDate").value=t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0");
@@ -2570,7 +2570,7 @@
       appConfirm("Remove this ABCD period? Those dates go back to your square-root chart. Nothing you logged is deleted.","Remove",function(){abcd.splice(i,1);save("abcd",abcd);renderAbcd();render();});};});
   }
   Array.prototype.forEach.call(document.querySelectorAll("#abLtrSeg button"),function(b){b.onclick=function(){abLtr=b.getAttribute("data-l");Array.prototype.forEach.call(document.querySelectorAll("#abLtrSeg button"),function(x){x.classList.toggle("on",x===b);});};});
-  document.getElementById("openAbcd").onclick=function(){if(!requireUnlock())return;
+  document.getElementById("openAbcd").onclick=function(){
     setSheet.classList.remove("show");
     var t=new Date();
     document.getElementById("abStart").value=t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0");
@@ -2802,10 +2802,9 @@
       }).catch(function(){ payMsg("Couldn\u2019t check right now \u2014 your payment is safe. Try again in a minute.",true); }); }); }
   (function(){ var b=document.getElementById("payBuy"),a=document.getElementById("payActivate");
     if(b)b.onclick=startPurchase; if(a)a.onclick=activatePurchase; })();
-  (function(){ var st=document.getElementById("shTours"); if(!st)return;   // free tier VIEWS the day sheet; logging is paid — one capture-phase gate covers every control in it
-    st.addEventListener("click",function(e){ if(unlocked())return; var b=e.target.closest(".seg button,.sbseg button,.abseg button,.arseg button,.ldotseg button,.ldbtn,.ldedit,.setsplit [data-sp],.chkrow input,.chkrow label,button.dutygo,button.evgo,button.cevgo"); if(b){ e.stopPropagation(); e.preventDefault(); openPay(); } },true);   // preventDefault on capture also cancels checkbox toggles before onchange
-    st.addEventListener("focusin",function(e){ if(unlocked())return; var t=e.target; if(t&&(t.tagName==="INPUT"||t.tagName==="TEXTAREA")){ t.blur(); openPay(); } },true);
-  })();
+  // Day-sheet logging (states, mutuals, OT, ECC/CFR, time off, events) is FREE — the paid unlock covers
+  // the analysis tools (Overtime Statistics, Mutuals Ledger) and the reference library (directory,
+  // firehouses, 10-codes, box numbers). Gating lives on those six openers via requireUnlock().
   function disableCloud(){ cloudOn=false;save("cloud",false);cloudStatus(); }
   function restoreByCode(code,onResult){ code=(code||"").trim();
     if(!code){onResult("empty");return;} if(!hasCrypto()){onResult("bad");return;}
@@ -3344,7 +3343,7 @@
       fhChips(inp.parentNode.parentNode.parentNode,idx);
     };});
   }
-  document.getElementById("openDir").onclick=function(){renderDir();openSheet(dirSheet);};
+  document.getElementById("openDir").onclick=function(){if(!requireUnlock())return;renderDir();openSheet(dirSheet);};
   document.getElementById("dList").addEventListener("click",function(e){   // delegated (survives re-renders): tap the "+N" chip to reveal the other numbers
     var xp=e.target.closest&&e.target.closest(".fhchip.xp"); if(!xp)return;
     var card=xp.closest(".fh"); if(card)card.classList.add("open");
@@ -3558,7 +3557,7 @@ var TEN_CODES=[
     }).join("");
     Array.prototype.forEach.call(list.querySelectorAll(".tchd"),function(b){b.onclick=function(){b.parentNode.classList.toggle("open");};});
   }
-  document.getElementById("openTen").onclick=function(){renderTen();openSheet(tenSheet);};
+  document.getElementById("openTen").onclick=function(){if(!requireUnlock())return;renderTen();openSheet(tenSheet);};
   document.getElementById("tenDone").onclick=closeSheets;
   document.getElementById("tenSearch").oninput=function(){tq=this.value.trim().toLowerCase();renderTen();};
 
@@ -3583,7 +3582,7 @@ var TEN_CODES=[
     list.innerHTML=shown.map(function(pr){var x=pr[1];
       return '<a class="boxrow" href="'+escA(boxMapUrl(x))+'" target="_blank" rel="noopener"><span class="boxnum">'+esc(x.n)+'</span><span class="boxmid"><span class="boxloc">'+esc(x.l)+'</span><span class="boxboro">'+BORONAME[x.b]+'</span></span><span class="boxgo">🗺️</span></a>';}).join("")
       +(total>300?'<div class="dempty">Showing the first 300 — keep typing to narrow it down.</div>':'');}
-  document.getElementById("openBox").onclick=function(){renderBox();openSheet(boxSheet);};
+  document.getElementById("openBox").onclick=function(){if(!requireUnlock())return;renderBox();openSheet(boxSheet);};
   document.getElementById("boxDone").onclick=closeSheets;
   document.getElementById("boxSearch").oninput=function(){bq=this.value.trim().toLowerCase();renderBox();};
 
@@ -4064,7 +4063,7 @@ var TEN_CODES=[
   });
   document.getElementById("houseBody").addEventListener("keydown",function(e){ if(e.key!=="Enter")return; if(e.target.id==="hCoAdd"){ e.preventDefault(); hAct("addco",e.target); } else if(e.target.id==="hNewCoAdd"){ e.preventDefault(); hAct("addnewco",e.target); } });   // Enter adds the company
 
-  document.getElementById("openRef").onclick=function(){renderRef();openSheet(refSheet);};
+  document.getElementById("openRef").onclick=function(){if(!requireUnlock())return;renderRef();openSheet(refSheet);};
   document.getElementById("refDone").onclick=closeSheets;
   document.getElementById("rSearch").oninput=function(){rq=this.value.trim().toLowerCase();renderRef();};
   document.getElementById("dSearch").oninput=function(){dq=this.value.trim().toLowerCase();renderDir();};
@@ -4099,7 +4098,7 @@ var TEN_CODES=[
     Array.prototype.forEach.call(list.querySelectorAll(".rx"),function(b){b.onclick=function(){delete ot[b.getAttribute("data-k")];save("ot",ot);render();renderRsot();};});
     wireYrAcc(list);
   }
-  document.getElementById("openRsot").onclick=function(){if(!requireUnlock())return;setSheet.classList.remove("show");renderRsot();openSheet(rsotSheet);};
+  document.getElementById("openRsot").onclick=function(){setSheet.classList.remove("show");renderRsot();openSheet(rsotSheet);};
   document.getElementById("rDone").onclick=closeSheets;
   Array.prototype.forEach.call(document.querySelectorAll("#rsotSheet .rseg button"),function(b){
     b.onclick=function(){rTour=parseInt(b.getAttribute("data-rt"),10);Array.prototype.forEach.call(b.parentNode.children,function(c){c.classList.remove("on");});b.classList.add("on");};
@@ -4212,7 +4211,7 @@ var TEN_CODES=[
   Array.prototype.forEach.call(document.querySelectorAll("#ldLtr button"),function(b){b.onclick=function(){ldELtr=b.getAttribute("data-l");showLdCfg();};});
   Array.prototype.forEach.call(document.querySelectorAll("#ldDays button"),function(b){b.onclick=function(){b.classList.toggle("on");};});
   Array.prototype.forEach.call(document.querySelectorAll("#trDays button"),function(b){b.onclick=function(){b.classList.toggle("on");};});
-  document.getElementById("openStat").onclick=function(){if(!requireUnlock())return;setSheet.classList.remove("show");resetPForm();setPType("vac");renderPeriods();openSheet(statSheet);};
+  document.getElementById("openStat").onclick=function(){setSheet.classList.remove("show");resetPForm();setPType("vac");renderPeriods();openSheet(statSheet);};
   document.getElementById("pDone").onclick=closeSheets;
   var pCancelBtn=document.getElementById("pCancel"); if(pCancelBtn)pCancelBtn.onclick=function(){resetPForm();renderPeriods();};
   document.getElementById("pAdd").onclick=function(){
@@ -4283,7 +4282,7 @@ var TEN_CODES=[
     cfrTourSel=(cfr.ses&&cfr.ses.tour)||"day"; document.getElementById("cfrSesTime").value=(cfr.ses&&cfr.ses.t)||"09:00";
     if(!cfr.ses)["cfrD1","cfrD2","cfrD3","cfrD4","cfrD5"].forEach(function(id){var el=document.getElementById(id);if(el)el.value="";});
     renderCfr();openSheet(cfrSheet);}
-  document.getElementById("openCfr").onclick=function(){if(!requireUnlock())return;setSheet.classList.remove("show");openCfrSheet();};
+  document.getElementById("openCfr").onclick=function(){setSheet.classList.remove("show");openCfrSheet();};
   document.getElementById("cfrDone").onclick=closeSheets;
   document.getElementById("cfrSaveExp").onclick=function(){var v=document.getElementById("cfrExpIn").value;if(!isRealDate(v)){cfrErr("Pick your CFR expiration date.");return;}cfr.exp=v;save("cfrsnooze","");saveCfr();cfrErr("");render();renderCfr();};   // clear any snoozed reminder when a fresh date is set
   function cfrSnoozed(){var s=load("cfrsnooze",null);if(!s)return false;return (Date.now()-new Date(s).getTime())<30*864e5;}   // dismiss the reminder for 30 days
@@ -4313,7 +4312,7 @@ var TEN_CODES=[
       evErr("");
     };
   });
-  document.getElementById("openEv").onclick=function(){if(!requireUnlock())return;setSheet.classList.remove("show");evErr("");renderEvents();openSheet(evSheet);};
+  document.getElementById("openEv").onclick=function(){setSheet.classList.remove("show");evErr("");renderEvents();openSheet(evSheet);};
   document.getElementById("evDone").onclick=closeSheets;
   document.getElementById("evAdd").onclick=function(){
     var s=document.getElementById("evDate").value;
@@ -4352,7 +4351,7 @@ var TEN_CODES=[
     cevDates=cevDatesOf(e).slice();document.getElementById("cevDate").value="";resetCevRep();renderChips();
     cevErr("");syncCevMode();
     var sh=document.getElementById("cevSheet");if(sh)sh.scrollTop=0;document.getElementById("cevName").focus();}
-  document.getElementById("openCev").onclick=function(){if(!requireUnlock())return;setSheet.classList.remove("show");clearCevForm();renderCev();openSheet(cevSheet);};
+  document.getElementById("openCev").onclick=function(){setSheet.classList.remove("show");clearCevForm();renderCev();openSheet(cevSheet);};
   document.getElementById("cevDone").onclick=closeSheets;
   document.getElementById("cevCancel").onclick=function(){clearCevForm();};
   Array.prototype.forEach.call(document.querySelectorAll("#cevRep button"),function(b){
