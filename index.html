@@ -642,6 +642,29 @@
   .onb{position:fixed; inset:0; z-index:60; background:var(--bg); display:none; align-items:center; justify-content:center; padding:20px; overflow-y:auto;}
   .onb.show{display:flex;}
   .onbcard{width:100%; max-width:400px; background:var(--panel); border:1px solid var(--line); border-radius:20px; box-shadow:0 24px 70px rgba(0,0,0,.28); padding:24px 22px 20px; text-align:center;}
+  /* first-visit marketing slideshow */
+  .mkt{margin:2px 0 14px;}
+  .mktview{position:relative; min-height:150px;}
+  .mktcard{display:none;}
+  .mktcard.on{display:block;}
+  .mktviz{border:1px solid var(--line); border-radius:13px; background:var(--bg); padding:14px 12px; min-height:86px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;}
+  .mktcal{display:grid; grid-template-columns:repeat(7,1fr); gap:5px; padding:14px 16px;}
+  .mktcal i{height:13px; border-radius:4px; background:var(--line); opacity:.55;}
+  .mktcal i.r{background:var(--red); opacity:1;}
+  .mktcal i.a{background:var(--amber); opacity:1;}
+  .mktchip{font-size:12px; font-weight:800; padding:5px 10px; border-radius:999px; border:1px solid var(--line);}
+  .mktchip.in{color:#0f7a41; border-color:#0f7a41;}
+  .mktchip.out{color:var(--amber); border-color:var(--amber);}
+  .mktchip.hc{color:var(--ink); background:var(--panel);}
+  .mktled{flex-direction:row; flex-wrap:wrap;}
+  .mktbal{flex-basis:100%; font-size:11.5px; font-weight:700; color:var(--ink2);}
+  .mktbig{font-size:34px; font-weight:900; color:var(--ink); letter-spacing:-.5px; font-variant-numeric:tabular-nums;}
+  .mktsm{font-size:11.5px; font-weight:700; color:var(--ink2);}
+  .mktcap{margin:9px 2px 0; font-size:12.5px; line-height:1.45; color:var(--ink2);}
+  .mktcap b{color:var(--ink);}
+  .mktdots{display:flex; gap:6px; justify-content:center; margin-top:10px;}
+  .mktdots i{width:6px; height:6px; border-radius:999px; background:var(--line); transition:all .25s;}
+  .mktdots i.on{background:var(--red); width:16px;}
   .onbprog{display:flex; gap:6px; justify-content:center; margin-bottom:16px;}
   .onbprog i{width:22px; height:4px; border-radius:999px; background:var(--line);}
   .onbprog i.on{background:var(--red);}
@@ -1458,7 +1481,35 @@
 
     <div class="onbstep on" data-step="1">
       <h2>Welcome to Square Root</h2>
-      <p class="onbp">Your firehouse tour calendar — swaps, overtime, mutuals, time off, all in one place. Let's set it up.</p>
+      <div class="mkt" id="mkt">
+        <div class="mktview" id="mktView">
+          <div class="mktcard on">
+            <div class="mktviz mktcal">
+              <i></i><i></i><i class="r"></i><i></i><i></i><i class="a"></i><i></i>
+              <i class="r"></i><i></i><i></i><i class="a"></i><i></i><i></i><i class="r"></i>
+              <i></i><i class="a"></i><i></i><i class="r"></i><i></i><i></i><i></i>
+            </div>
+            <p class="mktcap"><b>Your whole chart, forever.</b> Set your group once — every 9× and 6× lights up automatically, years ahead.</p>
+          </div>
+          <div class="mktcard">
+            <div class="mktviz mktled"><span class="mktchip in">⇄ IN · Sully</span><span class="mktchip out">⇄ OUT · Reyes</span><div class="mktbal">Ledger: Sully owes you <b>1</b></div></div>
+            <p class="mktcap"><b>Mutuals &amp; swaps, squared away.</b> The who-owes-who ledger never forgets a tour.</p>
+          </div>
+          <div class="mktcard">
+            <div class="mktviz mktot"><div class="mktbig">$742</div><div class="mktsm">9h day OT · off the UFA chart</div></div>
+            <p class="mktcap"><b>Overtime in dollars.</b> Every MSOT, RSOT and held-over hour priced at your actual rate.</p>
+          </div>
+          <div class="mktcard">
+            <div class="mktviz mkthouse"><span class="mktchip hc">🏠 E295 · L144</span><div class="mktsm">Who's working · swaps · coverage · push alerts</div></div>
+            <p class="mktcap"><b>The whole firehouse, one calendar.</b> Post a swap, the crew sees it — accepted tours write themselves in.</p>
+          </div>
+          <div class="mktcard">
+            <div class="mktviz mktprice"><div class="mktbig">$9.99</div><div class="mktsm">once · yours forever</div></div>
+            <p class="mktcap"><b>One-time unlock — no subscription.</b> Or ride free with your house's House Calendar invite code.</p>
+          </div>
+        </div>
+        <div class="mktdots" id="mktDots"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+      </div>
       <button class="onbnext" id="onbStart" type="button">Get started</button>
       <button class="onblink" id="onbHasCode" type="button">Already have a recovery code? Restore it</button>
       <div class="onbrestore" id="onbRestoreBox" hidden>
@@ -3061,6 +3112,18 @@
     Array.prototype.forEach.call(document.querySelectorAll("#onbPtSeg button"),function(b){b.onclick=function(){ onbHasPt=(b.getAttribute("data-p")==="yes");
       Array.prototype.forEach.call(document.querySelectorAll("#onbPtSeg button"),function(x){x.classList.toggle("on",x===b);}); document.getElementById("onbPtWrap").hidden=!onbHasPt; };});
     document.getElementById("onbStart").onclick=function(){showOnbStep(isStandalone()?3:2);};   // already installed → no install slide
+    (function(){ var cards=document.querySelectorAll("#mktView .mktcard"),dots=document.querySelectorAll("#mktDots i"); if(!cards.length)return;   // welcome slideshow: auto-advance, swipe, tap-a-dot
+      var idx=0,tmr=null,tx=null;
+      function show(n){ idx=(n+cards.length)%cards.length;
+        for(var i=0;i<cards.length;i++){cards[i].classList.toggle("on",i===idx);dots[i].classList.toggle("on",i===idx);} }
+      function tick(){ var st=document.querySelector('#onb.show .onbstep[data-step="1"].on'); if(st)show(idx+1); }
+      function arm(){ if(tmr)clearInterval(tmr); tmr=setInterval(tick,3800); }
+      var mv=document.getElementById("mktView");
+      mv.addEventListener("touchstart",function(e){tx=e.touches[0].clientX;},{passive:true});
+      mv.addEventListener("touchend",function(e){ if(tx===null)return; var dx=e.changedTouches[0].clientX-tx; tx=null;
+        if(Math.abs(dx)>32){show(idx+(dx<0?1:-1));arm();} },{passive:true});
+      for(var d=0;d<dots.length;d++)(function(n){dots[n].addEventListener("click",function(){show(n);arm();});})(d);
+      arm(); })();
     document.getElementById("onbInstNext").onclick=function(){showOnbStep(3);};
     document.getElementById("onbInstSkip").onclick=function(){showOnbStep(3);};
     document.getElementById("onbToPartner").onclick=function(){showOnbStep(4);};
