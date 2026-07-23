@@ -63,6 +63,18 @@ module.exports = async function (req, res) {
     if (!REST_URL || !REST_TOKEN) { res.status(503).json({ error: "billing-not-configured" }); return; }
     var q = {}; (req.url.split("?")[1] || "").split("&").forEach(function (p) { var kv = p.split("="); if (kv[0]) q[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1] || ""); });
 
+    if (req.method === "GET" && q.grant) {   // owner-only: re-link a verified purchase to a customer's NEW license id (lost recovery code — verify the payment in Stripe first)
+      var admin = process.env.CRON_SECRET || "";
+      var key = String(q.key || "");
+      var okKey = false;
+      try { okKey = !!admin && key.length === admin.length && crypto.timingSafeEqual(Buffer.from(key), Buffer.from(admin)); } catch (e) {}
+      if (!okKey) { res.status(403).json({ error: "forbidden" }); return; }
+      var gid = String(q.grant);
+      if (!validId(gid)) { res.status(400).json({ error: "bad-id" }); return; }
+      await redis(["SET", ENT_APP + gid, "1"]);
+      res.status(200).json({ granted: true, id: gid });
+      return;
+    }
     if (req.method === "GET") {   // entitlement check — safe to expose: knowing a hash is entitled reveals nothing about who
       var id = String(q.check || "");
       if (!validId(id)) { res.status(400).json({ error: "bad-id" }); return; }

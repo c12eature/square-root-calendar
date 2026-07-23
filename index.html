@@ -1453,7 +1453,7 @@
 
 <div class="onb" id="onb" aria-hidden="true">
   <div class="onbcard">
-    <div class="onbprog"><i data-s="1" class="on"></i><i data-s="2"></i><i data-s="3"></i><i data-s="4"></i></div>
+    <div class="onbprog"><i data-s="1" class="on"></i><i data-s="2"></i><i data-s="3"></i><i data-s="4"></i><i data-s="5"></i></div>
     <div class="onbmark">√</div>
 
     <div class="onbstep on" data-step="1">
@@ -1469,6 +1469,14 @@
     </div>
 
     <div class="onbstep" data-step="2" hidden>
+      <h2>Put it on your phone first</h2>
+      <p class="onbp">Install Square Root <b>before</b> you set up — the installed app keeps its own storage, so you'll only enter your info once.</p>
+      <div id="onbInstBody"></div>
+      <button class="onbnext" id="onbInstNext" type="button">Continue setup</button>
+      <button class="onblink" id="onbInstSkip" type="button">Skip — set up in the browser</button>
+    </div>
+
+    <div class="onbstep" data-step="3" hidden>
       <h2>About you</h2>
       <p class="onbp">Your name &amp; company — so your firehouse can find you if you join a <b>House Calendar</b>. Then your chart group — tours show in <b class="gc gred">red</b>.</p>
       <input class="bakcodein" id="onbName" type="text" autocomplete="name" autocapitalize="words" spellcheck="false" placeholder="Full name (First Last)" style="margin-bottom:9px;text-transform:none">
@@ -1479,7 +1487,7 @@
       <button class="onblink" id="onbBack2" type="button">Back</button>
     </div>
 
-    <div class="onbstep" data-step="3" hidden>
+    <div class="onbstep" data-step="4" hidden>
       <h2>Mutual partner?</h2>
       <p class="onbp">Regularly swap with someone? Add their group — it shows in <b class="gc gamber">amber</b>. Skip if you don't have one.</p>
       <div class="onbptseg" id="onbPtSeg">
@@ -1494,7 +1502,7 @@
       <button class="onblink" id="onbBack3" type="button">Back</button>
     </div>
 
-    <div class="onbstep" data-step="4" hidden>
+    <div class="onbstep" data-step="5" hidden>
       <h2>Never lose your data</h2>
       <p class="onbp">It's saved on this phone. Turn on <b>cloud backup</b> to get a recovery code — enter it on any phone to restore everything, even if this one is lost or wiped.</p>
       <button class="onbnext" id="onbCloudOn" type="button">☁️ Turn on cloud backup</button>
@@ -1526,6 +1534,7 @@
     <button class="ldbtn" id="payActivate" style="width:100%;margin-top:6px">I&rsquo;ve paid &mdash; activate</button>
     <div class="paymsg" id="payMsg"></div>
     <p class="paysub">Always free: your full calendar &mdash; tours, mutuals, overtime &amp; time-off logging, CFR, events, notes, and encrypted cloud backup. In a house with an active <b>House Calendar</b>? The invite code unlocks everything &mdash; no separate purchase. Your <b>recovery code</b> is your license &mdash; it restores the purchase and your data on any phone.</p>
+    <p class="paysub" id="payLic" hidden style="word-break:break-all"></p>
   </div>
 </div>
 
@@ -2800,6 +2809,9 @@
   function openPay(){ var st=document.getElementById("payTrial");
     st.textContent = (houses&&houses.length&&!houseCovered()) ? "\u23F8 Your house\u2019s subscription has lapsed \u2014 any member can reactivate it in the \uD83C\uDFE0 House tab, or unlock the app just for you."
       : "In a firehouse with the House Calendar? Ask for the invite code \u2014 the house subscription covers the whole crew.";
+    var lic=document.getElementById("payLic");
+    if(lic){ lic.hidden=true; licenseIdP().then(function(id){ if(!id)return;   // bought before but lost the code? support re-links a purchase to this id
+      lic.innerHTML="Bought it but locked out? Email <b>support@squarerootcalendar.com</b> with your receipt and this license ID: "; var c=document.createElement("b"); c.textContent=id; lic.appendChild(c); lic.hidden=false; }); }
     payMsg(""); openSheet(paySheet); }
   function requireUnlock(){ if(unlocked())return true; openPay(); return false; }
   function startPurchase(){
@@ -2898,7 +2910,24 @@
   function updOnbPt(){document.getElementById("onbPt").textContent=onbPtVal;document.getElementById("onbPtRange").textContent="Groups "+label(onbPtVal);}
   function showOnbStep(n){ Array.prototype.forEach.call(document.querySelectorAll("#onb .onbstep"),function(s){var m=(+s.getAttribute("data-step")===n);s.classList.toggle("on",m);s.hidden=!m;});
     Array.prototype.forEach.call(document.querySelectorAll(".onbprog i"),function(i){i.classList.toggle("on",+i.getAttribute("data-s")<=n);}); }
-  function startOnboarding(){ onbMyVal=my;onbPtVal=(pt||19);onbHasPt=!!pt; updOnbMy();updOnbPt();
+  function onbInstFill(){ var b=document.getElementById("onbInstBody"); if(!b)return; var body="";
+    if(isIOS()){ var safari=/safari/i.test(navigator.userAgent)&&!/crios|fxios|edgios/i.test(navigator.userAgent);
+      body='<ol class="insteps">'
+        +'<li class="instep"><span class="instepn">1</span><span>Tap the <b>Share</b> button <span class="inkbd">↑</span> at the bottom of '+(safari?"Safari":"your browser")+'.</span></li>'
+        +'<li class="instep"><span class="instepn">2</span><span>Scroll down, tap <b>Add to Home Screen</b> <span class="inkbd">＋</span>, then <b>Add</b>.</span></li>'
+        +'<li class="instep"><span class="instepn">3</span><span>Open <b>Square Root</b> from your Home Screen and finish setup there.</span></li></ol>';
+      if(!safari)body+='<p class="baknote">Don’t see “Add to Home Screen”? Open this page in <b>Safari</b> first.</p>';
+    } else if(isAndroid()||deferredPrompt){
+      if(deferredPrompt)body+='<button class="instbtn" id="onbInstAdd" type="button">📲 Add to Home Screen</button>';
+      else body+='<p class="baknote">In Chrome: tap the <b>⋮</b> menu → <b>Add to Home screen</b> (or <b>Install app</b>).</p>';
+      body+='<button class="instbtn alt2" id="onbInstApk" type="button">🤖 Download the Android app (APK)</button>';
+    } else {
+      body='<p class="baknote">On a computer? Open <b>squarerootcalendar.com</b> on your phone to install — or just continue here.</p>';
+    }
+    b.innerHTML=body;
+    var a=document.getElementById("onbInstAdd");if(a)a.onclick=doAndroidInstall;
+    var k=document.getElementById("onbInstApk");if(k)k.onclick=apkDownload; }
+  function startOnboarding(){ onbMyVal=my;onbPtVal=(pt||19);onbHasPt=!!pt; updOnbMy();updOnbPt(); onbInstFill();
     var nEl=document.getElementById("onbName");if(nEl)nEl.value=uname; var cEl=document.getElementById("onbCo");if(cEl)cEl.value=uco;
     Array.prototype.forEach.call(document.querySelectorAll("#onbPtSeg button"),function(x){x.classList.toggle("on",x.getAttribute("data-p")===(onbHasPt?"yes":"no"));});
     document.getElementById("onbPtWrap").hidden=!onbHasPt;
@@ -2910,17 +2939,19 @@
     groups=[{s:"1970-01-01",my:my,pt:pt}]; save("groups",groups); save("my",my); save("pt",pt); save("seen",1);   // fresh user → one base epoch
     if(!unlockSt){ unlockSt={k:"none",ts:Date.now()}; save("unlock",unlockSt); }   // marker, NOT an unlock — without it a new install would look like a pre-billing device and get grandfathered at next boot
     var vMy=document.getElementById("vMy");if(vMy)vMy.textContent=my; syncPt();render(); }
-  function finishOnboarding(){ closeOnboarding(); if(!isStandalone()&&!load("instdone",false)&&!instSnoozed())setTimeout(function(){save("instsnooze",isoNow());openInstall();},350); }
+  function finishOnboarding(){ closeOnboarding(); }   // install now leads the flow (step 2); skippers still get the maybeInstallLater nudge
   (function wireOnb(){
     Array.prototype.forEach.call(document.querySelectorAll("#onbMyStep button"),function(b){b.onclick=function(){onbMyVal=mod(onbMyVal-1+(+b.getAttribute("data-d")),G)+1;updOnbMy();};});
     Array.prototype.forEach.call(document.querySelectorAll("#onbPtStep button"),function(b){b.onclick=function(){onbPtVal=mod(onbPtVal-1+(+b.getAttribute("data-d")),G)+1;updOnbPt();};});
     Array.prototype.forEach.call(document.querySelectorAll("#onbPtSeg button"),function(b){b.onclick=function(){ onbHasPt=(b.getAttribute("data-p")==="yes");
       Array.prototype.forEach.call(document.querySelectorAll("#onbPtSeg button"),function(x){x.classList.toggle("on",x===b);}); document.getElementById("onbPtWrap").hidden=!onbHasPt; };});
-    document.getElementById("onbStart").onclick=function(){showOnbStep(2);};
-    document.getElementById("onbToPartner").onclick=function(){showOnbStep(3);};
-    document.getElementById("onbBack2").onclick=function(){showOnbStep(1);};
-    document.getElementById("onbToCloud").onclick=function(){commitGroups();showOnbStep(4);};
-    document.getElementById("onbBack3").onclick=function(){showOnbStep(2);};
+    document.getElementById("onbStart").onclick=function(){showOnbStep(isStandalone()?3:2);};   // already installed → no install slide
+    document.getElementById("onbInstNext").onclick=function(){showOnbStep(3);};
+    document.getElementById("onbInstSkip").onclick=function(){showOnbStep(3);};
+    document.getElementById("onbToPartner").onclick=function(){showOnbStep(4);};
+    document.getElementById("onbBack2").onclick=function(){showOnbStep(isStandalone()?1:2);};
+    document.getElementById("onbToCloud").onclick=function(){commitGroups();showOnbStep(5);};
+    document.getElementById("onbBack3").onclick=function(){showOnbStep(3);};
     document.getElementById("onbFinish").onclick=finishOnboarding;
     document.getElementById("onbCloudOn").onclick=function(){ var self=this; enableCloud(function(code){ if(!code)return; document.getElementById("onbCodeVal").textContent=code; document.getElementById("onbCodeBox").hidden=false; self.style.display="none"; }); };
     document.getElementById("onbCodeCopy").onclick=function(){copyText(rcode,this);};
