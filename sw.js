@@ -2,7 +2,7 @@
 // The deployed /sw.js stays the kill switch while the app is OFF. At relaunch:
 //   cp sw.real.js sw.js   (then bump CACHE if assets changed) and push.
 // Bump CACHE whenever assets change.
-var CACHE = 'sqrtcal-v15';
+var CACHE = 'sqrtcal-v16';
 var ASSETS = [
   '/', '/index.html', '/manifest.webmanifest', '/boxdata.js',
   '/icons/icon-192.png', '/icons/icon-512.png', '/icons/apple-touch-icon.png', '/icons/favicon-32.png'

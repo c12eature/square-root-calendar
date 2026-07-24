@@ -469,6 +469,12 @@
   .settx{flex:1; min-width:0; display:flex; flex-direction:column; gap:2px;}
   .settl{font-size:14px; font-weight:800; color:var(--ink);}
   .setsub{font-size:11px; font-weight:600; color:var(--ink2);}
+  .pgfoot{flex:none; width:100%; margin-top:7px; padding:5px 4px 1px; background:none; border:none; cursor:pointer; font-family:inherit; font-size:11px; font-weight:700; color:var(--mut); text-align:center; line-height:1.35;}
+  .pgfoot span{color:var(--ink2); text-decoration:underline; text-underline-offset:2px;}
+  .ctp{margin:0 0 13px; font-size:13px; line-height:1.5; color:var(--ink2);}
+  .ctbtn{display:block; text-align:center; text-decoration:none; background:var(--panel2); border:1px solid var(--line); border-radius:11px; padding:13px 12px; margin-bottom:9px; font-size:13.5px; font-weight:800; color:var(--ink);}
+  .ctsub{margin:8px 2px 0; font-size:12px; line-height:1.5; color:var(--mut);}
+  .ctsub b{color:var(--ink2);}
   .supfoot{display:block;text-align:center;font-size:12px;font-weight:600;color:var(--mut);text-decoration:none;margin:14px 0 2px;line-height:1.5;}
   .supfoot b{color:var(--ink2);font-weight:700;}
   .setchev{flex:none; color:var(--mut); font-size:20px; font-weight:400; line-height:1;}
@@ -1011,6 +1017,7 @@
     </div>
     <button class="keybtn" id="openLegend" type="button">🔑 Key</button>
   </div>
+  <button class="pgfoot" id="openContact" type="button">💬 Feedback &middot; <span>bring Square Root to your department</span></button>
 </div>
 <div class="reqbar" id="reqbar">
   <div class="reqbarmsg" id="reqbarMsg"></div>
@@ -1136,6 +1143,18 @@
   </div>
   <a class="supfoot" href="mailto:support@squarerootcalendar.com?subject=Square%20Root%20Calendar%20%E2%80%94%20support">🛟 Problem or idea? Email <b>support@squarerootcalendar.com</b></a>
   <button class="done" id="setDone">Done</button>
+</div>
+
+<div class="lgpop" id="contactPop">
+  <div class="lgpophd"><h3>Feedback &amp; Contact</h3><button class="lgx" id="contactX" type="button" aria-label="Close">✕</button></div>
+  <div class="lgpopbody">
+    <div class="lgsec">
+      <p class="ctp">Square Root is built by a firefighter, for firefighters — your ideas shape where it goes.</p>
+      <a class="ctbtn" href="mailto:support@squarerootcalendar.com?subject=Square%20Root%20%E2%80%94%20Feedback">💬 Send feedback or report a bug</a>
+      <a class="ctbtn" href="mailto:support@squarerootcalendar.com?subject=Square%20Root%20for%20our%20department">🚒 Bring it to your department</a>
+      <p class="ctsub">Like the app and want it tailored for <b>your department’s needs</b> — your tour rotation, your ranks, your rules? Email <b>support@squarerootcalendar.com</b> and let’s talk.</p>
+    </div>
+  </div>
 </div>
 
 <div class="lgpop" id="legendPop">
@@ -2220,7 +2239,7 @@
   }
 
   // ---- day detail sheet ----
-  var scrim=document.getElementById("scrim"),sheet=document.getElementById("sheet"),setSheet=document.getElementById("setSheet"),rsotSheet=document.getElementById("rsotSheet"),statSheet=document.getElementById("statSheet"),mxSheet=document.getElementById("mxSheet"),dirSheet=document.getElementById("dirSheet"),statsSheet=document.getElementById("statsSheet"),refSheet=document.getElementById("refSheet"),bakSheet=document.getElementById("bakSheet"),evSheet=document.getElementById("evSheet"),cevSheet=document.getElementById("cevSheet"),legendPop=document.getElementById("legendPop"),instSheet=document.getElementById("instSheet"),groupSheet=document.getElementById("groupSheet"),tenSheet=document.getElementById("tenSheet"),abcdSheet=document.getElementById("abcdSheet"),cfrSheet=document.getElementById("cfrSheet"),boxSheet=document.getElementById("boxSheet"),houseSheet=document.getElementById("houseSheet"),paySheet=document.getElementById("paySheet");
+  var scrim=document.getElementById("scrim"),sheet=document.getElementById("sheet"),setSheet=document.getElementById("setSheet"),rsotSheet=document.getElementById("rsotSheet"),statSheet=document.getElementById("statSheet"),mxSheet=document.getElementById("mxSheet"),dirSheet=document.getElementById("dirSheet"),statsSheet=document.getElementById("statsSheet"),refSheet=document.getElementById("refSheet"),bakSheet=document.getElementById("bakSheet"),evSheet=document.getElementById("evSheet"),cevSheet=document.getElementById("cevSheet"),legendPop=document.getElementById("legendPop"),contactPop=document.getElementById("contactPop"),instSheet=document.getElementById("instSheet"),groupSheet=document.getElementById("groupSheet"),tenSheet=document.getElementById("tenSheet"),abcdSheet=document.getElementById("abcdSheet"),cfrSheet=document.getElementById("cfrSheet"),boxSheet=document.getElementById("boxSheet"),houseSheet=document.getElementById("houseSheet"),paySheet=document.getElementById("paySheet");
   var navStack=[];   // sheets in the open path — so the phone/browser Back (swipe-back) closes the current sheet, not the app
   function openSheet(s){
     if(navStack.length&&navStack[navStack.length-1]===s){scrim.classList.add("show");s.classList.add("show");return;}   // re-render of the same sheet — no new history entry
@@ -2229,7 +2248,7 @@
     try{history.pushState({sqSheet:navStack.length},"");}catch(e){}
   }
   function closeSheets(){if(_staleTab){location.reload();return;}var n=navStack.length;navStack=[];
-    [sheet,setSheet,rsotSheet,statSheet,mxSheet,dirSheet,statsSheet,refSheet,bakSheet,evSheet,cevSheet,legendPop,instSheet,groupSheet,tenSheet,abcdSheet,cfrSheet,boxSheet,houseSheet,paySheet].forEach(function(x){x.classList.remove("show");});
+    [sheet,setSheet,rsotSheet,statSheet,mxSheet,dirSheet,statsSheet,refSheet,bakSheet,evSheet,cevSheet,legendPop,contactPop,instSheet,groupSheet,tenSheet,abcdSheet,cfrSheet,boxSheet,houseSheet,paySheet].forEach(function(x){x.classList.remove("show");});
     scrim.classList.remove("show");
     if(n>0){try{history.go(-n);}catch(e){}}   // unwind the states we pushed
   }
@@ -2646,6 +2665,8 @@
   ["defCfrSw","defEccSw"].forEach(function(id){var el=document.getElementById(id);if(el)el.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();toggleDef(id==="defCfrSw"?"cfr":"ecc");}});});
   document.getElementById("openLegend").onclick=function(){openSheet(legendPop);};
   document.getElementById("legendX").onclick=closeSheets;
+  document.getElementById("openContact").onclick=function(){openSheet(contactPop);};
+  document.getElementById("contactX").onclick=closeSheets;
   document.getElementById("ptClear").onclick=function(){   // toggle: clear the mutual partner / restore a default
     syncCurGroups();   // fresh values first (guard against a midnight epoch rollover while open)
     setCurGroups(my, pt?0:19);   // toggle today's partner; past even-swaps stay recorded (data preserved)
