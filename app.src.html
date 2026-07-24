@@ -3033,7 +3033,8 @@
   // lists (adds from both sides survive, a deletion by either side sticks), and the device that
   // edited most recently wins the rare both-changed-the-exact-same-thing conflict.
   var MERGE_MAPS={ov:1,ot:1,mx:1,ar:1,add:1,note:1,sb:1,fh:1,hqapplied:1,hseen:1,hsub:1};
-  var MERGE_ARRS={ev:1,mxnames:1,cev:1,abcd:1,periods:1,groups:1,houses:1};
+  var MERGE_ARRS={ev:1,mxnames:1,cev:1,abcd:1,periods:1,groups:1};
+  var MERGE_UNION={houses:1};   // union-only: a merge must never DELETE a house entry — it holds the membership key, and losing it locks you out (a stale entry self-heals via the 403 → hDrop path instead)
   var MERGE_LOCAL={rcode:1,cloud:1,seen:1,curhouse:1,hgack:1,hpush:1,housedoc:1,instdone:1,instsnooze:1,cbase:1,cloudts:1,cdirty:1,cconf:1,editat:1,bakts:1,baksnooze:1,cfrsnooze:1};
   function saveMergeBase(d){ try{LS.setItem("sqrtmergebase",JSON.stringify(d||collectData()));}catch(e){} }   // d = the EXACT snapshot that reached the cloud (never live state — an edit landing mid-push must not be recorded as synced)
   function loadMergeBase(){ try{return JSON.parse(LS.getItem("sqrtmergebase"))||null;}catch(e){return null;} }
@@ -3059,6 +3060,10 @@
       var garr=Object.keys(go).map(function(x){return go[x];});
       garr.sort(function(x,y){return String(x.s).localeCompare(String(y.s));});
       return JSON.stringify(garr); }
+    if(MERGE_UNION[k]&&Array.isArray(l)&&Array.isArray(r)){ var uo=[],useen={},ui;   // union-only, keyed by house id — LOCAL entry wins (its m/s is what this device authenticated with); no deletion rule, so a merge can never strand you outside your own house
+      for(ui=0;ui<l.length;ui++){ var lk=(l[ui]&&l[ui].id)||JSON.stringify(l[ui]); if(useen[lk])continue; useen[lk]=1; uo.push(l[ui]); }
+      for(ui=0;ui<r.length;ui++){ var rk=(r[ui]&&r[ui].id)||JSON.stringify(r[ui]); if(useen[rk])continue; useen[rk]=1; uo.push(r[ui]); }
+      return JSON.stringify(uo); }
     if(MERGE_ARRS[k]&&Array.isArray(l)&&Array.isArray(r)){ var ba=Array.isArray(b)?b:[],bs={},rs={},ls={},i;
       for(i=0;i<ba.length;i++)bs[JSON.stringify(ba[i])]=1;
       for(i=0;i<r.length;i++)rs[JSON.stringify(r[i])]=1;
@@ -3074,6 +3079,10 @@
     for(k in ks){ var L=loc[k],R=rem[k],B=base?base[k]:undefined;
       if(MERGE_LOCAL[k]){ if(L!==undefined)out[k]=L; continue; }   // device-local (push sub, install flags, sync meta) never crosses phones
       if(k==="unlock"){ var u=mergeVal(k,B,L,R,remWins); if(u!==undefined)out[k]=u; continue; }   // rank rule ALWAYS — a fresh phone's "none" must never displace paid/gf via the generic three-way path
+      if(MERGE_UNION[k]&&L!==R){ var la=parseJ(L),ra=parseJ(R);                                    // memberships only ever ADD across devices — never let an older copy's absence strand this device outside its house
+        if(Array.isArray(la)&&Array.isArray(ra)){ out[k]=mergeVal(k,B,L,R,remWins); continue; }
+        if(Array.isArray(la)&&la.length){ out[k]=L; continue; }
+        if(Array.isArray(ra)&&ra.length){ out[k]=R; continue; } }
       if(L===R){ if(L!==undefined)out[k]=L; continue; }
       if(R===B){ if(L!==undefined)out[k]=L; continue; }            // remote untouched → local wins (including a local delete)
       if(L===B){ if(R!==undefined)out[k]=R; continue; }            // local untouched → remote wins (including a remote delete)
@@ -4035,7 +4044,8 @@ var TEN_CODES=[
     if(!HS||HS.id!==reqId)return {stale:true};   // the active house changed while this fetch was in flight → ignore it (never render another house's data)
     if(r.status===200&&r.j.doc){hLoad="";HD=r.j.doc;hSub=r.j.sub||null;setHSub(reqId,(hSub&&hSub.mode)||"active");hSyncActive();hSave();applyDoneRequests();setHouseBadge();maybePromptHouseGroup();return {doc:HD};}
     if(r.status===200&&r.j.pending){ if(HS.alts&&HS.alts.length&&(tried||0)<3)return rot(); hLoad="pending";dropHSub(reqId);return {pending:true};}   // pending isn't membership — but try the other identity first (it may be the approved one)
-    if(r.status===403||r.status===404){ if(r.status===403&&HS.alts&&HS.alts.length&&(tried||0)<3)return rot(); hDrop(reqId);return HS?hGet():Promise.resolve({gone:true});}   // drop just this (gone) house; if another membership remains, fetch IT so we never show a false "pending" screen for a house you're active in
+    if(r.status===404){ hLoad="err:no-house"; return {err:"no-house"}; }   // NEVER discard the membership key on a 404 — a blip/misroute would lock you out of your own house for good (re-joining lands in pending with nobody to approve you). Leave the house manually if it's really gone.
+    if(r.status===403){ if(HS.alts&&HS.alts.length&&(tried||0)<3)return rot(); hDrop(reqId);return HS?hGet():Promise.resolve({gone:true});}   // 403 = explicitly removed/banned → drop just this house; if another membership remains, fetch IT so we never show a false "pending" screen for a house you're active in
     hLoad="err:"+((r.j&&r.j.error)||("http "+r.status));
     return {err:(r.j&&r.j.error)||("http "+r.status)}; }); }
   function hOp(op){ if(!HS)return Promise.resolve({err:"no-house"}); var rqId=HS.id,rqM=HS.m,rqS=HS.s;   // freeze the identity at entry — a response landing after hSwitch must never write house A's doc/applied-ids over house B's
