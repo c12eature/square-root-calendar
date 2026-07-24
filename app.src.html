@@ -4080,7 +4080,7 @@ var TEN_CODES=[
     if(hview==="roster")filterRoster(); if(hview==="requests")markReqsSeen(); }
   function hGate(){ var ready=(uname&&uco);
     return '<h3>🏠 House Calendar</h3><p class="rsub">Sync your firehouse — see who’s reporting for each tour, swap &amp; cover tours, and keep the crew in one place.</p>'+
-      (ready?'':'<div class="hmsg warn">Set your <b>full name</b> and <b>company</b> in Settings first — that’s how your crew finds you.</div>')+
+      (ready?'':'<div class="hmsg warn">Set your <b>full name</b> and <b>company</b> first — that’s how your crew finds you.<br><button class="raddbtn sm" data-act="profilefirst" style="margin-top:7px">👤 Add my name &amp; company</button></div>')+
       '<div class="cfrsec" style="border-top:none;padding-top:0"><div class="setlbl">Create a house</div>'+
         '<input class="cevin" id="hCreateName" placeholder="House name (e.g. Ladder 144 / Engine 295)" '+(ready?'':'disabled')+'>'+
         '<div class="setlbl" style="font-size:11px;letter-spacing:.02em;margin:2px 0 6px">Companies <span style="color:var(--mut);font-weight:600">— optional, add now or later</span></div>'+
@@ -4251,6 +4251,8 @@ var TEN_CODES=[
       if(hNewCos.some(function(c){return c.toLowerCase()===nv.toLowerCase();})){hMsg="“"+nv+"” is already in the list.";renderHouse();return;}
       if(hNewCos.length>=24){hMsg="That’s plenty of companies for now.";renderHouse();return;} hNewCos.push(nv); hMsg=""; renderHouse(); setTimeout(function(){var f=document.getElementById("hNewCoAdd");if(f)f.focus();},0); return; }   // stage a company for the new house (no server yet)
     if(act==="delnewco"){ var dnc=el.getAttribute("data-co"); hNewCos=hNewCos.filter(function(c){return c!==dnc;}); renderHouse(); return; }
+    if(act==="profilefirst"){ houseSheet.classList.remove("show"); document.getElementById("gear").click();   // jump them straight to the two required fields
+      document.getElementById("secYou").classList.remove("collapsed"); setTimeout(function(){var f=document.getElementById(uname?"setCo":"setName");if(f)f.focus();},250); return; }
     if(act==="create"){ var nm=(document.getElementById("hCreateName")||{}).value||""; if(!nm.trim()){hMsg="Name your house first.";renderHouse();return;} hReloadThen(houseCreate(nm.trim(),hNewCos.slice())); return; }
     if(act==="join"){ var cd=((document.getElementById("hJoinCode")||{}).value||"").trim(); if(!cd){hMsg="Enter the join code.";renderHouse();return;} if(hBusy)return; hBusy=true; houseJoin(cd).then(function(res){ hBusy=false; hMsg=res.err?("⚠ "+res.err):(res.pending?"Request sent — waiting for approval.":""); renderHouse(); }).catch(function(){ hBusy=false; renderHouse(); }); return; }
     if(act==="refresh"){ hGet().then(function(){renderHouse();}); return; }
