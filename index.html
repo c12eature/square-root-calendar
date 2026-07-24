@@ -469,6 +469,9 @@
   .settx{flex:1; min-width:0; display:flex; flex-direction:column; gap:2px;}
   .settl{font-size:14px; font-weight:800; color:var(--ink);}
   .setsub{font-size:11px; font-weight:600; color:var(--ink2);}
+  .tswitch{display:flex; gap:6px; margin:0 0 10px;}
+  .tswitch button{flex:1; min-height:34px; padding:7px 4px; border:1px solid var(--line); border-radius:9px; background:var(--panel2); color:var(--ink2); font-family:inherit; font-size:11.5px; font-weight:800; cursor:pointer; touch-action:manipulation;}
+  .tswitch button.on{background:var(--panel); color:var(--ink); border-color:var(--ink2); box-shadow:inset 0 0 0 1px var(--ink2);}
   .ctp{margin:0 0 13px; font-size:13px; line-height:1.5; color:var(--ink2);}
   .ctbtn{display:block; text-align:center; text-decoration:none; background:var(--panel2); border:1px solid var(--line); border-radius:11px; padding:13px 12px; margin-bottom:9px; font-size:13.5px; font-weight:800; color:var(--ink);}
   .ctsub{margin:8px 2px 0; font-size:12px; line-height:1.5; color:var(--mut);}
@@ -1852,7 +1855,7 @@
     else if(st==="comp")ov[k]="comp";
     else if(st==="ot")ot[k]="m";else if(st==="rsot")ot[k]="r";else if(st==="oot")ot[k]="o";
     if(st!=="mxin"&&st!=="mxout")delete mx[k];         // partner name only relevant for regular (counting) mutuals
-    save("ov",ov);save("ot",ot);save("mx",mx);if(quiet)return;render();openDay(y,m,d);}   // quiet: background sync mutates state without popping the day sheet
+    save("ov",ov);save("ot",ot);save("mx",mx);if(quiet)return;render();openDay(y,m,d,dayOnly||undefined);}   // quiet: background sync mutates state without popping the day sheet
   function mxName(y,m,d,tour){return mx[K(y,m,d,tour)]||"";}
   // persist only — the name shows in the day-sheet status text + ledger (both recomputed on next open),
   // never on a calendar chip, so we must NOT rebuild the sheet here (that would drop the user's next tap / focus).
@@ -1862,7 +1865,7 @@
     if(st==="mxin")ov[k]="in";else if(st==="mxout")ov[k]="out";else if(st==="comp")ov[k]="comp";
     else if(st==="ot")ot[k]="m";
     if(st!=="mxin"&&st!=="mxout")delete mx[k];});
-    save("ov",ov);save("ot",ot);save("mx",mx);render();openDay(y,m,d);}
+    save("ov",ov);save("ot",ot);save("mx",mx);render();openDay(y,m,d,dayOnly||undefined);}
   function setBothMxName(y,m,d,name){name=(name||"").trim();[9,6].forEach(function(tour){var k=K(y,m,d,tour);if(name)mx[k]=name;else delete mx[k];});save("mx",mx);}   // whole-day mutual name on both tours; no rebuild (keeps focus)
   function renderMxDatalist(){var dl=document.getElementById("mxNames");if(!dl)return;dl.innerHTML=mxnames.map(function(n){return '<option value="'+escA(n)+'"></option>';}).join("");}   // fill the autocomplete
   function rememberMxName(name){name=(name||"").trim();if(!name)return;var low=name.toLowerCase();if(mxnames.some(function(n){return n.toLowerCase()===low;}))return;mxnames.push(name);if(mxnames.length>80)mxnames=mxnames.slice(-80);save("mxnames",mxnames);renderMxDatalist();}
@@ -1920,14 +1923,14 @@
   function otHours(tour){return tour===9?9:15;}                        // day tour 9h OT, night tour 15h OT
   // AR = awaiting relief — extra paid minutes at the END of a tour you work (any tour)
   function arMin(y,m,d,tour){return ar[K(y,m,d,tour)]||0;}
-  function setAr(y,m,d,tour,mins){var k=K(y,m,d,tour);if(mins>0)ar[k]=mins;else delete ar[k];save("ar",ar);render();openDay(y,m,d);}
+  function setAr(y,m,d,tour,mins){var k=K(y,m,d,tour);if(mins>0)ar[k]=mins;else delete ar[k];save("ar",ar);render();openDay(y,m,d,dayOnly||undefined);}
   // ---- per-worked-tour add-ons: ECC/LCC + CFR flags, P2P (portal-to-portal) minutes, Washup AQ time, Other-OT hours ----
   function addOf(y,m,d,tour){return add[K(y,m,d,tour)]||{};}
   function addAlive(o){return !!(o&&(("ecc" in o)||("cfr" in o)||o.p2pw||o.aq||o.othm||o.otht||o.oohrs||o.oonote));}   // keep the add object if any field is set (ecc/cfr kept even when an explicit 0 = "off" override)
   function setAddF(y,m,d,tour,f,v){var k=K(y,m,d,tour),o={};for(var p in add[k])o[p]=add[k][p];
     if(v)o[f]=v;else delete o[f];
     if(addAlive(o))add[k]=o;else delete add[k];
-    save("add",add);render();openDay(y,m,d);}
+    save("add",add);render();openDay(y,m,d,dayOnly||undefined);}
   function setAddFnr(y,m,d,tour,f,v){var k=K(y,m,d,tour),o={};for(var p in add[k])o[p]=add[k][p];   // persist only — no rebuild (keeps text-input focus)
     v=(v||"").trim?(v||"").trim():v;if(v)o[f]=v;else delete o[f];
     if(addAlive(o))add[k]=o;else delete add[k];save("add",add);}
@@ -1935,7 +1938,7 @@
   function flagOn(y,m,d,tour,f){if(!worked(y,m,d,tour))return false;var a=addOf(y,m,d,tour);return (f in a)?!!a[f]:(f==="ecc"?defEcc:defCfr);}
   function setFlag(y,m,d,tour,f,on){var k=K(y,m,d,tour),o={};for(var p in add[k])o[p]=add[k][p];var def=(f==="ecc")?defEcc:defCfr;
     if(on===def)delete o[f];else o[f]=on?1:0;   // store only the non-default override so turning a default off later stays clean
-    if(addAlive(o))add[k]=o;else delete add[k];save("add",add);render();openDay(y,m,d);}
+    if(addAlive(o))add[k]=o;else delete add[k];save("add",add);render();openDay(y,m,d,dayOnly||undefined);}
   function ootHrs(y,m,d,tour){var h=addOf(y,m,d,tour).oohrs;return (h>0)?h:otHours(tour);}   // Other-OT: custom hours (e.g. 8h training) or the full tour
   function ootNote(y,m,d,tour){return addOf(y,m,d,tour).oonote||"";}
   function evLabel(t){return t==="edu"?"Education Day":"Company Medical";}
@@ -1961,7 +1964,7 @@
   function noteOf(y,m,d,tour){return note[K(y,m,d,tour)]||"";}
   function setNoteNr(y,m,d,tour,v){var k=K(y,m,d,tour);if(v&&v.replace(/\s/g,""))note[k]=v;else delete note[k];save("note",note);}   // persist only — no rebuild (keeps focus)
   function sbOf(y,m,d,tour){return sb[K(y,m,d,tour)]||null;}   // standby marker on a tour
-  function setSb(y,m,d,tour,dir){var k=K(y,m,d,tour);if(dir){var cur=sb[k]||{};sb[k]={d:dir,n:cur.n||""};}else delete sb[k];save("sb",sb);render();openDay(y,m,d);}
+  function setSb(y,m,d,tour,dir){var k=K(y,m,d,tour);if(dir){var cur=sb[k]||{};sb[k]={d:dir,n:cur.n||""};}else delete sb[k];save("sb",sb);render();openDay(y,m,d,dayOnly||undefined);}
   function setSbNameNr(y,m,d,tour,name){var k=K(y,m,d,tour);if(sb[k]){sb[k].n=(name||"").trim();save("sb",sb);}}   // persist only — no rebuild (keeps focus)
   function sbLabel(e){return e.d==="in"?("Picked up a standby"+(e.n?" for "+e.n:"")):("Standby covered"+(e.n?" by "+e.n:""));}
   function p2pMin(y,m,d,tour){var a=addOf(y,m,d,tour);if(a.p2pw)return a.p2pw*(a.p2pm||45);return a.p2p||0;}  // total = ways × per-drive
@@ -1970,7 +1973,7 @@
   function setP2P(y,m,d,tour,ways,perDrive){var k=K(y,m,d,tour),o={};for(var p in add[k])o[p]=add[k][p];
     if(ways){o.p2pw=ways;o.p2pm=perDrive||o.p2pm||45;}else{delete o.p2pw;delete o.p2pm;}
     if(addAlive(o))add[k]=o;else delete add[k];
-    save("add",add);render();openDay(y,m,d);}
+    save("add",add);render();openDay(y,m,d,dayOnly||undefined);}
   function othMin(y,m,d,tour){return addOf(y,m,d,tour).othm||0;}
   function othLbl(y,m,d,tour){return addOf(y,m,d,tour).otht||"";}
   function tourEndMin(tour){return tour===9?1080:540;}                  // 9× ends 18:00 · 6× ends 09:00 (next morning)
@@ -2054,7 +2057,7 @@
     if(on){ot[k]="o";o.oohrs=(h>0?h:8);if(note&&note.trim())o.oonote=note.trim();else delete o.oonote;}   // always store explicit hours (default 8h light-duty OT — never fall through to the 9h full-tour default)
     else{delete ot[k];delete o.oohrs;delete o.oonote;}
     if(addAlive(o))add[k]=o;else delete add[k];
-    save("ot",ot);save("add",add);render();openDay(y,m,d);}
+    save("ot",ot);save("add",add);render();openDay(y,m,d,dayOnly||undefined);}
   function shiftDate(y,m,d,n){var t=new Date(y,m,d+n);return[t.getFullYear(),t.getMonth(),t.getDate()];}
   function shiftMonth(y,m,d,n){var tm=m+n,ty=y+Math.floor(tm/12);tm=((tm%12)+12)%12;var last=new Date(ty,tm+1,0).getDate();return[ty,tm,Math.min(d,last)];}   // ±n months, clamping the day to the target month's length (Jan 31 → Feb 28/29)
   function fmtT12(hm){var s=fmtT(hm);if(!s)return "";var p=s.split(" ");return p[0].replace(":00","")+(p[1]==="AM"?"a":"p");}   // "09:00" → "9a", "18:30" → "6:30p"
@@ -2231,7 +2234,10 @@
         cell.addEventListener("click",op);
         cell.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "||e.key==="Spacebar"){e.preventDefault();op();}});
         [9,6].forEach(function(t){var half=cell.querySelector(t===9?".c9":".c6");if(!half)return;
-          half.addEventListener("click",function(e){if(reqMode){e.stopPropagation();if(Date.now()-lpTs<450)return;reqTapTour(y,m,d,t);}});
+          half.addEventListener("click",function(e){ if(Date.now()-lpTs<450)return;
+            if(reqMode){e.stopPropagation();reqTapTour(y,m,d,t);return;}
+            if(Date.now()-swipeTs<350)return;
+            e.stopPropagation(); openDay(y,m,d,t); });   // tapped a 9×/6× pill → open THAT tour only
           attachLongPress(half,function(){startReq(y,m,d,t);});});})(y,m,d);
       grid.appendChild(cell);
     }
@@ -2463,7 +2469,7 @@
     return head+otCard+dayNoteCard(y,m,d);
   }
   function wireLdDay(y,m,d,ls){var p=ls.p, key=dk(y,m,d);
-    function setEx(o){if(!p.ex)p.ex={};p.ex[key]=o;save("periods",periods);render();openDay(y,m,d);}
+    function setEx(o){if(!p.ex)p.ex={};p.ex[key]=o;save("periods",periods);render();openDay(y,m,d,dayOnly||undefined);}
     var ed=document.querySelector("#shTours .ldedit");
     if(ed)ed.onclick=function(){document.getElementById("sheet").classList.remove("show");startPeriodEdit(p);openSheet(statSheet);};
     var ts=document.querySelector("#shTours .ldTimeS"), te=document.querySelector("#shTours .ldTimeE");
@@ -2476,7 +2482,15 @@
     var oh=document.querySelector("#shTours .ldoth"); if(oh)oh.onchange=function(){var v=parseFloat(oh.value);setLdOt(y,m,d,true,(v>0?v:0),(document.querySelector("#shTours .ldotl")||{}).value||"");};
     var ol=document.querySelector("#shTours .ldotl"); if(ol){ol.oninput=function(){setLdOtNoteNr(y,m,d,ol.value);};ol.onclick=function(e){e.stopPropagation();};}
   }
-  function openDay(y,m,d){
+  // only = 9 | 6 → show JUST that tour (you tapped its pill, so only its controls are live — no more
+  // marking the 9× by accident while aiming at the 6×). Undefined = the whole day, both tours.
+  var dayOnly=null;   // which tour the open day sheet is focused on (9/6), so a re-render after an edit keeps you on it
+  function tourSwitch(y,m,d,cur){ return '<div class="tswitch" role="tablist">'
+      +'<button type="button" data-tsw="9"'+(cur===9?' class="on"':'')+'>☀️ 9× day</button>'
+      +'<button type="button" data-tsw="6"'+(cur===6?' class="on"':'')+'>🌙 6× night</button>'
+      +'<button type="button" data-tsw="0"'+(cur?'':' class="on"')+'>Both</button></div>'; }
+  function openDay(y,m,d,only){
+    dayOnly=(only===9||only===6)?only:null;
     document.getElementById("shDate").textContent=DOWF[new Date(y,m,d).getDay()]+" · "+MON[m]+" "+d+", "+y;
     document.getElementById("shDay").innerHTML=MON[m].slice(0,3)+" "+d+(payday(y,m,d)?'<span class="sh-pay">$ Payday</span>':'');
     var pt2=periodType(y,m,d);
@@ -2490,7 +2504,12 @@
     var showSplit=set&&!set.some(function(t){return periodType(t[0],t[1],t[2]);});   // hide the splitter over any vacation / medical / light-duty window
     var splitHTML=showSplit?buildSplitter(set):"";   // one-press partner-set splits (only on sets you share with your Mutual Partner)
     var awDay=abcdOf(y,m,d);   // ABCD day: one whole-day work-state card on top, then the 9×/6× cards for marks & notes only
-    document.getElementById("shTours").innerHTML=head+(lsDay?ldDaySheet(y,m,d,lsDay):trDay?trDaySheet(y,m,d,trDay):((awDay?abcdWholeCard(y,m,d,awDay):splitHTML)+tourCard(y,m,d,9)+tourCard(y,m,d,6)+(awDay?'':'<div class="sbnote"><b>*</b> standby — the first 3 groups of a tour. The job can force them to work overtime the following tour.</div>')));
+    var one=(only===9||only===6)&&!lsDay&&!trDay;   // light-duty / training days keep their own whole-day sheet
+    var cards=one
+      ? (awDay?abcdWholeCard(y,m,d,awDay):"")+tourSwitch(y,m,d,only)+tourCard(y,m,d,only)
+      : (awDay?abcdWholeCard(y,m,d,awDay):splitHTML)+tourSwitch(y,m,d,0)+tourCard(y,m,d,9)+tourCard(y,m,d,6)+(awDay?'':'<div class="sbnote"><b>*</b> standby — the first 3 groups of a tour. The job can force them to work overtime the following tour.</div>');
+    document.getElementById("shTours").innerHTML=head+(lsDay?ldDaySheet(y,m,d,lsDay):trDay?trDaySheet(y,m,d,trDay):cards);
+    Array.prototype.forEach.call(document.querySelectorAll("#shTours .tswitch button"),function(b){ b.onclick=function(){ var v=+b.getAttribute("data-tsw"); openDay(y,m,d,v||undefined); }; });
     if(lsDay)wireLdDay(y,m,d,lsDay); else if(trDay)wireLdDay(y,m,d,{p:trDay.p});   // training reuses the LD Other-OT + edit wiring (no per-day time edits)
     var hh=document.querySelector("#shTours .househint"); if(hh)hh.onclick=function(){document.getElementById("sheet").classList.remove("show");openHouseOnDate(y,m,d);};   // jump to the house day view for this date
     var dg=document.querySelector("#shTours .dutygo");   // tap the status banner → EDIT the period covering this day (the banner says "Edit ›" — honor it, don't open a blank Add form)
@@ -2505,7 +2524,7 @@
     Array.prototype.forEach.call(document.querySelectorAll("#shTours .cevgo"),function(cg){cg.onclick=function(){document.getElementById("sheet").classList.remove("show");cevErr("");renderCev();openSheet(cevSheet);};});   // tap a Company Event banner → editor
     if(showSplit)Array.prototype.forEach.call(document.querySelectorAll("#shTours .setsplit [data-sp]"),function(bn){
       bn.onclick=function(){var sp=bn.getAttribute("data-sp");
-        function go(){if(sp==="clear")clearSet(set);else applySplit(set,SPLITS[sp]);render();openDay(y,m,d);}
+        function go(){if(sp==="clear")clearSet(set);else applySplit(set,SPLITS[sp]);render();openDay(y,m,d,dayOnly||undefined);}
         var lose=setLosses(set);
         if(lose.length)appConfirm("Heads up — this set already has "+lose.join(", ")+". Changing the split will clear that. Continue?","Continue",go);
         else go();
