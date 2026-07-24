@@ -1685,7 +1685,10 @@
   for(var _mk in add){var _mo=add[_mk];if(_mo&&typeof _mo==="object"&&_mo.p2p&&!_mo.p2pw){_mo.p2pw=(_mo.p2p===90?2:1);_mo.p2pm=(_mo.p2p===90?45:_mo.p2p);delete _mo.p2p;}}  // migrate legacy P2P total → ways × per-drive (object-guarded so a bad restore can't white-screen)
   cev=(cev||[]).map(function(e){if(!e||typeof e!=="object")return null;if(e.dates)return e;var ds=e.rep?genSeries(e.s,e.rep,e.until||e.s):(e.s?[e.s]:[]);return {n:e.n,dates:ds,t1:e.t1||"",t2:e.t2||"",c:e.c||"#e0930f",note:e.note||""};}).filter(Boolean);  // migrate old single/recurring company events → an explicit list of dates
   var theme=load("theme","auto");   // auto = follow system (prefers-color-scheme); light/dark force it
-  function applyTheme(t){var el=document.documentElement;if(t==="light"||t==="dark")el.setAttribute("data-theme",t);else el.removeAttribute("data-theme");}
+  function applyTheme(t){var el=document.documentElement;if(t==="light"||t==="dark")el.setAttribute("data-theme",t);else el.removeAttribute("data-theme");
+    var ov=document.getElementById("tcOverride");   // keep the phone's status bar in step with the ACTUAL theme — a manual light/dark choice overrides the OS-scheme metas
+    if(t==="light"||t==="dark"){ if(!ov){ov=document.createElement("meta");ov.id="tcOverride";ov.setAttribute("name","theme-color");document.head.appendChild(ov);} ov.setAttribute("content",t==="dark"?"#131110":"#f4f1ea"); }
+    else if(ov&&ov.parentNode){ ov.parentNode.removeChild(ov); } }   // auto → let the prefers-color-scheme metas follow the OS
   function syncThmSeg(){Array.prototype.forEach.call(document.querySelectorAll("#thmSeg button"),function(b){b.classList.toggle("on",b.getAttribute("data-th")===theme);});}
   applyTheme(theme);
   function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
