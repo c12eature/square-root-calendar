@@ -1125,7 +1125,7 @@
     <div class="setlbl">🔔 Notifications</div>
     <div id="setNotif"></div>
   </div>
-  <div class="setsec">
+  <div class="setsec" id="secGetApp">
     <div class="setlbl">Get the App</div>
     <div class="setlist">
       <button class="setrow" id="getAppInstall"><span class="setico">📲</span><span class="settx"><span class="settl">Add to Home Screen</span><span class="setsub">Install so it opens like an app</span></span><span class="setchev">›</span></button>
@@ -2585,10 +2585,10 @@
     document.getElementById("secYou").classList.toggle("collapsed",!!uname);                                             // fresh users see the fields; everyone else gets the tight sheet
     document.getElementById("secGroups").classList.add("collapsed");
     renderSetNotif();syncUnlockRow();openSheet(setSheet);};
-  function syncUnlockRow(){ var u=document.getElementById("openUnlock"); if(!u)return;
-    u.hidden=!!(unlockSt&&(unlockSt.k==="paid"||unlockSt.k==="gf"));                                                     // paid + grandfathered crews don't see an ask
-    var s=document.getElementById("unlockSub");
-    if(s)s.textContent=houseCovered()?"Covered by your House Calendar · restore a purchase":"One-time — yours forever · restore a purchase"; }
+  function syncUnlockRow(){ var u=document.getElementById("openUnlock");
+    if(u){ u.hidden=unlocked();                                                                                          // unlocked ANY way (paid / grandfathered / riding a live house) → no "unlock" ask
+      var s=document.getElementById("unlockSub"); if(s)s.textContent=houseCovered()?"Covered by your House Calendar · restore a purchase":"One-time — yours forever · restore a purchase"; }
+    var g=document.getElementById("secGetApp"); if(g)g.hidden=isStandalone(); }                                          // already installed → drop the whole "Get the App" section
   document.getElementById("openUnlock").onclick=function(){setSheet.classList.remove("show");openPay();};
   Array.prototype.forEach.call(document.querySelectorAll(".setcolhd"),function(b){b.onclick=function(){b.parentNode.classList.toggle("collapsed");};});
   document.getElementById("setNotif").addEventListener("click",function(e){ var b=e.target.closest("[data-act]"); if(!b)return; var act=b.getAttribute("data-act"); if(act==="pushon")enablePush(); else if(act==="pushoff")disablePush(); else if(act==="pref")togglePref(b.getAttribute("data-k")); });
