@@ -2,13 +2,15 @@
 // The deployed /sw.js stays the kill switch while the app is OFF. At relaunch:
 //   cp sw.real.js sw.js   (then bump CACHE if assets changed) and push.
 // Bump CACHE whenever assets change.
-var CACHE = 'sqrtcal-v10';
+var CACHE = 'sqrtcal-v11';
 var ASSETS = [
   '/', '/index.html', '/manifest.webmanifest', '/boxdata.js',
   '/icons/icon-192.png', '/icons/icon-512.png', '/icons/apple-touch-icon.png', '/icons/favicon-32.png'
 ];
 self.addEventListener('install', function(e){
-  e.waitUntil(caches.open(CACHE).then(function(c){ return c.addAll(ASSETS); }).then(function(){ return self.skipWaiting(); }));
+  e.waitUntil(caches.open(CACHE).then(function(c){
+    return Promise.all(ASSETS.map(function(u){ return fetch(new Request(u, { cache: 'reload' })).then(function(r){ if(r && r.status === 200) return c.put(u, r); }).catch(function(){}); }));   // cache:'reload' bypasses the browser HTTP cache so a version bump always pulls the FRESH build
+  }).then(function(){ return self.skipWaiting(); }));
 });
 self.addEventListener('activate', function(e){
   e.waitUntil(caches.keys().then(function(ks){
