@@ -663,6 +663,8 @@
   .mktsm{font-size:11.5px; font-weight:700; color:var(--ink2);}
   .mktcap{margin:9px 2px 0; font-size:12.5px; line-height:1.45; color:var(--ink2);}
   .mktcap b{color:var(--ink);}
+  .hirow{display:flex; align-items:center; gap:6px; font-size:12px; font-weight:700; color:var(--ink2); background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:7px 10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .hirow b{color:var(--ink);}
   .gatediv{display:flex; align-items:center; gap:10px; margin:16px 0 10px; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.6px; color:var(--mut);}
   .gatediv:before,.gatediv:after{content:""; flex:1; height:1px; background:var(--line);}
   .mktdots{display:flex; gap:6px; justify-content:center; margin-top:10px;}
@@ -1568,6 +1570,42 @@
       </div>
       <button class="onbdone" id="onbFinish" type="button">Finish</button>
     </div>
+  </div>
+</div>
+
+<div class="onb" id="hIntro" aria-hidden="true">
+  <div class="onbcard">
+    <h2>🏠 The House Calendar</h2>
+    <div class="mkt">
+      <div class="mktview" id="hiView">
+        <div class="mktcard on">
+          <div class="mktviz" style="align-items:stretch;gap:6px">
+            <div class="hirow">☀️ <b>9×</b>&nbsp; Reyes · Sullivan · Ferraro <span class="mktsm">+3</span></div>
+            <div class="hirow">🌙 <b>6×</b>&nbsp; Dittmar · Chen · Alvarez <span class="mktsm">+3</span></div>
+          </div>
+          <p class="mktcap"><b>The whole house, one day view.</b> See exactly who's riding every 9× and 6× — computed from everyone's chart group, automatically.</p>
+        </div>
+        <div class="mktcard">
+          <div class="mktviz"><span class="mktchip out">⇄ Cover my Sat 9×</span><span class="mktchip in">✋ I'll take it — Sully</span></div>
+          <p class="mktcap"><b>Swaps &amp; coverage, no group texts.</b> Post it once, the crew sees it — an accepted tour writes itself into both calendars.</p>
+        </div>
+        <div class="mktcard">
+          <div class="mktviz"><span class="mktchip hc">🔔 Sully covered your Sat 9×</span><span class="mktchip hc">⏰ You work tomorrow — 0900</span></div>
+          <p class="mktcap"><b>Push alerts that matter.</b> Requests to you, accepted deals, and a heads-up the tour before you work.</p>
+        </div>
+        <div class="mktcard">
+          <div class="mktviz"><span class="mktchip hc">👑 Approve joins</span><span class="mktchip hc">🔄 ABCD push</span><span class="mktchip hc">📌 Company events</span></div>
+          <p class="mktcap"><b>Admins run the roster.</b> Approve the crew, reassign companies &amp; groups, flip the whole house to ABCD, post events everyone sees.</p>
+        </div>
+        <div class="mktcard">
+          <div class="mktviz mktprice"><div class="mktbig">$20<span style="font-size:16px">/mo</span></div><div class="mktsm">one subscription · the whole crew rides free</div></div>
+          <p class="mktcap"><b>30 days free to try it.</b> One person (the house fund) covers everyone — every member gets the full app, no $9.99 needed.</p>
+        </div>
+      </div>
+      <div class="mktdots" id="hiDots"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+    </div>
+    <button class="onbnext" id="hiGo" type="button">Got it — let's set it up</button>
+    <button class="onblink" id="hiNever" type="button">Don't show this again</button>
   </div>
 </div>
 
@@ -3156,6 +3194,19 @@
   function updOnbPt(){document.getElementById("onbPt").textContent=onbPtVal;document.getElementById("onbPtRange").textContent="Groups "+label(onbPtVal);}
   function showOnbStep(n){ Array.prototype.forEach.call(document.querySelectorAll("#onb .onbstep"),function(s){var m=(+s.getAttribute("data-step")===n);s.classList.toggle("on",m);s.hidden=!m;});
     Array.prototype.forEach.call(document.querySelectorAll(".onbprog i"),function(i){i.classList.toggle("on",+i.getAttribute("data-s")<=n);}); }
+  function wireCarousel(viewId,dotsId,activeGuard){ var mv=document.getElementById(viewId); if(!mv)return;   // auto-advance, swipe, tap-a-dot — shared by every slideshow
+    var cards=mv.querySelectorAll(".mktcard"),dots=document.getElementById(dotsId).querySelectorAll("i");
+    if(!cards.length)return;
+    var idx=0,tmr=null,tx=null;
+    function show(n){ idx=(n+cards.length)%cards.length;
+      for(var i=0;i<cards.length;i++){cards[i].classList.toggle("on",i===idx);dots[i].classList.toggle("on",i===idx);} }
+    function tick(){ if(document.querySelector(activeGuard))show(idx+1); }
+    function arm(){ if(tmr)clearInterval(tmr); tmr=setInterval(tick,3800); }
+    mv.addEventListener("touchstart",function(e){tx=e.touches[0].clientX;},{passive:true});
+    mv.addEventListener("touchend",function(e){ if(tx===null)return; var dx=e.changedTouches[0].clientX-tx; tx=null;
+      if(Math.abs(dx)>32){show(idx+(dx<0?1:-1));arm();} },{passive:true});
+    for(var d=0;d<dots.length;d++)(function(n){dots[n].addEventListener("click",function(){show(n);arm();});})(d);
+    arm(); }
   function onbInstFill(){ var b=document.getElementById("onbInstBody"); if(!b)return; var body="";
     if(isIOS()){ var safari=/safari/i.test(navigator.userAgent)&&!/crios|fxios|edgios/i.test(navigator.userAgent);
       body='<ol class="insteps">'
@@ -3192,18 +3243,8 @@
     Array.prototype.forEach.call(document.querySelectorAll("#onbPtSeg button"),function(b){b.onclick=function(){ onbHasPt=(b.getAttribute("data-p")==="yes");
       Array.prototype.forEach.call(document.querySelectorAll("#onbPtSeg button"),function(x){x.classList.toggle("on",x===b);}); document.getElementById("onbPtWrap").hidden=!onbHasPt; };});
     document.getElementById("onbStart").onclick=function(){showOnbStep(isStandalone()?3:2);};   // already installed → no install slide
-    (function(){ var cards=document.querySelectorAll("#mktView .mktcard"),dots=document.querySelectorAll("#mktDots i"); if(!cards.length)return;   // welcome slideshow: auto-advance, swipe, tap-a-dot
-      var idx=0,tmr=null,tx=null;
-      function show(n){ idx=(n+cards.length)%cards.length;
-        for(var i=0;i<cards.length;i++){cards[i].classList.toggle("on",i===idx);dots[i].classList.toggle("on",i===idx);} }
-      function tick(){ var st=document.querySelector('#onb.show .onbstep[data-step="1"].on'); if(st)show(idx+1); }
-      function arm(){ if(tmr)clearInterval(tmr); tmr=setInterval(tick,3800); }
-      var mv=document.getElementById("mktView");
-      mv.addEventListener("touchstart",function(e){tx=e.touches[0].clientX;},{passive:true});
-      mv.addEventListener("touchend",function(e){ if(tx===null)return; var dx=e.changedTouches[0].clientX-tx; tx=null;
-        if(Math.abs(dx)>32){show(idx+(dx<0?1:-1));arm();} },{passive:true});
-      for(var d=0;d<dots.length;d++)(function(n){dots[n].addEventListener("click",function(){show(n);arm();});})(d);
-      arm(); })();
+    wireCarousel("mktView","mktDots",'#onb.show .onbstep[data-step="1"].on');   // welcome slideshow
+    wireCarousel("hiView","hiDots","#hIntro.show");                             // House-intro slideshow
     document.getElementById("onbInstNext").onclick=function(){showOnbStep(3);};
     document.getElementById("onbInstSkip").onclick=function(){showOnbStep(3);};
     document.getElementById("onbToPartner").onclick=function(){showOnbStep(4);};
@@ -4342,7 +4383,12 @@ var TEN_CODES=[
     if(act==="pref"){ togglePref(el.getAttribute("data-k")); return; }
   }
   function openHouseOnDate(y,mm,dd){ if(!HS)return; hVY=y;hVM=mm;hVD=dd; hview="day"; hMsg=""; hReqPre=null; hAddMode=false; renderHouse(); openSheet(houseSheet); hGet().then(function(r){ if(r&&r.doc)renderHouse(); }); }
-  document.getElementById("openHouse").onclick=function(){ hReqPre=null; hview="requests"; hMsg=""; hAddMode=false; renderHouse(); openSheet(houseSheet); if(HS)hGet().then(function(r){ if(r&&r.doc)pushMyProfile().then(function(){renderHouse();}); else renderHouse(); }); };   // open straight to the Requests feed; reset compose context so a stale directed target doesn't misdirect a later request
+  document.getElementById("openHouse").onclick=function(){ hReqPre=null; hview="requests"; hMsg=""; hAddMode=false; renderHouse(); openSheet(houseSheet); if(HS)hGet().then(function(r){ if(r&&r.doc)pushMyProfile().then(function(){renderHouse();}); else renderHouse(); });   // open straight to the Requests feed; reset compose context so a stale directed target doesn't misdirect a later request
+    if((!houses||!houses.length)&&!load("hintro",false)){ var hi=document.getElementById("hIntro"); if(hi){hi.classList.add("show");hi.setAttribute("aria-hidden","false");} } };   // not in a house yet → pitch what the House Calendar does (until they say don't-show-again)
+  (function(){ function hideHi(){ var hi=document.getElementById("hIntro"); if(hi){hi.classList.remove("show");hi.setAttribute("aria-hidden","true");} }
+    var g=document.getElementById("hiGo"),n=document.getElementById("hiNever");
+    if(g)g.onclick=hideHi;
+    if(n)n.onclick=function(){ save("hintro",true); hideHi(); }; })();
   document.getElementById("houseDone").onclick=closeSheets;
   document.getElementById("houseBody").addEventListener("click",function(e){ var b=e.target.closest("[data-act]"); if(!b)return; if(b.tagName==="A")return; e.preventDefault(); hAct(b.getAttribute("data-act"),b); });
   document.getElementById("houseBody").addEventListener("click",function(e){ var seg=e.target.closest(".hrseg button"); if(!seg)return; var p=seg.parentNode; Array.prototype.forEach.call(p.querySelectorAll("button"),function(x){x.classList.toggle("on",x===seg);});
