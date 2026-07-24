@@ -469,13 +469,13 @@
   .settx{flex:1; min-width:0; display:flex; flex-direction:column; gap:2px;}
   .settl{font-size:14px; font-weight:800; color:var(--ink);}
   .setsub{font-size:11px; font-weight:600; color:var(--ink2);}
-  .pgfoot{flex:none; width:100%; margin-top:7px; padding:5px 4px 1px; background:none; border:none; cursor:pointer; font-family:inherit; font-size:11px; font-weight:700; color:var(--mut); text-align:center; line-height:1.35;}
-  .pgfoot span{color:var(--ink2); text-decoration:underline; text-underline-offset:2px;}
   .ctp{margin:0 0 13px; font-size:13px; line-height:1.5; color:var(--ink2);}
   .ctbtn{display:block; text-align:center; text-decoration:none; background:var(--panel2); border:1px solid var(--line); border-radius:11px; padding:13px 12px; margin-bottom:9px; font-size:13.5px; font-weight:800; color:var(--ink);}
   .ctsub{margin:8px 2px 0; font-size:12px; line-height:1.5; color:var(--mut);}
   .ctsub b{color:var(--ink2);}
-  .supfoot{display:block;text-align:center;font-size:12px;font-weight:600;color:var(--mut);text-decoration:none;margin:14px 0 2px;line-height:1.5;}
+  .deptpitch{display:block;text-align:center;font-size:12px;font-weight:600;color:var(--mut);text-decoration:none;margin:14px 2px 0;line-height:1.5;}
+  .deptpitch b{color:var(--ink2);text-decoration:underline;text-underline-offset:2px;}
+  .supfoot{display:block;width:100%;text-align:center;font-size:12px;font-weight:600;color:var(--mut);text-decoration:none;background:none;border:none;cursor:pointer;font-family:inherit;margin:14px 0 2px;line-height:1.5;}
   .supfoot b{color:var(--ink2);font-weight:700;}
   .setchev{flex:none; color:var(--mut); font-size:20px; font-weight:400; line-height:1;}
   /* Backup & restore */
@@ -1017,7 +1017,6 @@
     </div>
     <button class="keybtn" id="openLegend" type="button">🔑 Key</button>
   </div>
-  <button class="pgfoot" id="openContact" type="button">💬 Feedback &middot; <span>bring Square Root to your department</span></button>
 </div>
 <div class="reqbar" id="reqbar">
   <div class="reqbarmsg" id="reqbarMsg"></div>
@@ -1141,18 +1140,17 @@
       <a class="setrow" href="https://squarerootcalendar.com/square-root-calendar.apk" download style="text-decoration:none;color:inherit"><span class="setico">🤖</span><span class="settx"><span class="settl">Download Android APK</span><span class="setsub">Install this app on Android</span></span><span class="setchev">›</span></a>
     </div>
   </div>
-  <a class="supfoot" href="mailto:support@squarerootcalendar.com?subject=Square%20Root%20Calendar%20%E2%80%94%20support">🛟 Problem or idea? Email <b>support@squarerootcalendar.com</b></a>
+  <button class="supfoot" id="openContact" type="button">🛟 Problem or idea? <b>Send feedback</b></button>
   <button class="done" id="setDone">Done</button>
 </div>
 
 <div class="lgpop" id="contactPop">
-  <div class="lgpophd"><h3>Feedback &amp; Contact</h3><button class="lgx" id="contactX" type="button" aria-label="Close">✕</button></div>
+  <div class="lgpophd"><h3>Feedback &amp; Support</h3><button class="lgx" id="contactX" type="button" aria-label="Close">✕</button></div>
   <div class="lgpopbody">
     <div class="lgsec">
       <p class="ctp">Square Root is built by a firefighter, for firefighters — your ideas shape where it goes.</p>
       <a class="ctbtn" href="mailto:support@squarerootcalendar.com?subject=Square%20Root%20%E2%80%94%20Feedback">💬 Send feedback or report a bug</a>
-      <a class="ctbtn" href="mailto:support@squarerootcalendar.com?subject=Square%20Root%20for%20our%20department">🚒 Bring it to your department</a>
-      <p class="ctsub">Like the app and want it tailored for <b>your department’s needs</b> — your tour rotation, your ranks, your rules? Email <b>support@squarerootcalendar.com</b> and let’s talk.</p>
+      <p class="ctsub">Or email <b>support@squarerootcalendar.com</b> anytime.</p>
     </div>
   </div>
 </div>
@@ -1541,6 +1539,7 @@
         <button class="onbnext sm" id="onbCodeRestore" type="button">Restore my calendar</button>
         <div class="onbrestmsg" id="onbRestMsg"></div>
       </div>
+      <a class="deptpitch" href="mailto:support@squarerootcalendar.com?subject=Square%20Root%20for%20our%20department">🚒 Another department want this? <b>Get in touch</b></a>
     </div>
 
     <div class="onbstep" data-step="2" hidden>
@@ -1647,6 +1646,7 @@
     </div>
     <div class="onbrestmsg" id="gateMsg"></div>
     <p class="paysub" style="margin-top:10px">Bought it already? Restore with your recovery code &mdash; or email <b>support@squarerootcalendar.com</b> with your receipt.</p>
+    <a class="deptpitch" href="mailto:support@squarerootcalendar.com?subject=Square%20Root%20for%20our%20department">🚒 A whole department want this? <b>Get in touch</b></a>
   </div>
 </div>
 
