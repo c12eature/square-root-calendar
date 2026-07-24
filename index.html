@@ -22,7 +22,7 @@
 <style>
   :root{
     --bg:#f4f1ea; --panel:#fffdf8; --panel2:#faf6ee; --ink:#1b1712; --ink2:#5f584d;
-    --mut:#736a5b; --line:#e7e0d3; --line2:#efe9dd;
+    --mut:#736a5b; --line:#e7e0d3; --line2:#efe9dd; --grid:#cfc5ae;   /* calendar day separators — deliberately stronger than --line2 so the grid reads at a glance */
     --red:#d21f2d; --red-fill:#d21f2d; --red-ink:#fff; --red-soft:#f8e3e1; --red-soft-ink:#a51b25; --red-ring:#e4404c;
     --amber:#e0930f; --amber-soft:#f7ecd2; --amber-soft-ink:#8a5c07; --cyan:#0e7490; --orange:#c2410c; --blue:#2563eb; --violet:#6d4ae0; --teal:#0f766e;
     --accent:var(--amber);   /* app-wide primary accent (follows --amber per theme; var() resolves lazily at use) */
@@ -33,7 +33,7 @@
   }
   @media (prefers-color-scheme:dark){:root{
     --bg:#131110; --panel:#1d1a17; --panel2:#191614; --ink:#f2ede4; --ink2:#b7afa1;
-    --mut:#8f887c; --line:#2c2823; --line2:#252119;
+    --mut:#8f887c; --line:#2c2823; --line2:#252119; --grid:#443d34;
     --red:#e5484d; --red-fill:#cf2f35; --red-ink:#fff; --red-soft:#3a1c1d; --red-soft-ink:#f4a3a4; --red-ring:#e5484d;
     --amber:#f0a92b; --amber-soft:#372a12; --amber-soft-ink:#f2c261; --cyan:#2bbcd6; --orange:#ff7d4d; --blue:#6ea8ff; --violet:#a78bfa; --teal:#22c9b5;
     --off:#26221d; --off-ink:#9a9184;
@@ -43,13 +43,13 @@
   }}
   :root[data-theme="light"]{
     --bg:#f4f1ea; --panel:#fffdf8; --panel2:#faf6ee; --ink:#1b1712; --ink2:#5f584d; --mut:#736a5b;
-    --line:#e7e0d3; --line2:#efe9dd; --red:#d21f2d; --red-fill:#d21f2d; --red-soft:#f8e3e1; --red-soft-ink:#a51b25; --red-ring:#e4404c;
+    --line:#e7e0d3; --line2:#efe9dd; --grid:#cfc5ae; --red:#d21f2d; --red-fill:#d21f2d; --red-soft:#f8e3e1; --red-soft-ink:#a51b25; --red-ring:#e4404c;
     --amber:#e0930f; --amber-soft:#f7ecd2; --amber-soft-ink:#8a5c07; --cyan:#0e7490; --orange:#c2410c; --blue:#2563eb; --violet:#6d4ae0; --teal:#0f766e; --off:#efeadf; --off-ink:#6d6455;
     --pay:#1e9e5a; --wknd:#f0ebe0; --shadow:0 1px 2px rgba(30,20,10,.05),0 8px 30px rgba(30,20,10,.06); --sheet:rgba(24,18,12,.42); color-scheme:light;
   }
   :root[data-theme="dark"]{
     --bg:#131110; --panel:#1d1a17; --panel2:#191614; --ink:#f2ede4; --ink2:#b7afa1; --mut:#8f887c;
-    --line:#2c2823; --line2:#252119; --red:#e5484d; --red-fill:#cf2f35; --red-soft:#3a1c1d; --red-soft-ink:#f4a3a4; --red-ring:#e5484d;
+    --line:#2c2823; --line2:#252119; --grid:#443d34; --red:#e5484d; --red-fill:#cf2f35; --red-soft:#3a1c1d; --red-soft-ink:#f4a3a4; --red-ring:#e5484d;
     --amber:#f0a92b; --amber-soft:#372a12; --amber-soft-ink:#f2c261; --cyan:#2bbcd6; --orange:#ff7d4d; --blue:#6ea8ff; --violet:#a78bfa; --teal:#22c9b5; --off:#26221d; --off-ink:#9a9184;
     --pay:#3ecf8e; --wknd:#191510; --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 34px rgba(0,0,0,.4); --sheet:rgba(0,0,0,.55); color-scheme:dark;
   }
@@ -89,11 +89,11 @@
   .mbar .title{flex:1; text-align:center; font-size:17px; font-weight:800; letter-spacing:-.02em;}
   .mbar .title span{color:var(--mut); font-weight:700;}
   /* calendar */
-  .cal{background:var(--panel); border:1px solid var(--line); border-radius:16px; overflow:hidden; box-shadow:var(--shadow); display:flex; flex-direction:column; flex:1 1 0; min-height:0;}
-  .dow{display:grid; grid-template-columns:repeat(7,1fr); background:var(--panel2); border-bottom:1px solid var(--line); flex:none;}
+  .cal{background:var(--panel); border:1px solid var(--grid); border-radius:16px; overflow:hidden; box-shadow:var(--shadow); display:flex; flex-direction:column; flex:1 1 0; min-height:0;}
+  .dow{display:grid; grid-template-columns:repeat(7,1fr); background:var(--panel2); border-bottom:1px solid var(--grid); flex:none;}
   .dow div{text-align:center; padding:10px 0; font-size:12px; font-weight:800; color:var(--mut); text-transform:uppercase; letter-spacing:.04em;}
   .grid{display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); grid-template-rows:repeat(6,minmax(0,1fr)); flex:1 1 0; min-height:0;}
-  .cell{min-height:104px; min-width:0; overflow:hidden; border-right:1px solid var(--line2); border-bottom:1px solid var(--line2);
+  .cell{min-height:104px; min-width:0; overflow:hidden; border-right:1px solid var(--grid); border-bottom:1px solid var(--grid);
     padding:5px 4px 6px; display:flex; flex-direction:column; gap:3px; cursor:pointer; position:relative;}   /* floor sized so both halves still fit a full pill + a row of detail dots even on a short screen */
   .cell:nth-child(7n){border-right-color:transparent;}   /* keep the 1px so every column is the exact same width; just hide the line */
   .cell.wknd{background:var(--wknd);}
