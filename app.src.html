@@ -58,7 +58,7 @@
   .gear.house{width:38px;height:38px;font-size:17px;background:color-mix(in srgb,var(--amber) 16%,var(--panel));border-color:color-mix(in srgb,var(--amber) 48%,var(--line));}   /* the flagship feature reads as one */
   .gear.hidden4{display:none;}   /* the 4 reference lookups live behind 📚 now — buttons stay in the DOM so their wiring is untouched */
   .libpop{position:absolute;top:44px;right:44px;z-index:70;background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:6px;display:flex;flex-direction:column;gap:2px;box-shadow:0 10px 28px rgba(0,0,0,.22);min-width:190px;}
-  .libpop[hidden]{display:none;}
+  [hidden]{display:none !important;}   /* the hidden ATTRIBUTE must always win — author display rules (.setrow flex etc.) silently defeat the browser default */
   .libpop button{border:none;background:none;color:var(--ink);font-family:inherit;font-size:13px;font-weight:700;text-align:left;padding:10px 12px;border-radius:10px;cursor:pointer;}
   .libpop button:active{background:var(--panel2);}
   /* month bar */
