@@ -429,7 +429,7 @@
   .setgrps .field:last-child{margin-bottom:0;}
   .setgrps2{display:flex; gap:12px;}
   .setgrps2 .field{flex:1; min-width:0; margin-bottom:0;}
-  .setgrps2 label{font-size:11px; white-space:nowrap;}
+  .setgrps2 label{font-size:11px;}   /* labels must be free to wrap — nowrap made long ones overlap the neighbor column */
   .setgrps2 .stepper{width:100%;}
   .setgrps2 .stepper button{width:40px;}
   .setgrps2 .stepper .v{flex:1; width:auto;}
@@ -1037,7 +1037,7 @@
     <div class="field"><label>Full name</label><input class="cevin" id="setName" type="text" autocomplete="name" placeholder="First Last — shown to your crew" style="margin-bottom:0"></div>
     <div class="field"><label>Company / assignment</label><input class="cevin" id="setCo" type="text" autocomplete="off" placeholder="e.g. E295, L144, Squad 1" style="margin-bottom:0"></div>
     <div class="field"><label>Cell phone <span class="opt">(optional)</span></label><input class="cevin" id="setPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="Shown to your house crew" style="margin-bottom:0"></div>
-    <div class="setgrps setgrps2" style="margin-bottom:5px"><div class="field" style="margin-bottom:0"><label>Spouse / emergency name <span class="opt">(optional)</span></label><input class="cevin" id="setSpouse" type="text" autocomplete="off" placeholder="Name" style="margin-bottom:0"></div><div class="field" style="margin-bottom:0"><label>Their phone</label><input class="cevin" id="setSphone" type="tel" inputmode="tel" autocomplete="off" placeholder="Phone" style="margin-bottom:0"></div></div>
+    <div class="setgrps setgrps2" style="margin-bottom:5px"><div class="field" style="margin-bottom:0"><label>Emergency contact <span class="opt">(optional)</span></label><input class="cevin" id="setSpouse" type="text" autocomplete="off" placeholder="Spouse / next of kin" style="margin-bottom:0"></div><div class="field" style="margin-bottom:0"><label>Their phone</label><input class="cevin" id="setSphone" type="tel" inputmode="tel" autocomplete="off" placeholder="Phone" style="margin-bottom:0"></div></div>
     <div class="field"><label>On the job since <span class="opt">(for overtime $ estimates)</span></label><input class="cevin" id="setAppt" type="date" style="margin-bottom:2px"><div class="setsub" id="apptSub"></div></div>
     <p class="rsub" style="margin:0 3px; line-height:1.4">Shown to your crew when you join a <b>House Calendar</b>.</p>
     </div>
