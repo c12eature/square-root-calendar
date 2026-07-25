@@ -496,6 +496,10 @@
   .cbtns button{flex:1; padding:12px; border-radius:10px; font-size:14px; font-weight:800; cursor:pointer; font-family:inherit; border:1px solid var(--line);}
   .cno{background:var(--panel2); color:var(--ink2);}
   .cyes{background:var(--red-fill); color:#fff; border-color:var(--red);}
+  .cmid{background:var(--panel2); color:var(--ink2);}
+  .cbtns:has(.cmid:not([hidden])){flex-wrap:wrap;}
+  .cbtns:has(.cmid:not([hidden])) .cyes{order:-1; flex-basis:100%;}   /* 3 buttons on a phone: the safe choice gets its own full-width row on top */
+  .cmsg{white-space:pre-line;}
   /* firehouse directory */
   .sheet.dir{display:flex; flex-direction:column; max-height:92dvh; overflow:hidden;}
   .dir h3{display:flex; align-items:baseline; gap:8px;}
@@ -1683,7 +1687,7 @@
     <div class="cmsg" id="cmsg"></div>
     <div class="cfield" id="cselwrap"><span class="cflab" id="csellab"></span><select id="cselect"></select></div>
     <div class="cfield" id="cfield"><span class="cflab" id="cinlab"></span><input type="number" id="cinput" inputmode="numeric" min="0"></div>
-    <div class="cbtns"><button class="cno" id="cno">Cancel</button><button class="cyes" id="cyes">OK</button></div>
+    <div class="cbtns"><button class="cno" id="cno">Cancel</button><button class="cmid" id="cmid" hidden>Other</button><button class="cyes" id="cyes">OK</button></div>
   </div>
 </div>
 
@@ -1874,7 +1878,8 @@
   function renderMxDatalist(){var dl=document.getElementById("mxNames");if(!dl)return;dl.innerHTML=mxnames.map(function(n){return '<option value="'+escA(n)+'"></option>';}).join("");}   // fill the autocomplete
   function rememberMxName(name){name=(name||"").trim();if(!name)return;var low=name.toLowerCase();if(mxnames.some(function(n){return n.toLowerCase()===low;}))return;mxnames.push(name);if(mxnames.length>80)mxnames=mxnames.slice(-80);save("mxnames",mxnames);renderMxDatalist();}
   (function(){var seen={},ch=false;mxnames.forEach(function(n){seen[(n||"").toLowerCase()]=1;});for(var k in mx){var nm=(mx[k]||"").trim();if(nm&&!seen[nm.toLowerCase()]){mxnames.push(nm);seen[nm.toLowerCase()]=1;ch=true;}}if(ch)save("mxnames",mxnames);renderMxDatalist();})();   // seed history from names already in use
-  function worked(y,m,d,tour){if(dutyStatus(y,m,d,tour))return false;var st=curState(y,m,d,tour);
+  function worked(y,m,d,tour){if(dutyStatus(y,m,d,tour)||leaveOn(y,m,d,tour))return false;   // out on leave = no body reported, even if a mutual is logged (the ledger keeps the debt; the hours are not yours)
+    var st=curState(y,m,d,tour);
     if(st==="ot"||st==="rsot"||st==="oot"||st==="mxin"||st==="pmxin"||st==="smxin")return true;
     if(st==="mxout"||st==="pmxout"||st==="smxout"||st==="comp")return false;
     return baseOf(y,m,d,tour)==="mine";}
@@ -1995,6 +2000,13 @@
   function periodType(y,m,d){var t=Date.UTC(y,m,d);for(var i=0;i<periods.length;i++){var p=periods[i];if(!p||p.t==="det")continue;if(t>=vacMs(p.s)&&(!p.e||t<=vacMs(p.e)))return p.t;}return null;}   // "det" is home-house-only (pushed to the house), never a personal off-status — the calendar follows the detail group change instead
   function detailActive(y,m,d){var t=Date.UTC(y,m,d);return (periods||[]).some(function(p){return p&&p.t==="det"&&t>=vacMs(p.s)&&(!p.e||t<=vacMs(p.e));});}   // am I on a 6-month detail on this date?
   function dutyStatus(y,m,d,tour){var pt2=periodType(y,m,d);return (pt2&&curState(y,m,d,tour)==="base"&&baseOf(y,m,d,tour)==="mine")?pt2:null;}
+  // Being out on vacation/medical is a DAY-level fact about you — it does not depend on whose tour it is.
+  // dutyStatus above only fires on a tour that is yours AND unmodified, so a tour you mutual'd IN could
+  // never show the leave. leaveOn is the ungated version: it marks the day off on EVERY tour, while the
+  // logged mutual/comp entry underneath is kept and still counts in the Mutuals Ledger.
+  // OT is excluded on purpose: overtime you picked up inside the window is work you actually did.
+  function leaveOn(y,m,d,tour){ var pt3=periodType(y,m,d); if(pt3!=="vac"&&pt3!=="ml")return null;
+    var cs3=curState(y,m,d,tour); if(cs3==="ot"||cs3==="rsot"||cs3==="oot")return null; return pt3; }
   function dutyTag(t){return t==="vac"?"VAC":t==="ml"?"ML":t==="tr"?"TR":t==="det"?"DET":"LD";}
   function dutyLabel(t){return t==="vac"?"Vacation":t==="ml"?"Medical leave":t==="tr"?"Training":t==="det"?"On detail":"Light duty";}
   function dutyEmoji(t){return t==="vac"?"🌴":t==="ml"?"🩹":t==="tr"?"🎓":t==="det"?"🚚":"📋";}
@@ -2093,7 +2105,7 @@
     return shiftTag(ls,"Night")?'<div class="chip ld">Night</div>':'<div class="chip ld ldoff">off</div>';
   }
   function chipCls(y,m,d,tour){
-    var so=dutyStatus(y,m,d,tour); if(so)return so;
+    var so=dutyStatus(y,m,d,tour)||leaveOn(y,m,d,tour); if(so)return so;
     var st=curState(y,m,d,tour);
     if(st==="ot")return "ot"; if(st==="rsot")return "rsot"; if(st==="oot")return "oot";
     if(worked(y,m,d,tour))return "mine"+((st==="mxin"||st==="pmxin"||st==="smxin")?" mx":"");
@@ -2109,6 +2121,7 @@
     var sbv=sbOf(y,m,d,tour), sbt=sbv?'<i class="dot sb" title="'+escA(sbLabel(sbv))+'"></i>':'';
     var so=dutyStatus(y,m,d,tour);
     if(so)return '<div class="chip '+so+'">'+lab+'<span class="rgt"><span class="vacs">'+dutyTag(so)+'</span></span></div>'+((nt||evb||sbt)?'<div class="cbadges">'+evb+sbt+nt+'</div>':'');
+    var lv=leaveOn(y,m,d,tour);   // on leave with something logged underneath — show BOTH (the tag reads VAC/ML, the dot keeps the mutual visible)
     var st=curState(y,m,d,tour),tag="";
     if(st==="ot")tag='<i class="dot ot" title="MSOT"></i>';else if(st==="rsot")tag='<i class="dot rs" title="RSOT"></i>';
     else if(st==="oot")tag='<i class="dot oot" title="Other OT"></i>';
@@ -2121,7 +2134,8 @@
     var badges=(flagOn(y,m,d,tour,"ecc")?'<i class="dot ecc" title="ECC/LCC"></i>':'')+(flagOn(y,m,d,tour,"cfr")?'<i class="dot cfr" title="CFR"></i>':'');
     var cc=cfrClassOn(y,m,d,tour), cfrB=cc?'<i class="dot cfrcls'+(cc.test?' test':'')+'" title="'+(cc.test?"CFR refresher — TEST day":"CFR refresher class")+'"></i>':'';   // 📘 overlay while full duty
     var bd=(tag||badges||arT||nt||evb||sbt||cfrB)?'<div class="cbadges">'+evb+arT+tag+badges+cfrB+sbt+nt+'</div>':'';
-    return '<div class="chip '+chipCls(y,m,d,tour)+'">'+lab+'</div>'+bd;   // no standby '*' on the calendar pill (kept in the day sheet's Working: line)
+    var lvt=lv?'<span class="rgt"><span class="vacs">'+dutyTag(lv)+'</span></span>':'';
+    return '<div class="chip '+chipCls(y,m,d,tour)+'">'+lab+lvt+'</div>'+bd;   // no standby '*' on the calendar pill (kept in the day sheet's Working: line)
   }
 
   // ---- render calendar ----
@@ -2308,16 +2322,21 @@
   }
   [sheet,setSheet,rsotSheet,statSheet,mxSheet,dirSheet,statsSheet,refSheet,bakSheet,evSheet,cevSheet,instSheet,groupSheet,tenSheet,abcdSheet,cfrSheet,boxSheet,houseSheet,paySheet].forEach(initSheetDrag);
   // ---- in-app confirm/prompt (the artifact sandbox blocks window.confirm/prompt/alert) ----
-  var cmodal=document.getElementById("cmodal"),cmsg=document.getElementById("cmsg"),cfield=document.getElementById("cfield"),cinput=document.getElementById("cinput"),cinlab=document.getElementById("cinlab"),cselwrap=document.getElementById("cselwrap"),cselect=document.getElementById("cselect"),csellab=document.getElementById("csellab"),cyes=document.getElementById("cyes"),cno=document.getElementById("cno"),cCB=null,cMode="confirm";
+  var cmodal=document.getElementById("cmodal"),cmsg=document.getElementById("cmsg"),cfield=document.getElementById("cfield"),cinput=document.getElementById("cinput"),cinlab=document.getElementById("cinlab"),cselwrap=document.getElementById("cselwrap"),cselect=document.getElementById("cselect"),csellab=document.getElementById("csellab"),cyes=document.getElementById("cyes"),cno=document.getElementById("cno"),cmid=document.getElementById("cmid"),cCB=null,cMid=null,cMode="confirm";
   function appHideModal(){cmodal.classList.remove("show");cCB=null;}
   function modalOpen(){return cmodal.classList.contains("show");}   // a background warning must never hijack a prompt the user is answering
   function coOpts(options,current){var has=false,html='<option value=""'+(current?"":" selected")+'>— Unassigned —</option>';(options||[]).forEach(function(o){if(o===current)has=true;html+='<option value="'+escA(o)+'"'+(o===current?" selected":"")+'>'+esc(o)+'</option>';});if(current&&!has)html+='<option value="'+escA(current)+'" selected>'+esc(current)+' — not in your list</option>';return html;}   // always offer Unassigned (selected when the member has no company) so we never silently auto-pick the first company
-  function appConfirm(msg,yesLabel,cb){cCB=cb;cMode="confirm";cmsg.textContent=msg;cfield.classList.remove("show");cselwrap.classList.remove("show");cyes.textContent=yesLabel||"OK";cno.style.display="";cmodal.classList.add("show");}
+  function appConfirm(msg,yesLabel,cb){try{document.getElementById("remindPop").classList.remove("show");}catch(e){}   // a pending nag must never cover a decision
+    cCB=cb;cMode="confirm";cmsg.textContent=msg;cfield.classList.remove("show");cselwrap.classList.remove("show");cyes.textContent=yesLabel||"OK";cno.style.display="";cmid.hidden=true;cMid=null;cmodal.classList.add("show");}
+  // Three-way: Cancel / a secondary action / the primary (yes) action. Used where BOTH answers are
+  // legitimate and the app must not pick for you.
+  function appChoice(msg,yesLabel,midLabel,cbYes,cbMid){appConfirm(msg,yesLabel,cbYes);cmid.textContent=midLabel;cmid.hidden=false;cMid=cbMid;}
   function appAlert(msg,btnLabel){appConfirm(msg,btnLabel||"Got it",function(){});cno.style.display="none";}   // nothing to cancel — one button only
   function appPrompt(msg,value,cb,itype){cCB=cb;cMode="prompt";cmsg.textContent=msg;cselwrap.classList.remove("show");cinlab.textContent="";cfield.classList.add("show");var it=itype||"number";cinput.type=it;if(it==="number"){cinput.setAttribute("inputmode","numeric");}else{cinput.removeAttribute("inputmode");}cinput.value=(value!=null?value:"");cyes.textContent="Set";cmodal.classList.add("show");setTimeout(function(){cinput.focus();cinput.select();},60);}
   function appChoose(msg,options,current,cb){cCB=cb;cMode="choose";cmsg.textContent=msg;cfield.classList.remove("show");csellab.textContent="";cselect.innerHTML=coOpts(options,current);cselwrap.classList.add("show");cyes.textContent="Set";cmodal.classList.add("show");}
   function appAssign(msg,companies,curCo,curGroup,cb){cCB=cb;cMode="assign";cmsg.textContent=msg;csellab.textContent="Company";cselect.innerHTML=coOpts(companies,curCo);cselwrap.classList.add("show");cinlab.textContent="Group (1–25)";cinput.type="number";cinput.setAttribute("inputmode","numeric");cinput.value=(curGroup!=null?curGroup:"");cfield.classList.add("show");cyes.textContent="Save";cmodal.classList.add("show");}
   cno.onclick=appHideModal;
+  cmid.onclick=function(){var f=cMid;appHideModal();if(f)f();};
   cmodal.onclick=function(e){if(e.target===cmodal)appHideModal();};
   cyes.onclick=function(){var cb=cCB,v=cMode==="assign"?{company:cselect.value,group:cinput.value}:cMode==="choose"?cselect.value:cMode==="prompt"?cinput.value:true;appHideModal();if(cb)cb(v);};
   cinput.onkeydown=function(e){if(e.key==="Enter")cyes.onclick();};
@@ -2334,6 +2353,7 @@
   function tourCard(y,m,d,tour){
     var s=startOf(y,m,d,tour), name=tour===9?"9× Day tour":"6× Night tour", time=tour===9?"09:00":"18:00", eg=effGroups(y,m,d), aw=abcdOf(y,m,d);
     var b=baseOf(y,m,d,tour), st=curState(y,m,d,tour), w=worked(y,m,d,tour), so=dutyStatus(y,m,d,tour), nm=mxName(y,m,d,tour), tag="", statusTxt;
+    var lv=so?null:leaveOn(y,m,d,tour);   // a leave over a logged entry: state BOTH facts, never hide one behind the other
     if(so){statusTxt=dutyEmoji(so)+" "+dutyLabel(so)+(so==="ld"?" — light-duty assignment":" — you’re off your tours"); tag='<span class="mxtag '+so+'">'+dutyTag(so)+'</span>';}
     else if(st==="rsot"){statusTxt="Scheduled OT (RSOT) — report "+time+" · +"+otHours(tour)+"h · from your yearly list"; tag='<span class="mxtag rsot">RSOT +'+otHours(tour)+'h</span>';}
     else if(st==="ot"){statusTxt="Overtime (MSOT) — report "+time+" · +"+otHours(tour)+"h OT pay"; tag='<span class="mxtag ot">MSOT +'+otHours(tour)+'h</span>';}
@@ -2348,6 +2368,8 @@
     else if(st==="comp"){statusTxt="Comp time — you’re off, using banked comp"; tag='<span class="mxtag comp">COMP</span>';}
     else if(b==="partner"){statusTxt="Your Mutual Partner works this";}
     else {statusTxt="You’re off this tour";}
+    if(lv){ statusTxt=dutyEmoji(lv)+" "+dutyLabel(lv)+" — you were off"+(tag?". Still on the books: "+statusTxt.replace(/ · report \d\d:\d\d$/,""):"");
+      tag='<span class="mxtag '+lv+'">'+dutyTag(lv)+'</span>'+tag; }   // the mutual keeps counting in the Ledger; change it below if it no longer stands
     var pl="↔ Mutual Partner";   // one-tap even swap with your regular partner (ledger-neutral) — only on sets you two share
     var opts;
     if(b==="mine"){opts=[["base","Working"]];if((eg.pt&&inSharedSet(y,m,d,tour))||st==="pmxout")opts.push(["pmxout",pl]);opts.push(["mxout","Mutual out"],["smxout","Self MX out"],["comp","Comp time"],["ot","MSOT"],["rsot","RSOT"],["oot","Other OT"]);}   // even swap only on a shared set (or if this tour already is one)
@@ -3246,13 +3268,10 @@
       if(isObj(hm2)){ var ids2={},q2,ch2=false; (JSON.parse(merged.houses||"[]")||[]).forEach(function(h){if(h&&h.id)ids2[h.id]=1;});
         for(q2 in hm2)if(!ids2[q2]){delete hm2[q2];ch2=true;}
         if(ch2)merged.hsub=JSON.stringify(hm2); } }catch(e){}
-    try{ var per=JSON.parse(merged.periods||"null"), po=parseJ(merged.ov), pmx=parseJ(merged.mx);   // vacation/medical clears mutuals — re-assert it over entries the OTHER phone logged inside the window
-      if(Array.isArray(per)&&isObj(po)){ var MUT={"in":1,"out":1,"pin":1,"pout":1,"sin":1,"sout":1,"comp":1},chg=false;
-        per.forEach(function(p){ if(!p||(p.t!=="vac"&&p.t!=="ml")||!p.s)return;
-          var s0=Date.parse(p.s+"T12:00:00Z"),e0=p.e?Date.parse(p.e+"T12:00:00Z"):s0; if(!isFinite(s0)||!isFinite(e0))return;
-          for(var t0=s0,n0=0;t0<=e0&&n0<366;t0+=864e5,n0++){ var dd0=new Date(t0),kk0=dd0.getUTCFullYear()+"-"+dd0.getUTCMonth()+"-"+dd0.getUTCDate();
-            [9,6].forEach(function(tt0){ var key0=kk0+"|"+tt0; if(MUT[po[key0]]){ delete po[key0]; if(pmx&&pmx[key0]!==undefined)delete pmx[key0]; chg=true; } }); } });
-        if(chg){ merged.ov=JSON.stringify(po); if(pmx)merged.mx=JSON.stringify(pmx); } } }catch(e){}
+    /* A merge must NEVER enforce a product rule that destroys entries the user created. The old block
+       re-applied the vacation/medical mutual purge on every sync, so anything deliberately kept came
+       back deleted with no prompt. Leaves and logged entries now coexist (see leaveOn) — nothing to
+       re-assert. */
     merged.rcode=JSON.stringify(rcode); merged.cloud="true"; merged.seen="1";
     merged.cbase=JSON.stringify(rec.ts||0); merged.cloudts=JSON.stringify(rec.ts||0);
     merged.cdirty="true"; merged.cconf="false";                     // merged ≠ what the server holds → the post-reload boot pushes it
@@ -4199,7 +4218,8 @@ var TEN_CODES=[
     return out; }
   function myMutualOn(){ var out=[],t0=new Date(),y0=t0.getFullYear(),m0=t0.getMonth(),d0=t0.getDate();   // tours I'm WORKING via an out-of-house mutual (any mutual-in: named, self, or partner even-swap) — so my house shows me reporting
     for(var i=0;i<95&&out.length<80;i++){ var dt=new Date(y0,m0,d0+i),yy=dt.getFullYear(),mm=dt.getMonth(),dd=dt.getDate();
-      [9,6].forEach(function(tt){ var cs=curState(yy,mm,dd,tt); if(cs==="mxin"||cs==="smxin"||cs==="pmxin")out.push({d:isoLocal(yy,mm,dd),t:tt}); }); }
+      [9,6].forEach(function(tt){ if(leaveOn(yy,mm,dd,tt))return;   // on leave — the house must not be told you are reporting for a tour you kept for the ledger only
+        var cs=curState(yy,mm,dd,tt); if(cs==="mxin"||cs==="smxin"||cs==="pmxin")out.push({d:isoLocal(yy,mm,dd),t:tt}); }); }
     return out; }
   function myProfile(forId){ return {name:uname,company:uco,group:my,letter:hletter,phone:uphone,spouse:uspouse,spousePhone:usphone,duty:dutyForHouse(forId),ot:myRsotList(),mxoff:myMutualOff(),mxon:myMutualOn()}; }   // forId = the house this profile is bound for (scopes the detail flag)
   // --- sync layer ---
@@ -4803,17 +4823,28 @@ var TEN_CODES=[
     } else { obj={t:pType,s:s,e:e||""}; }
     function commitP(){ if(pEditIdx>=0)periods[pEditIdx]=obj; else periods.push(obj);
       save("periods",periods); resetPForm(); render(); renderPeriods(); }
-    if(pType==="vac"||pType==="ml"){   // going off-roster clears any mutuals/swaps/comp logged inside the dates — they can't happen, and a hidden one would keep counting in the ledger
+    if(pType==="vac"||pType==="ml"){   // A leave does NOT retroactively cancel a mutual: the other guy already got his
+      // day off, so the debt stands and the Ledger must keep it. But plans change — a tour you gave away
+      // for next week may genuinely evaporate when your group goes out on medical. The app cannot tell
+      // those apart, so it keeps everything by default and lets you clear it yourself, here or later on
+      // the day itself. Nothing is ever deleted without you saying so. (OT is never touched either way.)
       var hits=[],lim=vacMs(s)+366*864e5,endMs=e?Math.min(vacMs(e),lim):lim;
       for(var t0=vacMs(s);t0<=endMs;t0+=864e5){ var dd=new Date(t0+43200000),hy=dd.getUTCFullYear(),hm=dd.getUTCMonth(),hd=dd.getUTCDate();
         [9,6].forEach(function(tt){ var cs=curState(hy,hm,hd,tt);
           if(cs==="mxin"||cs==="mxout"||cs==="pmxin"||cs==="pmxout"||cs==="smxin"||cs==="smxout"||cs==="comp"){
-            var nm=mxName(hy,hm,hd,tt); hits.push({y:hy,m:hm,d:hd,t:tt,lbl:MON[hm].slice(0,3)+" "+hd+" "+(tt===9?"9×":"6×")+" — "+(cs==="comp"?"comp day":(cs.indexOf("p")===0?"partner swap":cs.indexOf("s")===0?"self-mutual":"mutual"+(nm?" with "+nm:"")))}); } }); }
-      if(hits.length){ var few=hits.slice(0,3).map(function(h){return h.lbl;}).join(" · ")+(hits.length>3?" · +"+(hits.length-3)+" more":"");
-        appConfirm("This "+dutyLabel(pType).toLowerCase()+" covers "+hits.length+" logged "+(hits.length===1?"entry":"entries")+" ("+few+"). Saving clears "+(hits.length===1?"it":"them")+" from your calendar and the Mutuals Ledger.","Clear & save",function(){
-          hits.forEach(function(h){ var k=K(h.y,h.m,h.d,h.t); delete ov[k]; delete mx[k]; });   // clear only the mutual/comp side — never touch OT records
-          save("ov",ov); save("mx",mx); commitP();
-          saveMergeBase(collectData(),true); });   // the user just confirmed this clear — record it as intended so the shrink guard doesn't cry wolf
+            var nm=mxName(hy,hm,hd,tt);
+            var who=cs==="comp"?"comp day":cs.indexOf("p")===0?"partner swap (even \u2014 no debt)":cs.indexOf("s")===0?"self-mutual":cs==="mxin"?("you covered"+(nm?" for "+nm:"")+" \u2014 they owe you"):(nm?nm+" covered for you \u2014 you owe them":"someone covered for you \u2014 you owe a tour");
+            hits.push({y:hy,m:hm,d:hd,t:tt,owed:(cs==="mxin"||cs==="smxin"),lbl:MON[hm].slice(0,3)+" "+hd+" "+(tt===9?"9\u00d7":"6\u00d7")+" \u2014 "+who}); } }); }
+      if(hits.length){ var few=hits.slice(0,3).map(function(h){return h.lbl;}).join("\n")+(hits.length>3?"\n+"+(hits.length-3)+" more":"");
+        var owed=hits.filter(function(h){return h.owed;}).length;
+        appChoice("This "+dutyLabel(pType).toLowerCase()+" covers "+hits.length+" logged "+(hits.length===1?"entry":"entries")+":\n\n"+few+"\n\n"
+            +(owed?"Keeping "+(hits.length===1?"it":"them")+" leaves the tour"+(owed===1?"":"s")+" you\u2019re owed on your Mutuals Ledger. ":"")
+            +"Clear only if "+(hits.length===1?"it":"they")+" won\u2019t happen now \u2014 you can also change "+(hits.length===1?"it":"them")+" later on the day itself.",
+          "Keep on the books", "Clear "+(hits.length===1?"it":"them"),
+          function(){ commitP(); },
+          function(){ hits.forEach(function(h){ var k=K(h.y,h.m,h.d,h.t); delete ov[k]; delete mx[k]; });   // only the mutual/comp side — never OT
+            save("ov",ov); save("mx",mx); commitP();
+            saveMergeBase(collectData(),true); });   // an explicit clear is intended — record it so the shrink guard doesn't cry wolf
         return; } }
     commitP();
   };
