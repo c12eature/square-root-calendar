@@ -7,6 +7,8 @@
 //
 //   GET  /api/sync?id=<64-hex>            -> { ts, blob } | 404
 //   GET  /api/sync?id=<64-hex>&prev=1     -> the one previous copy (recovery)
+//   GET  /api/sync?id=<64-hex>&days=1     -> { days:[ "YYYY-MM-DD", ... ] } restore points
+//   GET  /api/sync?id=<64-hex>&day=<date> -> that day's opening copy (recovery)
 //   POST /api/sync  { id, ts, blob, base, force }
 //        - optimistic concurrency: rejects with 409 { ts } if the stored copy's
 //          ts != base (another device advanced it) unless force is true.
@@ -26,6 +28,10 @@ var MAX_BLOB = 1500000;              // ~1.5 MB ciphertext cap (a full calendar 
 var FUTURE_SKEW = 60 * 60 * 24 * 1000; // reject/clamp timestamps more than 1 day in the future
 var PREFIX = "sqrtcal:blob:";
 var PREV_PREFIX = "sqrtcal:prev:";
+var DAY_PREFIX = "sqrtcal:day:";     // sqrtcal:day:<id>:<YYYY-MM-DD> — that day's OPENING copy
+var DAYS_PREFIX = "sqrtcal:days:";   // sqrtcal:days:<id> — small index of available dates
+var DAY_KEEP = 14;                   // restore points retained
+var DAY_TTL = 60 * 60 * 24 * (DAY_KEEP + 1);
 var RL_PREFIX = "sqrtcal:rl:";
 var RL_WINDOW = 60;                  // seconds
 var RL_MAX_WRITE = 40;               // writes / IP / minute
@@ -43,6 +49,29 @@ function redis(cmd) {
 }
 
 function validId(id) { return typeof id === "string" && /^[0-9a-f]{64}$/.test(id); }
+function validDay(d) { return typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d); }
+function dayStamp(ms) { return new Date(ms).toISOString().slice(0, 10); }
+
+// Archive the copy being REPLACED as that day's opening snapshot — once per day (NX), so a
+// device that pushes damage repeatedly can never grind the good copies away. Best-effort:
+// a failure here must never fail the user's backup.
+function archiveDay(id, existRaw, nowMs) {
+  var day = dayStamp(nowMs);
+  return redis(["SET", DAY_PREFIX + id + ":" + day, existRaw, "EX", String(DAY_TTL), "NX"])
+    .then(function (set) {
+      if (!set) return;                       // already have this day's opening copy
+      return redis(["GET", DAYS_PREFIX + id]).then(function (raw) {
+        var days = [];
+        if (raw) { try { days = JSON.parse(raw) || []; } catch (e) { days = []; } }
+        if (!Array.isArray(days)) days = [];
+        if (days.indexOf(day) < 0) days.push(day);
+        days.sort();
+        if (days.length > DAY_KEEP) days = days.slice(days.length - DAY_KEEP);
+        return redis(["SET", DAYS_PREFIX + id, JSON.stringify(days), "EX", String(DAY_TTL)]);
+      });
+    })
+    .catch(function () {});
+}
 
 function clientIp(req) {
   var xf = (req.headers && (req.headers["x-forwarded-for"] || req.headers["x-real-ip"])) || "";
@@ -79,8 +108,20 @@ module.exports = async function handler(req, res) {
       var id = (req.query && req.query.id) || "";
       if (!validId(id)) { res.status(400).json({ error: "bad-id" }); return; }
       if (await rateLimited(req, "r", RL_MAX_READ)) { res.status(429).json({ error: "rate-limited" }); return; }
-      var wantPrev = req.query && (req.query.prev === "1" || req.query.prev === 1);
-      var v = await redis(["GET", (wantPrev ? PREV_PREFIX : PREFIX) + id]);
+      var q = req.query || {};
+
+      if (q.days === "1" || q.days === 1) {
+        var idxRaw = await redis(["GET", DAYS_PREFIX + id]);
+        var idx = [];
+        if (idxRaw) { try { idx = JSON.parse(idxRaw) || []; } catch (e) { idx = []; } }
+        res.status(200).json({ days: Array.isArray(idx) ? idx : [] });
+        return;
+      }
+
+      var wantPrev = q.prev === "1" || q.prev === 1;
+      var wantDay = validDay(q.day) ? q.day : "";
+      var key = wantDay ? (DAY_PREFIX + id + ":" + wantDay) : ((wantPrev ? PREV_PREFIX : PREFIX) + id);
+      var v = await redis(["GET", key]);
       if (v == null) { res.status(404).json({ error: "not-found" }); return; }
       var rec; try { rec = JSON.parse(v); } catch (e) { rec = null; }
       if (!rec || typeof rec.blob !== "string") { res.status(404).json({ error: "not-found" }); return; }
@@ -111,7 +152,10 @@ module.exports = async function handler(req, res) {
       }
 
       var newTs = Math.max(ts, (exist && exist.ts ? exist.ts : 0) + 1); // strictly monotonic
-      if (existRaw) { try { await redis(["SET", PREV_PREFIX + pid, existRaw, "EX", String(TTL)]); } catch (e) {} } // recoverable previous copy
+      if (existRaw) {
+        try { await redis(["SET", PREV_PREFIX + pid, existRaw, "EX", String(TTL)]); } catch (e) {} // recoverable previous copy
+        await archiveDay(pid, existRaw, now);                                                     // + up to 14 daily restore points
+      }
       await redis(["SET", PREFIX + pid, JSON.stringify({ ts: newTs, blob: blob }), "EX", String(TTL)]);
       res.status(200).json({ ok: true, ts: newTs });
       return;

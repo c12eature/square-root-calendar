@@ -478,6 +478,13 @@
   .ctsub b{color:var(--ink2);}
   .deptpitch{display:block;text-align:center;font-size:12px;font-weight:600;color:var(--mut);text-decoration:none;margin:14px 2px 0;line-height:1.5;}
   .deptpitch b{color:var(--ink2);text-decoration:underline;text-underline-offset:2px;}
+.bakshrink{border:1px solid var(--red);border-radius:12px;background:color-mix(in srgb,var(--red) 9%,var(--panel));padding:11px 12px;margin:10px 0;font-size:12.5px;line-height:1.5;color:var(--ink);}
+  .bakshrinksub{color:var(--ink2);font-weight:600;margin:5px 0 9px;}
+  .bakdays{border:1px solid var(--line);border-radius:12px;background:var(--panel2);padding:10px;margin:-4px 0 8px;}
+  .bakdayshd{font-size:11.5px;line-height:1.5;color:var(--mut);margin:0 2px 8px;}
+  .bakdaysnone{font-size:12px;color:var(--mut);padding:2px;line-height:1.5;}
+  .bakday{display:block;width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:10px;color:var(--ink);font-family:inherit;font-size:13px;font-weight:600;padding:9px 11px;margin:0 0 6px;cursor:pointer;}
+  .bakday:last-child{margin-bottom:0;}
   .supfoot{display:block;width:100%;text-align:center;font-size:12px;font-weight:600;color:var(--mut);text-decoration:none;background:none;border:none;cursor:pointer;font-family:inherit;margin:14px 0 2px;line-height:1.5;}
   .supfoot b{color:var(--ink2);font-weight:700;}
   .setchev{flex:none; color:var(--mut); font-size:20px; font-weight:400; line-height:1;}
@@ -1388,7 +1395,16 @@
         <button class="onbcopy" id="bakCodeCopy" type="button">⧉ Copy code</button>
       </div>
       <div class="bakcloudsync" id="bakCloudSync"></div>
+      <div class="bakshrink" id="bakShrink" hidden>
+        <b id="bakShrinkHd">⚠︎ Sync paused — your data looks smaller than your last backup.</b>
+        <div class="bakshrinksub" id="bakShrinkSub"></div>
+        <button class="bakact" id="bakShrinkRestore">↩︎ Put my cloud backup back on this phone</button>
+        <button class="bakact" id="bakShrinkAccept">This is correct — back up anyway</button>
+      </div>
       <button class="bakact" id="bakCloudNow">⟳ Back up to cloud now</button>
+      <button class="bakact" id="bakCloudPrev">⏮ Restore the copy before my last backup</button>
+      <button class="bakact" id="bakCloudDays">📅 Restore an earlier day…</button>
+      <div class="bakdays" id="bakDays" hidden></div>
       <button class="bakact bakdanger" id="bakCloudDisable">Turn off cloud backup</button>
     </div>
   </div>
@@ -1908,7 +1924,7 @@
     }
     save("ov",ov);save("ot",ot);save("mx",mx);
   }
-  function clearSet(set){for(var i=0;i<4;i++){var t=set[i],k=K(t[0],t[1],t[2],t[3]);delete ov[k];delete ot[k];delete mx[k];}save("ov",ov);save("ot",ot);save("mx",mx);}
+  function clearSet(set){for(var i=0;i<4;i++){var t=set[i],k=K(t[0],t[1],t[2],t[3]);delete ov[k];delete ot[k];delete mx[k];}save("ov",ov);save("ot",ot);save("mx",mx);saveMergeBase(collectData(),true);}   // an explicit clear is intentional — rebase so it reads as a normal edit
   function setLosses(set){var out=[],i;for(i=0;i<4;i++){var t=set[i],k=K(t[0],t[1],t[2],t[3]),cs=curState(t[0],t[1],t[2],t[3]);   // OT / RSOT / named mutuals a split would overwrite
     if(cs==="ot")out.push("an MSOT");else if(cs==="rsot")out.push("an RSOT");else if(cs==="oot")out.push("an Other-OT");
     else if(cs==="mxin"||cs==="mxout")out.push(mx[k]?("a mutual with "+mx[k]):"a mutual (in your ledger)");   // warn even when unnamed — the ledger still counts it
@@ -2309,8 +2325,10 @@
   // ---- in-app confirm/prompt (the artifact sandbox blocks window.confirm/prompt/alert) ----
   var cmodal=document.getElementById("cmodal"),cmsg=document.getElementById("cmsg"),cfield=document.getElementById("cfield"),cinput=document.getElementById("cinput"),cinlab=document.getElementById("cinlab"),cselwrap=document.getElementById("cselwrap"),cselect=document.getElementById("cselect"),csellab=document.getElementById("csellab"),cyes=document.getElementById("cyes"),cno=document.getElementById("cno"),cCB=null,cMode="confirm";
   function appHideModal(){cmodal.classList.remove("show");cCB=null;}
+  function modalOpen(){return cmodal.classList.contains("show");}   // a background warning must never hijack a prompt the user is answering
   function coOpts(options,current){var has=false,html='<option value=""'+(current?"":" selected")+'>— Unassigned —</option>';(options||[]).forEach(function(o){if(o===current)has=true;html+='<option value="'+escA(o)+'"'+(o===current?" selected":"")+'>'+esc(o)+'</option>';});if(current&&!has)html+='<option value="'+escA(current)+'" selected>'+esc(current)+' — not in your list</option>';return html;}   // always offer Unassigned (selected when the member has no company) so we never silently auto-pick the first company
-  function appConfirm(msg,yesLabel,cb){cCB=cb;cMode="confirm";cmsg.textContent=msg;cfield.classList.remove("show");cselwrap.classList.remove("show");cyes.textContent=yesLabel||"OK";cmodal.classList.add("show");}
+  function appConfirm(msg,yesLabel,cb){cCB=cb;cMode="confirm";cmsg.textContent=msg;cfield.classList.remove("show");cselwrap.classList.remove("show");cyes.textContent=yesLabel||"OK";cno.style.display="";cmodal.classList.add("show");}
+  function appAlert(msg,btnLabel){appConfirm(msg,btnLabel||"Got it",function(){});cno.style.display="none";}   // nothing to cancel — one button only
   function appPrompt(msg,value,cb,itype){cCB=cb;cMode="prompt";cmsg.textContent=msg;cselwrap.classList.remove("show");cinlab.textContent="";cfield.classList.add("show");var it=itype||"number";cinput.type=it;if(it==="number"){cinput.setAttribute("inputmode","numeric");}else{cinput.removeAttribute("inputmode");}cinput.value=(value!=null?value:"");cyes.textContent="Set";cmodal.classList.add("show");setTimeout(function(){cinput.focus();cinput.select();},60);}
   function appChoose(msg,options,current,cb){cCB=cb;cMode="choose";cmsg.textContent=msg;cfield.classList.remove("show");csellab.textContent="";cselect.innerHTML=coOpts(options,current);cselwrap.classList.add("show");cyes.textContent="Set";cmodal.classList.add("show");}
   function appAssign(msg,companies,curCo,curGroup,cb){cCB=cb;cMode="assign";cmsg.textContent=msg;csellab.textContent="Company";cselect.innerHTML=coOpts(companies,curCo);cselwrap.classList.add("show");cinlab.textContent="Group (1–25)";cinput.type="number";cinput.setAttribute("inputmode","numeric");cinput.value=(curGroup!=null?curGroup:"");cfield.classList.add("show");cyes.textContent="Save";cmodal.classList.add("show");}
@@ -2791,7 +2809,8 @@
   function isoNow(){return new Date().toISOString();}
   function b64enc(s){return btoa(unescape(encodeURIComponent(s)));}                 // UTF-8 safe (labels/names may have emoji)
   function b64dec(s){return decodeURIComponent(escape(atob(s)));}
-  function collectData(){var o={};for(var i=0;i<LS.length;i++){var k=LS.key(i);if(k&&k.indexOf("sqrt:")===0){var kn=k.slice(5);if(kn==="bakts"||kn==="baksnooze"||kn==="cfrsnooze")continue;o[kn]=LS.getItem(k);}}return o;}  // raw string values, every sqrt:* key (future-proof)
+  // cshrink is this device's pause latch — never back it up, never hand it to another phone
+  function collectData(){var o={};for(var i=0;i<LS.length;i++){var k=LS.key(i);if(k&&k.indexOf("sqrt:")===0){var kn=k.slice(5);if(kn==="bakts"||kn==="baksnooze"||kn==="cfrsnooze"||kn==="cshrink")continue;o[kn]=LS.getItem(k);}}return o;}  // raw string values, every sqrt:* key (future-proof)
   function backupObj(){return {app:"square-root-calendar",v:1,ts:isoNow(),data:collectData()};}
   function makeCode(){return "SQRTCAL1:"+b64enc(JSON.stringify(backupObj()));}
   function bakSay(msg,bad){var el=document.getElementById("bakMsg");if(!el)return;el.textContent=msg;el.className="bakmsg show"+(bad?" bad":" ok");}
@@ -2860,7 +2879,7 @@
   // every save() runs this: keep the on-device mirror fresh + queue a cloud push.
   // NOTE: pure sync-metadata keys must NOT re-trigger a push, or cloudPush's own
   // save("cloudts") would loop forever (push → save cloudts → push → …).
-  var _mirrorT=null, NOSYNC={cloudts:1,cbase:1,cdirty:1,cconf:1,bakts:1,baksnooze:1,cfrsnooze:1,hgack:1,curhouse:1,editat:1};   // sync-metadata keys never re-trigger a push (curhouse = which house you're currently viewing, device-local)
+  var _mirrorT=null, NOSYNC={cloudts:1,cbase:1,cdirty:1,cconf:1,cshrink:1,bakts:1,baksnooze:1,cfrsnooze:1,hgack:1,curhouse:1,editat:1};   // sync-metadata keys never re-trigger a push (curhouse = which house you're currently viewing, device-local; cshrink = this device's pause latch — it must never ride the blob to a healthy phone)
   // NOSYNC-guard is null-safe: during module init (before the var above is assigned) NOSYNC is
   // undefined, so an early save() (e.g. mutual-name seeding) must NOT throw here.
   function afterWrite(k){ if(NOSYNC&&NOSYNC[k])return;
@@ -2880,27 +2899,34 @@
   }catch(e){persistState="unknown";return Promise.resolve(false);} }
 
   // --- 2) IndexedDB mirror: a redundant on-device copy of the whole backup ---
-  var IDB_DB="sqrtcal",IDB_STORE="kv",IDB_KEY="snapshot";
+  var IDB_DB="sqrtcal",IDB_STORE="kv",IDB_KEY="snapshot",IDB_SIDE="snapshot-small";   // side key holds a shrunken state so the good snapshot survives it
   function idbOpen(){return new Promise(function(res,rej){try{
     if(!window.indexedDB){rej(new Error("no-idb"));return;}
     var r=indexedDB.open(IDB_DB,1);
     r.onupgradeneeded=function(){try{r.result.createObjectStore(IDB_STORE);}catch(e){}};
     r.onsuccess=function(){res(r.result);}; r.onerror=function(){rej(r.error||new Error("idb"));};
   }catch(e){rej(e);}});}
-  function idbPut(obj){return idbOpen().then(function(db){return new Promise(function(res,rej){
-    var tx=db.transaction(IDB_STORE,"readwrite");tx.objectStore(IDB_STORE).put(obj,IDB_KEY);
+  function idbPut(obj,key){return idbOpen().then(function(db){return new Promise(function(res,rej){
+    var tx=db.transaction(IDB_STORE,"readwrite");tx.objectStore(IDB_STORE).put(obj,key||IDB_KEY);
     tx.oncomplete=function(){res(true);};tx.onerror=function(){rej(tx.error);};});});}
   function idbGet(){return idbOpen().then(function(db){return new Promise(function(res,rej){
     var tx=db.transaction(IDB_STORE,"readonly"),rq=tx.objectStore(IDB_STORE).get(IDB_KEY);
     rq.onsuccess=function(){res(rq.result||null);};rq.onerror=function(){rej(rq.error);};});});}
-  function idbMirror(){try{idbPut({v:1,ts:Date.now(),data:collectData()})["catch"](function(){});}catch(e){}}
+  // The mirror is the last on-device copy. If live storage came back smaller than the mirror, write
+  // the shrunken state to a SIDE key instead and leave the good snapshot intact to recover from.
+  function idbMirror(){try{ var cur=collectData();
+    idbGet().then(function(prev){
+      if(prev&&prev.data&&shrank(prev.data,cur)){ idbPut({v:1,ts:Date.now(),data:cur,side:1},IDB_SIDE)["catch"](function(){}); return; }
+      idbPut({v:1,ts:Date.now(),data:cur})["catch"](function(){});
+    },function(){ idbPut({v:1,ts:Date.now(),data:cur})["catch"](function(){}); });
+  }catch(e){}}
   var SYSKEYS={theme:1,seen:1,instdone:1,instsnooze:1,cloud:1,rcode:1,cloudts:1,cbase:1,cdirty:1,cconf:1,defecc:1,defcfr:1,spot:1,my:1,pt:1,groups:1,mxnames:1,cfrsnooze:1};
   function blobHasData(b){ for(var k in b){ if(SYSKEYS[k])continue; var v=b[k]; if(v&&v!=="{}"&&v!=="[]"&&v!=="null"&&v!=="false")return true; } return false; }
   function lsHasData(){return blobHasData(collectData());}
   // on boot: if the primary store lost its data but the IDB snapshot still has some, write it back (only ever ADDS to an empty primary)
   function idbRecover(){return idbGet().then(function(snap){
     if(!snap||!snap.data||typeof snap.data!=="object")return false;
-    if(lsHasData())return false;                     // primary already has data — never overwrite
+    if(lsHasData()&&!shrank(snap.data,collectData()))return false;   // primary is fine — never overwrite. A primary that SHRANK vs the mirror gets its missing keys back (adds only).
     if(!blobHasData(snap.data))return false;          // snapshot itself is empty
     var wrote=false;
     Object.keys(snap.data).forEach(function(k){ if(typeof snap.data[k]!=="string")return; try{ if(LS.getItem("sqrt:"+k)==null){LS.setItem("sqrt:"+k,snap.data[k]);wrote=true;} }catch(e){} });
@@ -2935,7 +2961,10 @@
   // (409) if another device advanced the copy since — we then flag a conflict instead of clobbering it.
   // `force` (the "Back up now" button) overwrites regardless, to resolve a conflict in this device's favor.
   function cloudPush(force){ if(!cloudOn||!rcode||!hasCrypto())return Promise.resolve(false);
+    if(!force&&shrinkPaused())return Promise.resolve(false);       // paused: only an explicit user choice moves data now
     var snap=collectData(), snapEdit=LS.getItem("sqrt:editat");   // freeze what this push carries — edits landing mid-flight stay dirty for the follow-up push
+    if(!force){ var sh=shrank(loadMergeBase(),snap);              // never let an AUTOMATIC push replace the cloud copy with a much smaller one
+      if(sh){ flagShrink({cloud:sh.was,phone:sh.now,cats:sh.cats},"out"); return Promise.resolve(false); } }  // here the PHONE is the small side; only an explicit "back up anyway" can overwrite
     var plain=JSON.stringify({app:"square-root-calendar",v:1,ts:isoNow(),data:snap});
     return encryptBlob(rcode,plain).then(function(blob){ return idFor(rcode).then(function(id){ var ts=Date.now();
       return fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:id,ts:ts,blob:blob,base:cloudBase,force:!!force})}).then(function(r){
@@ -2946,19 +2975,25 @@
           return false; }
         if(!r.ok)throw new Error("push "+r.status);
         return r.json().then(function(j){ var nts=(j&&j.ts)||ts;
-          cloudAvail=true; _mergeTries=0; if(cloudConflict){cloudConflict=false;save("cconf",false);}
+          cloudAvail=true; _mergeTries=0; if(cloudConflict){cloudConflict=false;save("cconf",false);} clearShrink();   // the copy on the server is now this phone's — nothing left to warn about
           cloudBase=nts;save("cbase",nts); cloudLastTs=nts;save("cloudts",nts);
           if(cloudDirty&&LS.getItem("sqrt:editat")===snapEdit){cloudDirty=false;save("cdirty",false);}   // an edit landed mid-flight → stay dirty so the follow-up push carries it
-          saveMergeBase(snap); cloudStatus(); return true;
-        },function(){ cloudAvail=true;_mergeTries=0;cloudLastTs=ts;save("cloudts",ts);cloudBase=ts;save("cbase",ts);if(cloudDirty&&LS.getItem("sqrt:editat")===snapEdit){cloudDirty=false;save("cdirty",false);}saveMergeBase(snap);cloudStatus();return true; }); }); }); })["catch"](function(){cloudStatus();return false;}); }
-  function forcePush(){ cloudConflict=false;save("cconf",false); return cloudPush(true); }
+          saveMergeBase(snap,true); cloudStatus(); return true;   // force: whatever just reached the cloud IS the synced state, smaller or not
+        },function(){ cloudAvail=true;_mergeTries=0;clearShrink();cloudLastTs=ts;save("cloudts",ts);cloudBase=ts;save("cbase",ts);if(cloudDirty&&LS.getItem("sqrt:editat")===snapEdit){cloudDirty=false;save("cdirty",false);}saveMergeBase(snap,true);cloudStatus();return true; }); }); }); })["catch"](function(){cloudStatus();return false;}); }
+  function forcePush(){ cloudConflict=false;save("cconf",false); return cloudPush(true); }   // clearShrink happens only on SUCCESS — a failed force-push must leave the warning up
   var _pushT=null,_pushInFlight=false,_pushAgain=false;
-  function schedulePush(){ if(!cloudOn||!rcode||cloudConflict)return; if(_pushT)clearTimeout(_pushT); _pushT=setTimeout(runPush,2500); }
+  function schedulePush(){ if(!cloudOn||!rcode||cloudConflict||shrinkPaused())return; if(_pushT)clearTimeout(_pushT); _pushT=setTimeout(runPush,2500); }
   function runPush(){ _pushT=null; if(_pushInFlight){_pushAgain=true;return;} _pushInFlight=true;
     cloudPush().then(function(){_pushInFlight=false;if(_pushAgain){_pushAgain=false;schedulePush();}},function(){_pushInFlight=false;}); }
   function flushPush(){ if(_pushT){clearTimeout(_pushT);runPush();} }
-  function cloudPull(code){ if(!hasCrypto())return Promise.reject(new Error("no-crypto"));
-    return idFor(code).then(function(id){ return fetch(API+"?id="+id).then(function(r){
+  // at: true = the copy before the last backup · "YYYY-MM-DD" = that day's opening copy
+  function atQuery(at){ return at===true?"&prev=1":(typeof at==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(at))?"&day="+at:""; }
+  function cloudDays(code){ if(!hasCrypto())return Promise.resolve([]);
+    return idFor(code).then(function(id){ return fetch(API+"?id="+id+"&days=1"); })
+      .then(function(r){ return r.ok?r.json():{days:[]}; })
+      .then(function(j){ return (j&&j.days)||[]; })["catch"](function(){ return []; }); }
+  function cloudPull(code,at){ if(!hasCrypto())return Promise.reject(new Error("no-crypto"));
+    return idFor(code).then(function(id){ return fetch(API+"?id="+id+atQuery(at)).then(function(r){
       if(r.status===404)return {none:true};
       if(r.status===501){var e=new Error("unavailable");e.code="unavailable";throw e;}
       if(!r.ok)throw new Error("pull "+r.status);
@@ -3059,16 +3094,28 @@
   // the analysis tools (Overtime Statistics, Mutuals Ledger) and the reference library (directory,
   // firehouses, 10-codes, box numbers). Gating lives on those six openers via requireUnlock().
   function disableCloud(){ cloudOn=false;save("cloud",false);cloudStatus(); }
-  function restoreByCode(code,onResult){ code=(code||"").trim();
+  // at: true = the copy before the last backup · "YYYY-MM-DD" = that day's opening copy
+  // okd: the caller already asked "this replaces what's on the phone" — don't ask a second time
+  function restoreByCode(code,onResult,at,okd){ code=(code||"").trim();
     if(!code){onResult("empty");return;} if(!hasCrypto()){onResult("bad");return;}
-    cloudPull(code).then(function(rec){ if(rec.none){onResult("none");return;}
+    cloudPull(code,at).then(function(rec){ if(rec.none){onResult("none");return;}
       var data=rec.data,keys=Object.keys(data||{}).filter(function(k){return typeof data[k]==="string";});
       if(!keys.length){onResult("bad");return;}
       data.rcode=JSON.stringify(code); data.cloud="true"; data.seen="1";   // this device keeps syncing with this code
       var st=JSON.stringify(rec.ts||0);   // mark this device as already in sync with the server version we just pulled →
       data.cbase=st; data.cloudts=st; data.cdirty="false"; data.cconf="false";   // no re-push/clobber, no false conflict
+      data.cshrink="null";                // a deliberate restore ends the pause
       var doIt=function(){applyBackup(data);};   // applyBackup reloads the page
-      if(hasData())appConfirm("Restore your cloud backup? It REPLACES the calendar on THIS device.","Replace & restore",doIt); else doIt();
+      if(at){   // Restoring an OLD copy (prev / a day) leaves the server HEAD newer than this device,
+                // so the very next open would fast-forward straight back onto the copy we just undid.
+                // Republish instead: keep this device dirty and base it on the CURRENT head, so the
+                // recovered calendar overwrites the bad one everywhere.
+        doIt=function(){ data.cdirty="true";
+          cloudPull(code).then(function(head){ var hts=(head&&!head.none&&head.ts)?head.ts:(rec.ts||0);
+            data.cbase=JSON.stringify(hts); data.cloudts=JSON.stringify(hts); applyBackup(data); },
+            function(){ applyBackup(data); }); };
+      }
+      if(hasData()&&!okd)appConfirm("Restore your cloud backup? It REPLACES the calendar on THIS device.","Replace & restore",doIt); else doIt();
     })["catch"](function(e){onResult(e&&e.code==="unavailable"?"unavail":"bad");}); }
   // ===== three-way merge: both phones logged things between syncs =====
   // Base = a snapshot of this device's state as of its last successful sync (stored OUTSIDE the
@@ -3078,8 +3125,60 @@
   var MERGE_MAPS={ov:1,ot:1,mx:1,ar:1,add:1,note:1,sb:1,fh:1,hqapplied:1,hseen:1,hsub:1};
   var MERGE_ARRS={ev:1,mxnames:1,cev:1,abcd:1,periods:1,groups:1};
   var MERGE_UNION={houses:1};   // union-only: a merge must never DELETE a house entry — it holds the membership key, and losing it locks you out (a stale entry self-heals via the 403 → hDrop path instead)
-  var MERGE_LOCAL={rcode:1,cloud:1,seen:1,curhouse:1,hgack:1,hpush:1,housedoc:1,instdone:1,instsnooze:1,cbase:1,cloudts:1,cdirty:1,cconf:1,editat:1,bakts:1,baksnooze:1,cfrsnooze:1};
-  function saveMergeBase(d){ try{LS.setItem("sqrtmergebase",JSON.stringify(d||collectData()));}catch(e){} }   // d = the EXACT snapshot that reached the cloud (never live state — an edit landing mid-push must not be recorded as synced)
+  var MERGE_LOCAL={rcode:1,cloud:1,seen:1,cshrink:1,curhouse:1,hgack:1,hpush:1,housedoc:1,instdone:1,instsnooze:1,cbase:1,cloudts:1,cdirty:1,cconf:1,editat:1,bakts:1,baksnooze:1,cfrsnooze:1};
+  // force = "this smaller state is correct" (the exact snapshot that just reached the cloud, or a
+  // deletion the user confirmed). Everything else may only ever rebase SIDEWAYS OR UP: a base that
+  // silently follows the data down is what let a between-sessions loss look like a normal state.
+  function saveMergeBase(d,force){ var cur=d||collectData();
+    if(!force){ var ob=loadMergeBase(); if(ob&&shrank(ob,cur))return false; }
+    try{LS.setItem("sqrtmergebase",JSON.stringify(cur));}catch(e){} return true; }
+  // ---- shrink guard: a copy that LOST a lot of data must never silently overwrite a good one ----
+  // (learned the hard way: one device dropped its OT + profile, pushed the smaller state, and every
+  //  other device then fast-forwarded onto the damaged copy. Both directions are now gated.)
+  var W_MAPS={ov:1,ot:1,mx:1,ar:1,add:1,note:1,sb:1,fh:1,cfr:1};
+  var W_ARRS={ev:1,cev:1,periods:1,abcd:1,groups:1,mxnames:1,houses:1};
+  var W_SCAL={name:1,co:1,phone:1,spouse:1,sphone:1,apptdate:1,hletter:1,pt:1};
+  function dataWeight(d){ if(!d)return 0; var w=0,k,v;
+    for(k in W_MAPS){ v=parseJ(d[k]); if(isObj(v))w+=Object.keys(v).length; }
+    for(k in W_ARRS){ v=parseJ(d[k]); if(Array.isArray(v))w+=v.length; }
+    for(k in W_SCAL){ v=parseJ(d[k]); if(v!==undefined&&v!==null&&v!=="")w+=1; }
+    return w; }
+  // Two independent tripwires, because one global ratio misses the shape of the real incident:
+  // losing ALL overtime plus the whole profile is only ~30% of a big calendar and slips under a
+  // ratio test, while a small calendar trips a ratio test on ordinary edits.
+  function catCounts(d){ var c={},k,v;
+    for(k in W_MAPS){ v=parseJ(d&&d[k]); c[k]=isObj(v)?Object.keys(v).length:0; }
+    for(k in W_ARRS){ v=parseJ(d&&d[k]); c[k]=Array.isArray(v)?v.length:0; }
+    var n=0; for(k in W_SCAL){ v=parseJ(d&&d[k]); if(v!==undefined&&v!==null&&v!=="")n++; } c._prof=n;
+    return c; }
+  function shrank(before,after){ if(!before)return null;
+    var b=dataWeight(before),a=dataWeight(after);
+    var cb=catCounts(before),ca=catCounts(after),k,gone=[];
+    for(k in cb){ if(k==="_prof")continue; if(cb[k]>=3 && ca[k]===0) gone.push(k); }   // a whole category wiped out
+    if(cb._prof>=3 && (cb._prof-ca._prof)>=3) gone.push("_prof");                       // …or most of the profile block
+    if(gone.length) return {was:b,now:a,cats:gone};
+    if(b>=20 && (b-a)>=8 && a < b*0.7) return {was:b,now:a,cats:[]};   // …or a big calendar lost 30%+ AND 8+ entries
+    return null; }
+  var CATNAME={ot:"overtime",ov:"mutuals",mx:"mutual partners",periods:"time off",ev:"events",cev:"company events",cfr:"CFR dates",_prof:"your personal info"};
+  function shrinkPaused(){ return !!load("cshrink",null); }
+  var _shrinkShown=false;
+  // dir "out" = this phone is smaller than its own last-synced copy (pushing would shrink the cloud)
+  // dir "in"  = an incoming cloud copy is smaller than this phone (adopting would shrink the phone)
+  function shrinkWhat(info){ var c=(info&&info.cats)||[];
+    var n=c.map(function(x){return CATNAME[x]||x;});
+    if(!n.length)return "a lot of your calendar";
+    if(n.length===1)return n[0];
+    if(n.length===2)return n[0]+" and "+n[1];
+    return n.slice(0,2).join(", ")+" and more"; }
+  function flagShrink(info,dir){ if(shrinkPaused())return;             // already paused — don't re-alarm
+    info=info||{}; info.dir=dir||"out"; save("cshrink",info); cloudStatus();
+    if(_shrinkShown)return; _shrinkShown=true;
+    var what=shrinkWhat(info);
+    var msg=info.dir==="in"
+      ? "⚠︎ Sync paused.\n\nThe copy in the cloud is missing "+what+" that this phone still has, so nothing on this phone was touched.\n\nOpen Backup & Restore — you'll want to keep what's on this phone."
+      : "⚠︎ Sync paused.\n\nThis phone is missing "+what+" that your last backup has, so nothing was overwritten. Your backup is safe.\n\nOpen Backup & Restore to put it back.";
+    try{ if(!modalOpen()) appAlert(msg,"Got it"); }catch(e){} }
+  function clearShrink(){ if(shrinkPaused()){ save("cshrink",null); _shrinkShown=false; cloudStatus(); } }   // d = the EXACT snapshot that reached the cloud (never live state — an edit landing mid-push must not be recorded as synced)
   function loadMergeBase(){ try{return JSON.parse(LS.getItem("sqrtmergebase"))||null;}catch(e){return null;} }
   function parseJ(s){ if(typeof s!=="string")return undefined; try{return JSON.parse(s);}catch(e){return undefined;} }
   function isObj(x){ return !!x&&typeof x==="object"&&!Array.isArray(x); }
@@ -3126,9 +3225,15 @@
         if(Array.isArray(la)&&Array.isArray(ra)){ out[k]=mergeVal(k,B,L,R,remWins); continue; }
         if(Array.isArray(la)&&la.length){ out[k]=L; continue; }
         if(Array.isArray(ra)&&ra.length){ out[k]=R; continue; } }
+      // A copy that simply LACKS a key is an older/partial copy, never a deletion: clearing something
+      // in this app writes "" / {} / [], it never removes the key. Treating absence as intent is what
+      // silently ate a real user's OT and profile — one thin copy, and every device merged the loss in.
+      // (Per-entry deletes inside the maps/arrays still propagate through mergeVal below.)
+      if(L===undefined&&R!==undefined){ out[k]=R; continue; }
+      if(R===undefined&&L!==undefined){ out[k]=L; continue; }
       if(L===R){ if(L!==undefined)out[k]=L; continue; }
-      if(R===B){ if(L!==undefined)out[k]=L; continue; }            // remote untouched → local wins (including a local delete)
-      if(L===B){ if(R!==undefined)out[k]=R; continue; }            // local untouched → remote wins (including a remote delete)
+      if(R===B){ out[k]=L; continue; }                             // remote untouched → local wins
+      if(L===B){ out[k]=R; continue; }                             // local untouched → remote wins
       var m=mergeVal(k,B,L,R,remWins); if(m!==undefined)out[k]=m; }
     return out; }
   var _pendingMergeT=null;
@@ -3158,19 +3263,21 @@
     merged.rcode=JSON.stringify(rcode); merged.cloud="true"; merged.seen="1";
     merged.cbase=JSON.stringify(rec.ts||0); merged.cloudts=JSON.stringify(rec.ts||0);
     merged.cdirty="true"; merged.cconf="false";                     // merged ≠ what the server holds → the post-reload boot pushes it
+    var shM=shrank(loc,merged);                                     // backstop: no merge result may gut this phone, whatever produced it
+    if(shM){ flagShrink({phone:shM.was,cloud:shM.now,cats:shM.cats},"in"); return Promise.resolve(false); }
     if(!applyBackup(merged,true))return Promise.resolve(false);     // atomic write, rolled back on failure
     location.reload();                                              // SAME TICK as the write — no event can save stale in-memory state over the merge; boot pushes the merged copy
     return Promise.resolve(true);
   }
   var _mergeTries=0;
-  function mergeFromCloud(){ if(!cloudOn||!rcode||!hasCrypto())return;
-    cloudPull(rcode).then(function(rec){ if(!rec||rec.none){forcePush();return;} attemptMerge(rec); })["catch"](function(){}); }
+  function mergeFromCloud(){ if(!cloudOn||!rcode||!hasCrypto()||shrinkPaused())return;   // paused → nothing merges in until the user decides
+    cloudPull(rcode).then(function(rec){ if(!rec||rec.none){cloudPush();return;} attemptMerge(rec); })["catch"](function(){}); }   // no stored copy yet → a NORMAL push (still shrink-guarded); never force from an automatic path
 
   // ---- pull-on-open: fast-forward this device to a newer cloud copy. A clean device silently
   // adopts; a device with its own unsynced changes runs the three-way merge above instead.
   var _ffAt=0;
   function cloudFastForward(){
-    if(!cloudOn||!rcode||!hasCrypto()||cloudConflict)return;
+    if(!cloudOn||!rcode||!hasCrypto()||cloudConflict||shrinkPaused())return;   // paused → don't pull anything down either
     if(Date.now()-_ffAt<60000)return; _ffAt=Date.now();
     cloudPull(rcode).then(function(rec){
       if(!rec||rec.none||!(rec.ts>cloudBase))return;         // cloud isn't ahead of what this device last synced
@@ -3178,6 +3285,8 @@
       if(cloudDirty){ attemptMerge(rec); return; }           // both phones moved → three-way merge, nothing dropped
       if(anySheetOpen())return;                              // user mid-flow → the next open catches it
       var data=rec.data||{};
+      var shIn=shrank(collectData(),data);                   // …and never ADOPT a copy that lost a lot vs what's on this phone
+      if(shIn){ flagShrink({phone:shIn.was,cloud:shIn.now,cats:shIn.cats},"in"); return; }   // here the CLOUD is the small side
       if(!Object.keys(data).filter(function(k){return typeof data[k]==="string";}).length)return;
       data.rcode=JSON.stringify(rcode); data.cloud="true"; data.seen="1";
       var st=JSON.stringify(rec.ts||0);
@@ -3193,7 +3302,16 @@
     var offBox=document.getElementById("bakCloudOffBox"); if(offBox)offBox.hidden=on;
     var onBox=document.getElementById("bakCloudOnBox"); if(onBox)onBox.hidden=!on;
     var cv=document.getElementById("bakCodeVal"); if(on&&cv)cv.textContent=rcode;
-    var sync=document.getElementById("bakCloudSync"); if(on&&sync){ sync.textContent=cloudConflict?"⚠︎ A newer backup exists from another device. Tap “Restore from cloud” to pull it, or “Back up to cloud now” to overwrite it with THIS phone.":(cloudAvail===false)?"⚠︎ Cloud server isn’t set up yet — your data is safe on this phone and will sync once it’s live.":(cloudLastTs?("✓ Last synced "+relTime(cloudLastTs)):"Syncing…"); }
+    var shr=load("cshrink",null);
+    var shBox=document.getElementById("bakShrink"); if(shBox){ shBox.hidden=!(on&&shr);
+      if(shr){ var inb=shr.dir==="in";
+        var hd=document.getElementById("bakShrinkHd"); if(hd)hd.textContent=inb
+          ? "\u26a0\ufe0e Sync paused — the cloud copy is missing things this phone has."
+          : "\u26a0\ufe0e Sync paused — this phone is missing things your backup has.";
+        var ss=document.getElementById("bakShrinkSub"); if(ss)ss.textContent="This phone has "+shr.phone+" entries; the cloud copy has "+shr.cloud+" ("+shrinkWhat(shr)+"). Nothing was changed — pick one.";
+        var rb=document.getElementById("bakShrinkRestore"); if(rb){ rb.textContent=inb?"\u21a9\ufe0e Use the cloud copy anyway (replaces this phone)":"\u21a9\ufe0e Put my cloud backup back on this phone"; rb.className="bakact"+(inb?"":" bakprime"); }
+        var ab=document.getElementById("bakShrinkAccept"); if(ab){ ab.textContent=inb?"Keep what's on this phone (back it up)":"This is correct — back up anyway"; ab.className="bakact"+(inb?" bakprime":""); } } }
+    var sync=document.getElementById("bakCloudSync"); if(on&&sync){ sync.textContent=shr?(shr.dir==="in"?"⏸ Sync is paused — this phone has more than the cloud copy.":"⏸ Sync is paused to protect your backup."):cloudConflict?"⚠︎ A newer backup exists from another device. Tap “Restore from cloud” to pull it, or “Back up to cloud now” to overwrite it with THIS phone.":(cloudAvail===false)?"⚠︎ Cloud server isn’t set up yet — your data is safe on this phone and will sync once it’s live.":(cloudLastTs?("✓ Last synced "+relTime(cloudLastTs)):"Syncing…"); }
     var en=document.getElementById("bakCloudEnable"); if(en&&!hasCrypto())en.disabled=true;
     var oOn=document.getElementById("onbCloudOn"); if(oOn&&!hasCrypto())oOn.style.display="none";
     var persist=document.getElementById("bakPersist"); if(persist){ persist.textContent=(persistState==="granted")?"🛡️ Persistent storage is ON — this phone won’t auto-clear your calendar.":(persistState==="denied"?"🛡️ Tip: add this app to your Home Screen to lock storage in place.":""); persist.style.display=persist.textContent?"":"none"; } }
@@ -3315,9 +3433,44 @@
   // --- 6) cloud backup UI wiring (Backup sheet) ---
   document.getElementById("bakCloudEnable").onclick=function(){ if(!hasCrypto()){bakSay("This browser can’t do encrypted cloud backup — use the backup code above instead.",true);return;} enableCloud(function(){cloudStatus();}); bakSay("Cloud backup is on — save your recovery code somewhere safe!",false); };
   document.getElementById("bakCloudDisable").onclick=function(){ appConfirm("Turn off cloud backup on this phone? Your data stays here; your recovery code still works if you turn it back on.","Turn off",function(){disableCloud();}); };
-  document.getElementById("bakCloudNow").onclick=function(){ bakSay("Backing up…",false); forcePush().then(function(ok){cloudStatus();bakSay(ok?"Backed up to the cloud.":"Couldn’t reach the cloud — your data is still safe on this phone.",!ok);}); };
+  document.getElementById("bakCloudNow").onclick=function(){
+    var go=function(){ bakSay("Backing up…",false); forcePush().then(function(ok){ if(ok){clearShrink();saveMergeBase(collectData(),true);} cloudStatus(); bakSay(ok?"Backed up to the cloud.":"Couldn’t reach the cloud — your data is still safe on this phone.",!ok); }); };
+    if(shrinkPaused()){ appConfirm("Sync is paused because this phone and your backup don’t match.\n\nBacking up now overwrites the cloud copy with what’s on this phone — anything the backup has that this phone doesn’t will be gone.","Back up anyway",go); return; }
+    go(); };
   document.getElementById("bakCodeCopy").onclick=function(){copyText(rcode,this);};
   document.getElementById("bakCloudRestoreBtn").onclick=function(){var b=document.getElementById("bakCloudRestoreBox");b.hidden=!b.hidden;};
+  document.getElementById("bakCloudPrev").onclick=function(){ if(!rcode){bakSay("Turn on cloud backup first.",true);return;}
+    appConfirm("Put the copy from BEFORE your last backup onto this phone? Use this if something went missing — the server keeps one earlier copy.","Restore earlier copy",function(){
+      bakSay("Fetching the earlier copy…",false);
+      restoreByCode(rcode,function(res){ bakSay(res==="none"?"No earlier copy on the server yet.":res==="unavail"?"Cloud isn't reachable right now.":"Couldn't read the earlier copy.",true); },true,true); }); };
+  function prettyDay(d){ var p=(d||"").split("-"); if(p.length!==3)return d;
+    var dt=new Date(+p[0],+p[1]-1,+p[2]);
+    var today=new Date(); today.setHours(0,0,0,0);
+    var diff=Math.round((today-dt)/86400000);
+    var lbl=dt.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
+    return lbl+(diff===0?" (today)":diff===1?" (yesterday)":diff>1?" ("+diff+" days ago)":""); }
+  function renderDays(days){ var box=document.getElementById("bakDays"); box.innerHTML="";
+    if(!days.length){ box.innerHTML='<div class="bakdaysnone">No earlier days saved yet — restore points start building from your next backup.</div>'; return; }
+    var h='<div class="bakdayshd">Each one is how your calendar looked at the start of that day. Pick the last one you know was right.</div>';
+    for(var i=days.length-1;i>=0;i--) h+='<button class="bakday" data-day="'+esc(days[i])+'">'+esc(prettyDay(days[i]))+'</button>';
+    box.innerHTML=h;
+    [].forEach.call(box.querySelectorAll(".bakday"),function(b){ b.onclick=function(){ var d=b.getAttribute("data-day");
+      appConfirm("Put your calendar back to how it looked at the start of "+prettyDay(d)+"?\n\nThis REPLACES what's on this phone now.","Restore that day",function(){
+        bakSay("Restoring…",false);
+        restoreByCode(rcode,function(res){ bakSay(res==="none"?"That day isn't on the server anymore.":res==="unavail"?"Cloud isn't reachable right now.":"Couldn't read that copy.",true); },d,true); }); }; }); }
+  document.getElementById("bakCloudDays").onclick=function(){ if(!rcode){bakSay("Turn on cloud backup first.",true);return;}
+    var box=document.getElementById("bakDays");
+    if(!box.hidden){ box.hidden=true; return; }
+    box.hidden=false; box.innerHTML='<div class="bakdaysnone">Checking…</div>';
+    cloudDays(rcode).then(renderDays); };
+  document.getElementById("bakShrinkRestore").onclick=function(){ if(!rcode)return;
+    bakSay("Restoring your cloud backup…",false);
+    restoreByCode(rcode,function(res){ bakSay(res==="none"?"No cloud backup found.":"Couldn't restore — try again.",true); }); };
+  document.getElementById("bakShrinkAccept").onclick=function(){
+    appConfirm("Overwrite the cloud backup with what's on this phone right now? Anything the backup has that this phone doesn't will be gone.","Back up anyway",function(){
+      cloudConflict=false; save("cconf",false);
+      forcePush().then(function(ok){ if(ok){ clearShrink(); saveMergeBase(collectData(),true); }   // accepted: this smaller state IS the truth now
+        cloudStatus(); bakSay(ok?"Backed up.":"Couldn't reach the cloud — still paused, nothing was changed.",!ok); }); }); };
   document.getElementById("bakCloudPull").onclick=function(){ bakSay("Checking the cloud…",false);
     restoreByCode(document.getElementById("bakCloudCodeIn").value,function(res){ bakSay(res==="empty"?"Enter your recovery code first.":res==="none"?"No cloud backup found for that code.":res==="unavail"?"Cloud isn’t reachable right now.":"Couldn’t read that code — check for typos.",true); }); };
 
@@ -4660,7 +4813,8 @@ var TEN_CODES=[
       if(hits.length){ var few=hits.slice(0,3).map(function(h){return h.lbl;}).join(" · ")+(hits.length>3?" · +"+(hits.length-3)+" more":"");
         appConfirm("This "+dutyLabel(pType).toLowerCase()+" covers "+hits.length+" logged "+(hits.length===1?"entry":"entries")+" ("+few+"). Saving clears "+(hits.length===1?"it":"them")+" from your calendar and the Mutuals Ledger.","Clear & save",function(){
           hits.forEach(function(h){ var k=K(h.y,h.m,h.d,h.t); delete ov[k]; delete mx[k]; });   // clear only the mutual/comp side — never touch OT records
-          save("ov",ov); save("mx",mx); commitP(); });
+          save("ov",ov); save("mx",mx); commitP();
+          saveMergeBase(collectData(),true); });   // the user just confirmed this clear — record it as intended so the shrink guard doesn't cry wolf
         return; } }
     commitP();
   };
@@ -4822,8 +4976,12 @@ var TEN_CODES=[
     else { maybeInstallLater(); }
     setTimeout(maybeRemindPop,900);   // due reminders pop AFTER the calendar has settled (the guard skips if onboarding/a sheet is up)
     if(cloudOn&&rcode&&cloudDirty&&!cloudConflict)schedulePush();   // only push UNSYNCED local changes on boot — never clobber the cloud with a clean/stale device
-    if(cloudOn&&rcode&&!cloudDirty)saveMergeBase();                 // a clean device's state IS the synced state — refresh the three-way merge base
-    if(cloudOn&&rcode&&cloudConflict)setTimeout(mergeFromCloud,1500);   // a device stuck in the conflict fallback self-heals by re-merging at next open
+    if(cloudOn&&rcode&&!cloudDirty){                                // a clean device's state IS the synced state — refresh the three-way merge base…
+      var _ob=loadMergeBase(),_cd=collectData(),_sb=_ob?shrank(_ob,_cd):null;
+      if(_sb)flagShrink({cloud:_sb.was,phone:_sb.now,cats:_sb.cats},"out");   // …unless it came back SMALLER than its own last synced copy. A "clean" device
+      else saveMergeBase(_cd);                                             // that shrank while closed is damaged, not synced — this is the incident that started all this.
+    }
+    if(cloudOn&&rcode&&cloudConflict&&!shrinkPaused())setTimeout(mergeFromCloud,1500);   // a device stuck in the conflict fallback self-heals by re-merging at next open (never while paused)
     setTimeout(cloudFastForward,600);   // …and pull a newer copy from another phone (clean device adopts, dirty device merges)
     (function(){var _bm=my,_bp=pt;syncCurGroups();if(my!==_bm||pt!==_bp){save("my",my);save("pt",pt);var v=document.getElementById("vMy");if(v)v.textContent=my;syncPt();render();}})();   // a merged groups[] must win over stale scalar mirrors
     var flush=function(){flushPush();flushMirror();};
@@ -4837,7 +4995,8 @@ var TEN_CODES=[
       var pm=my,pp=pt; syncCurGroups(); if(my!==pm||pt!==pp){var v=document.getElementById("vMy");if(v)v.textContent=my;syncPt();render();}   // returned to a new epoch → refresh scalars + calendar
       else if(dayCh){render();maybeRemindPop();}              // same epoch but a new calendar day → re-render for the today highlight + maybe a due reminder
       if(HS)hGet().then(setHouseBadge).catch(function(){});   // refresh House requests when the app returns to the foreground
-      if(cloudConflict)mergeFromCloud();else cloudFastForward();   // foreground → adopt/merge the other phone's copy; a conflicted device retries the merge instead of staying dead
+      if(shrinkPaused()){cloudStatus();}                          // paused → the user decides; nothing moves on its own
+      else if(cloudConflict)mergeFromCloud();else cloudFastForward();   // foreground → adopt/merge the other phone's copy; a conflicted device retries the merge instead of staying dead
     });
     window.addEventListener("pagehide",flush);
   }

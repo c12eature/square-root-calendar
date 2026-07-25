@@ -40,5 +40,27 @@ out = ('<!doctype html>\n<html lang="en">\n<head>\n'
        + SW_REG + '\n'
        + '</body>\n</html>\n')
 
+# Syntax gate: a broken script tag ships a BLANK app to every installed phone, and the failure is
+# invisible in the source diff (an inline // comment swallowing the rest of a one-line function is
+# all it takes). Never write index.html unless every script block actually parses.
+import re as _re, shutil as _shutil, subprocess as _sp, tempfile as _tmp, os as _os, sys as _sys
+
+_node = _shutil.which('node')
+if _node:
+    _bad = []
+    for _i, _js in enumerate(_re.findall(r'<script>(.*?)</script>', out, _re.S)):
+        _f = _tmp.NamedTemporaryFile('w', suffix='.js', delete=False, encoding='utf-8')
+        _f.write(_js); _f.close()
+        _r = _sp.run([_node, '--check', _f.name], capture_output=True, text=True)
+        _os.unlink(_f.name)
+        if _r.returncode != 0:
+            _bad.append('script block %d:\n%s' % (_i, _r.stderr.strip()))
+    if _bad:
+        _sys.stderr.write('BUILD ABORTED — index.html NOT written (JavaScript does not parse)\n\n'
+                          + '\n\n'.join(_bad) + '\n')
+        raise SystemExit(1)
+else:
+    print('WARNING: node not found — skipping the JavaScript syntax gate')
+
 open('index.html', 'w', encoding='utf-8').write(out)
 print('built index.html (%d bytes) from app.src.html' % len(out))
