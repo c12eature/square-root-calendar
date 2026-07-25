@@ -145,7 +145,7 @@
   .evsub{font-weight:800;opacity:.7;}
   button.dutygo:active{filter:brightness(1.08);}
   .dgedit{margin-left:auto;font-size:12px;font-weight:900;opacity:.9;white-space:nowrap;}
-  .chip.ot{background:var(--red-fill);box-shadow:inset 0 0 0 1.7px var(--pay),0 1px 4px rgba(210,31,45,.3);}
+  .chip.ot{background:#0f7a41;color:#fff;box-shadow:0 1px 4px rgba(15,122,65,.34);}   /* MSOT — solid green, same hue as the .dot.ot marker */
   .mxtag.ot{background:#0f7a41;color:#fff;}
   .seg{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);}
   .seg button{flex:1 1 calc(33.333% - 6px);min-width:82px;padding:12px 6px;min-height:44px;line-height:1.15;border:1px solid var(--line);border-radius:10px;background:var(--panel2);color:var(--ink2);font-size:12px;font-weight:800;cursor:pointer;transition:.12s;}
@@ -168,13 +168,13 @@
   .tour.pmx{border-color:var(--amber);background:color-mix(in srgb,var(--amber) 8%, var(--panel2));}
   .tour.pmx .status{color:var(--amber-soft-ink);}
   .tour.ot{border-color:var(--pay);background:color-mix(in srgb,var(--pay) 8%, var(--panel2));}
-  .chip.rsot{background:var(--red-fill);box-shadow:inset 0 0 0 1.7px #2563eb,0 1px 4px rgba(210,31,45,.3);}
+  .chip.rsot{background:#2563eb;color:#fff;box-shadow:0 1px 4px rgba(37,99,235,.34);}   /* RSOT — solid blue, same hue as .dot.rs */
   .mxtag.rsot{background:#2563eb;color:#fff;}
   .seg button[data-st="rsot"]{color:var(--blue);}
   .seg button[data-st="rsot"].on{background:#2563eb;color:#fff;border-color:var(--blue);}
   .tour.rsot{border-color:var(--blue);background:color-mix(in srgb,#2563eb 8%, var(--panel2));}
   /* other OT (orange) · self MX (cyan) · comp time (rose) */
-  .chip.oot{background:var(--red-fill);box-shadow:inset 0 0 0 1.7px #c2410c,0 1px 4px rgba(210,31,45,.3);}
+  .chip.oot{background:#c2410c;color:#fff;box-shadow:0 1px 4px rgba(194,65,12,.34);}   /* Other OT — solid orange, same hue as .dot.oot */
   .chip.comp{background:transparent;border:1.4px dashed #db2777;color:#db2777;box-shadow:none;padding:2px 3px 2px 4px;}
   .mxtag.oot{background:#c2410c;color:#fff;}
   .mxtag.smx{background:#0e7490;color:#fff;}
@@ -1184,6 +1184,9 @@
     <div class="setlbl">Day Colors</div>
     <div class="lglist">
       <div class="lgrow"><span class="lgsw" style="background:var(--red-fill)"></span>Your tour (top = 9× day · bottom = 6× night)</div>
+      <div class="lgrow"><span class="lgsw" style="background:#0f7a41"></span>MSOT — overtime you picked up</div>
+      <div class="lgrow"><span class="lgsw" style="background:#2563eb"></span>RSOT — scheduled overtime</div>
+      <div class="lgrow"><span class="lgsw" style="background:#c2410c"></span>Other overtime</div>
       <div class="lgrow"><span class="lgsw" style="background:var(--amber)"></span>Your Mutual Partner’s tour</div>
       <div class="lgrow"><span class="lgsw lggold"></span>Holiday</div>
       <div class="lgrow"><span class="lgsw" style="background:#db2777"></span>Company event (your chosen color)</div>
