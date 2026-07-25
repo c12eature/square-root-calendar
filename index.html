@@ -4844,28 +4844,42 @@ var TEN_CODES=[
     } else { obj={t:pType,s:s,e:e||""}; }
     function commitP(){ if(pEditIdx>=0)periods[pEditIdx]=obj; else periods.push(obj);
       save("periods",periods); resetPForm(); render(); renderPeriods(); }
-    if(pType==="vac"||pType==="ml"){   // A leave does NOT retroactively cancel a mutual: the other guy already got his
-      // day off, so the debt stands and the Ledger must keep it. But plans change — a tour you gave away
-      // for next week may genuinely evaporate when your group goes out on medical. The app cannot tell
-      // those apart, so it keeps everything by default and lets you clear it yourself, here or later on
-      // the day itself. Nothing is ever deleted without you saying so. (OT is never touched either way.)
+    if(pType==="vac"||pType==="ml"){
+      // Direction decides, and the two directions go opposite ways:
+      //   you covered THEM (mutual/self/partner IN) -> the debt STANDS. They already got their day
+      //     off because you took the tour; you going out sick afterwards doesn't undo that.
+      //   they covered YOU (…OUT) -> the debt WASHES. You tapped out before they worked it, so the
+      //     job marks your group out and there is no tour left to cover. They're off the hook.
+      //   comp day -> clears; you can't spend banked comp on a day you're already off.
+      // Nothing is deleted without a tap, and every entry stays editable on the day itself after.
       var hits=[],lim=vacMs(s)+366*864e5,endMs=e?Math.min(vacMs(e),lim):lim;
       for(var t0=vacMs(s);t0<=endMs;t0+=864e5){ var dd=new Date(t0+43200000),hy=dd.getUTCFullYear(),hm=dd.getUTCMonth(),hd=dd.getUTCDate();
         [9,6].forEach(function(tt){ var cs=curState(hy,hm,hd,tt);
           if(cs==="mxin"||cs==="mxout"||cs==="pmxin"||cs==="pmxout"||cs==="smxin"||cs==="smxout"||cs==="comp"){
-            var nm=mxName(hy,hm,hd,tt);
-            var who=cs==="comp"?"comp day":cs.indexOf("p")===0?"partner swap (even \u2014 no debt)":cs.indexOf("s")===0?"self-mutual":cs==="mxin"?("you covered"+(nm?" for "+nm:"")+" \u2014 they owe you"):(nm?nm+" covered for you \u2014 you owe them":"someone covered for you \u2014 you owe a tour");
-            hits.push({y:hy,m:hm,d:hd,t:tt,owed:(cs==="mxin"||cs==="smxin"),lbl:MON[hm].slice(0,3)+" "+hd+" "+(tt===9?"9\u00d7":"6\u00d7")+" \u2014 "+who}); } }); }
-      if(hits.length){ var few=hits.slice(0,3).map(function(h){return h.lbl;}).join("\n")+(hits.length>3?"\n+"+(hits.length-3)+" more":"");
-        var owed=hits.filter(function(h){return h.owed;}).length;
-        appChoice("This "+dutyLabel(pType).toLowerCase()+" covers "+hits.length+" logged "+(hits.length===1?"entry":"entries")+":\n\n"+few+"\n\n"
-            +(owed?"Keeping "+(hits.length===1?"it":"them")+" leaves the tour"+(owed===1?"":"s")+" you\u2019re owed on your Mutuals Ledger. ":"")
-            +"Clear only if "+(hits.length===1?"it":"they")+" won\u2019t happen now \u2014 you can also change "+(hits.length===1?"it":"them")+" later on the day itself.",
-          "Keep on the books", "Clear "+(hits.length===1?"it":"them"),
-          function(){ commitP(); },
-          function(){ hits.forEach(function(h){ var k=K(h.y,h.m,h.d,h.t); delete ov[k]; delete mx[k]; });   // only the mutual/comp side — never OT
-            save("ov",ov); save("mx",mx); commitP();
-            saveMergeBase(collectData(),true); });   // an explicit clear is intended — record it so the shrink guard doesn't cry wolf
+            var nm=mxName(hy,hm,hd,tt), keep=(cs==="mxin"||cs==="smxin"||cs==="pmxin");
+            var who=cs==="comp"?"comp day":cs==="pmxin"?"partner swap \u2014 you cover":cs==="pmxout"?"partner swap \u2014 they cover":cs==="smxin"?"self-mutual \u2014 you took it":cs==="smxout"?"self-mutual \u2014 you\u2019re off"
+                    :cs==="mxin"?("you covered"+(nm?" for "+nm:"")+" \u2014 they owe you"):((nm||"someone")+" covered for you");
+            hits.push({y:hy,m:hm,d:hd,t:tt,keep:keep,lbl:MON[hm].slice(0,3)+" "+hd+" "+(tt===9?"9\u00d7":"6\u00d7")+" \u2014 "+who}); } }); }
+      if(hits.length){
+        var kp=hits.filter(function(h){return h.keep;}), cl=hits.filter(function(h){return !h.keep;});
+        var line=function(h){return h.lbl+(h.keep?"  \u2713 stays":"  \u2715 clears");};
+        var few=hits.slice(0,4).map(line).join("\n")+(hits.length>4?"\n+"+(hits.length-4)+" more":"");
+        var clearThem=function(list){ list.forEach(function(h){ var k=K(h.y,h.m,h.d,h.t); delete ov[k]; delete mx[k]; });   // only the mutual/comp side \u2014 never OT
+          save("ov",ov); save("mx",mx); commitP(); saveMergeBase(collectData(),true); };   // an explicit clear is intended \u2014 record it so the shrink guard doesn't cry wolf
+        var head="This "+dutyLabel(pType).toLowerCase()+" covers "+hits.length+" logged "+(hits.length===1?"entry":"entries")+":\n\n"+few+"\n\n";
+        if(!cl.length){   // nothing to clear \u2014 just say what stays
+          appConfirm(head+"Tour"+(kp.length===1?"":"s")+" you\u2019re owed stay"+(kp.length===1?"s":"")+" on your Mutuals Ledger. You can change "+(hits.length===1?"it":"them")+" later on the day itself.","Save leave",function(){ commitP(); });
+          return; }
+        appChoice(head
+            +(kp.length?("Tour"+(kp.length===1?" you\u2019re owed stays":"s you\u2019re owed stay")+" on your Ledger. "):"")
+            +(cl.some(function(h){return /comp day/.test(h.lbl);})
+                ? "The rest clear \u2014 nobody has to cover a tour you\u2019re out for, and comp can\u2019t be spent on a day you\u2019re already off."
+                : (cl.length===1?"The one that clears is a tour someone was covering for you \u2014 you tapped out, so they don\u2019t have to."
+                                :"The ones that clear are tours someone was covering for you \u2014 you tapped out, so they don\u2019t have to."))
+            +" You can change any of them later on the day itself.",
+          "Save leave", "Keep everything",
+          function(){ clearThem(cl); },
+          function(){ commitP(); });
         return; } }
     commitP();
   };
