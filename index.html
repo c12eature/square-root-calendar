@@ -1405,6 +1405,12 @@
       <button class="bakact" id="bakCloudPrev">⏮ Restore the copy before my last backup</button>
       <button class="bakact" id="bakCloudDays">📅 Restore an earlier day…</button>
       <div class="bakdays" id="bakDays" hidden></div>
+      <button class="bakact" id="bakOtherBtn">🔑 Restore using a different recovery code</button>
+      <div id="bakOtherBox" hidden>
+        <p class="baknote">Used a different code before — on an older phone, or after a reinstall? Enter it here to pull that calendar down. <b class="bakwarn">This replaces what's on this phone.</b></p>
+        <input class="bakcodein" id="bakOtherIn" placeholder="SQRT-XXXX-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" inputmode="text" aria-label="Other recovery code">
+        <button class="bakact" id="bakOtherPull">Restore from that code</button>
+      </div>
       <button class="bakact bakdanger" id="bakCloudDisable">Turn off cloud backup</button>
     </div>
   </div>
@@ -3463,6 +3469,11 @@
     if(!box.hidden){ box.hidden=true; return; }
     box.hidden=false; box.innerHTML='<div class="bakdaysnone">Checking…</div>';
     cloudDays(rcode).then(renderDays); };
+  document.getElementById("bakOtherBtn").onclick=function(){ var b=document.getElementById("bakOtherBox"); b.hidden=!b.hidden; };
+  document.getElementById("bakOtherPull").onclick=function(){ var c=(document.getElementById("bakOtherIn").value||"").trim();
+    if(!c){bakSay("Enter the other recovery code first.",true);return;}
+    bakSay("Checking that code…",false);
+    restoreByCode(c,function(res){ bakSay(res==="empty"?"Enter the other recovery code first.":res==="none"?"No backup found for that code — check it character by character.":res==="unavail"?"Cloud isn’t reachable right now.":"Couldn’t read that code — check for typos.",true); }); };
   document.getElementById("bakShrinkRestore").onclick=function(){ if(!rcode)return;
     bakSay("Restoring your cloud backup…",false);
     restoreByCode(rcode,function(res){ bakSay(res==="none"?"No cloud backup found.":"Couldn't restore — try again.",true); }); };
