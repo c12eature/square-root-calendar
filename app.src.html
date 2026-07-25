@@ -2798,7 +2798,9 @@
   function collectData(){var o={};for(var i=0;i<LS.length;i++){var k=LS.key(i);if(k&&k.indexOf("sqrt:")===0){var kn=k.slice(5);if(kn==="bakts"||kn==="baksnooze"||kn==="cfrsnooze"||kn==="cshrink")continue;o[kn]=LS.getItem(k);}}return o;}  // raw string values, every sqrt:* key (future-proof)
   function backupObj(){return {app:"square-root-calendar",v:1,ts:isoNow(),data:collectData()};}
   function makeCode(){return "SQRTCAL1:"+b64enc(JSON.stringify(backupObj()));}
-  function bakSay(msg,bad){var el=document.getElementById("bakMsg");if(!el)return;el.textContent=msg;el.className="bakmsg show"+(bad?" bad":" ok");}
+  function bakSay(msg,bad){var el=document.getElementById("bakMsg");if(!el)return;el.textContent=msg;el.className="bakmsg show"+(bad?" bad":" ok");
+    try{el.scrollIntoView({block:"center",behavior:"smooth"});}catch(e){}   // this line lives at the BOTTOM of a long sheet — unseen is the same as nothing happened
+    if(bad){try{if(navigator.vibrate)navigator.vibrate(40);}catch(e){}} }
   function markBackup(){save("bakts",isoNow());bakUpdate();}
   function bakUpdate(){var t=load("bakts",null),el=document.getElementById("bakLast");if(el){el.textContent=t?("Last backup: "+new Date(t).toLocaleDateString()):"Not backed up yet.";el.className="baklast"+(t?"":" warn");}var out=document.getElementById("bakOut");if(out)out.value=makeCode();try{cloudStatus();}catch(e){}}
   function downloadBackup(){try{var json=JSON.stringify(backupObj(),null,2),blob=new Blob([json],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="square-root-backup-"+isoNow().slice(0,10)+".json";document.body.appendChild(a);a.click();setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);},1500);markBackup();bakSay("Backup file downloaded. If nothing showed up, use Copy backup code instead.",false);}catch(e){bakSay("Couldn't download here — use Copy backup code instead.",true);}}
@@ -2818,7 +2820,13 @@
       return false;
     }
     if(!noReload)location.reload();return true;}
-  function doRestore(raw){var p=parseBackup(raw);if(!p){bakSay("That's not a valid backup. Paste the whole code (it starts with SQRTCAL1:) or choose your .json file.",true);return;}var has=Object.keys(p.data).filter(function(k){return typeof p.data[k]==="string";});if(!has.length){   /* accept ANY sqrt key (notes, events, company events, theme…) — mirror collectData so the two can't drift */bakSay("That backup has no readable Square Root data — it may be incomplete or hand-edited. Nothing was changed.",true);return;}var when=(p.meta&&p.meta.ts)?(" from "+new Date(p.meta.ts).toLocaleDateString()):"";appConfirm("Restore this backup"+when+"? It REPLACES all swaps, overtime, ledger, and settings on THIS device.","Replace & restore",function(){p.data.cdirty=JSON.stringify(true);p.data.cconf=JSON.stringify(false);applyBackup(p.data);});}   // a file restore has unknown ancestry — mark dirty so it MERGES with the cloud (base-less union) instead of sitting stale or mass-deleting
+  function looksLikeRecoveryCode(x){ var n=normCode(x); return n.indexOf("SQRT")===0 && n.length===19; }
+  function doRestore(raw){
+    if(looksLikeRecoveryCode(raw)){   // they pasted their RECOVERY code here, not a backup blob — that is unambiguous intent, so do the cloud restore instead of refusing
+      bakSay("That's a recovery code — pulling that calendar from the cloud…",false);
+      restoreByCode((raw||"").trim(),function(res){ bakSay(res==="none"?"No cloud backup found for that code — check it character by character.":res==="unavail"?"Cloud isn't reachable right now. Try again in a minute.":"Couldn't read that code — check for typos.",true); });
+      return; }
+    var p=parseBackup(raw);if(!p){bakSay("That's not a valid backup. Paste the whole code (it starts with SQRTCAL1:) or your recovery code (SQRT-…), or choose your .json file.",true);return;}var has=Object.keys(p.data).filter(function(k){return typeof p.data[k]==="string";});if(!has.length){   /* accept ANY sqrt key (notes, events, company events, theme…) — mirror collectData so the two can't drift */bakSay("That backup has no readable Square Root data — it may be incomplete or hand-edited. Nothing was changed.",true);return;}var when=(p.meta&&p.meta.ts)?(" from "+new Date(p.meta.ts).toLocaleDateString()):"";appConfirm("Restore this backup"+when+"? It REPLACES all swaps, overtime, ledger, and settings on THIS device.","Replace & restore",function(){p.data.cdirty=JSON.stringify(true);p.data.cconf=JSON.stringify(false);applyBackup(p.data);});}   // a file restore has unknown ancestry — mark dirty so it MERGES with the cloud (base-less union) instead of sitting stale or mass-deleting
   document.getElementById("openBak").onclick=function(){setSheet.classList.remove("show");document.getElementById("bakMsg").className="bakmsg";document.getElementById("bakIn").value="";bakUpdate();openSheet(bakSheet);};
   document.getElementById("bakDone").onclick=closeSheets;
   document.getElementById("bakCopy").onclick=copyBackup;
@@ -3451,6 +3459,7 @@
   document.getElementById("bakOtherBtn").onclick=function(){ var b=document.getElementById("bakOtherBox"); b.hidden=!b.hidden; };
   document.getElementById("bakOtherPull").onclick=function(){ var c=(document.getElementById("bakOtherIn").value||"").trim();
     if(!c){bakSay("Enter the other recovery code first.",true);return;}
+    if(!looksLikeRecoveryCode(c)){ doRestore(c); return; }   // they pasted a full backup instead — accept that too
     bakSay("Checking that code…",false);
     restoreByCode(c,function(res){ bakSay(res==="empty"?"Enter the other recovery code first.":res==="none"?"No backup found for that code — check it character by character.":res==="unavail"?"Cloud isn’t reachable right now.":"Couldn’t read that code — check for typos.",true); }); };
   document.getElementById("bakShrinkRestore").onclick=function(){ if(!rcode)return;
