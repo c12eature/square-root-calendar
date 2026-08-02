@@ -1367,7 +1367,7 @@
       <button class="bakact bakprime" id="bakCloudEnable">☁️ Turn on cloud backup</button>
       <button class="bakact" id="bakCloudRestoreBtn">↩︎ I have a recovery code</button>
       <div id="bakCloudRestoreBox" hidden>
-        <input class="bakcodein" id="bakCloudCodeIn" placeholder="SQRT-XXXX-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" inputmode="text" aria-label="Recovery code">
+        <input class="bakcodein" id="bakCloudCodeIn" name="sqrtcode" placeholder="SQRT-XXXX-XXXX-XXXX-XXXX" autocomplete="username" autocapitalize="characters" autocorrect="off" spellcheck="false" inputmode="text" aria-label="Recovery code">
         <button class="bakact" id="bakCloudPull">Restore from cloud</button>
       </div>
     </div>
@@ -1376,6 +1376,7 @@
         <div class="onbcodelbl">Your recovery code — keep it safe</div>
         <div class="onbcodeval" id="bakCodeVal"></div>
         <button class="onbcopy" id="bakCodeCopy" type="button">⧉ Copy code</button>
+        <button class="onbcopy" id="bakCodeVault" type="button" hidden>🔐 Save to this phone’s password manager</button>
       </div>
       <div class="bakcloudsync" id="bakCloudSync"></div>
       <div class="bakshrink" id="bakShrink" hidden>
@@ -1391,7 +1392,7 @@
       <button class="bakact" id="bakOtherBtn">🔑 Restore using a different recovery code</button>
       <div id="bakOtherBox" hidden>
         <p class="baknote">Used a different code before — on an older phone, or after a reinstall? Enter it here to pull that calendar down. <b class="bakwarn">This replaces what's on this phone.</b></p>
-        <input class="bakcodein" id="bakOtherIn" placeholder="SQRT-XXXX-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" inputmode="text" aria-label="Other recovery code">
+        <input class="bakcodein" id="bakOtherIn" name="sqrtcode" placeholder="SQRT-XXXX-XXXX-XXXX-XXXX" autocomplete="username" autocapitalize="characters" autocorrect="off" spellcheck="false" inputmode="text" aria-label="Other recovery code">
         <button class="bakact" id="bakOtherPull">Restore from that code</button>
       </div>
       <button class="bakact bakdanger" id="bakCloudDisable">Turn off cloud backup</button>
@@ -1546,7 +1547,9 @@
       <button class="onbnext" id="onbStart" type="button">Get started</button>
       <button class="onblink" id="onbHasCode" type="button">Already have a recovery code? Restore it</button>
       <div class="onbrestore" id="onbRestoreBox" hidden>
-        <input class="bakcodein" id="onbCodeIn" placeholder="SQRT-XXXX-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" inputmode="text" aria-label="Recovery code">
+        <div class="onbrestmsg" id="onbWipeMsg" hidden></div>
+        <button class="onbnext sm" id="onbVaultUse" type="button" hidden>🔐 Use the code saved on this phone</button>
+        <input class="bakcodein" id="onbCodeIn" name="sqrtcode" placeholder="SQRT-XXXX-XXXX-XXXX-XXXX" autocomplete="username" autocapitalize="characters" autocorrect="off" spellcheck="false" inputmode="text" aria-label="Recovery code">
         <button class="onbnext sm" id="onbCodeRestore" type="button">Restore my calendar</button>
         <div class="onbrestmsg" id="onbRestMsg"></div>
       </div>
@@ -1652,7 +1655,8 @@
     <button class="onbnext sm" id="gateResub" type="button" hidden>⏸ Reactivate the house &middot; $20/mo</button>
     <button class="onblink" id="gateHasCode" type="button">Already have a recovery code? Restore it</button>
     <div class="onbrestore" id="gateRestoreBox" hidden>
-      <input class="bakcodein" id="gateCodeIn" placeholder="SQRT-XXXX-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" inputmode="text" aria-label="Recovery code">
+      <button class="onbnext sm" id="gateVaultUse" type="button" hidden>🔐 Use the code saved on this phone</button>
+      <input class="bakcodein" id="gateCodeIn" name="sqrtcode" placeholder="SQRT-XXXX-XXXX-XXXX-XXXX" autocomplete="username" autocapitalize="characters" autocorrect="off" spellcheck="false" inputmode="text" aria-label="Recovery code">
       <button class="onbnext sm" id="gateCodeRestore" type="button">Restore my calendar</button>
     </div>
     <div class="onbrestmsg" id="gateMsg"></div>
@@ -2912,6 +2916,47 @@
       return navigator.storage.persist().then(function(g){persistState=g?"granted":"denied";return g;},function(){persistState="unknown";return false;});
     },function(){persistState="unknown";return false;});
   }catch(e){persistState="unknown";return Promise.resolve(false);} }
+  var storEst=null;   // {usage,quota} — filled in on boot, shown in the storage-health line
+  function readEstimate(){ try{ if(!(navigator.storage&&navigator.storage.estimate))return Promise.resolve(null);
+    return navigator.storage.estimate().then(function(e){storEst=e;return e;},function(){return null;}); }catch(e){return Promise.resolve(null);} }
+
+  // --- 1b) CODE VAULT — keep the recovery code where a site-data wipe can't reach it ---
+  // Everything else we own (localStorage, the IndexedDB mirror, the SW cache) is site storage:
+  // a "clear site data" — whether the user, a browser setting, or the OS does it — takes ALL of
+  // them in one stroke, and the only thing left is the user typing 19 characters back in by hand.
+  // The phone's password manager is NOT site storage. It survives a clear and it syncs across
+  // devices. So the recovery code goes there too, and comes back silently at the next boot.
+  //
+  // We store the code as BOTH the id and the password of the credential. Ugly, deliberate:
+  //  · the Credential Management API hands back .id without any user interaction (mediation
+  //    "silent"), so the boot self-heal never has to prompt;
+  //  · an ordinary Android autofill into a plain text field fills the USERNAME, so the restore
+  //    boxes (autocomplete="username") get filled correctly by managers that don't do CM API;
+  //  · the entry reads "squarerootcalendar.com — SQRT-…" in the password manager, so the user can
+  //    also just LOOK the code up themselves.
+  // ⚠ NEVER put the recovery code anywhere it reaches the network. It is the encryption key for
+  // the cloud blob — a cookie would ship it to the server on every request and end the
+  // zero-knowledge property the privacy policy promises. Password managers are client-side only.
+  function vaultAvail(){ try{ return !!(window.PasswordCredential&&navigator.credentials&&navigator.credentials.get&&(location.protocol==="https:"||location.hostname==="localhost")); }catch(e){ return false; } }
+  function vaultSave(code){ try{ if(!vaultAvail()||!code)return Promise.resolve(false);
+    var c=new PasswordCredential({id:code,password:code,name:"Square Root Calendar recovery code"});
+    return navigator.credentials.store(c).then(function(){return true;},function(){return false;});
+  }catch(e){ return Promise.resolve(false); } }
+  // mediation "silent" = no UI at all (boot); "optional" = may show a one-tap chooser (user gesture).
+  function vaultRecall(mediation){ try{ if(!vaultAvail())return Promise.resolve("");
+    return navigator.credentials.get({password:true,mediation:mediation||"silent"}).then(function(c){
+      if(!c)return ""; var v=c.password||c.id||""; return looksLikeRecoveryCode(v)?v:""; },function(){return "";});
+  }catch(e){ return Promise.resolve(""); } }
+
+  // --- 1c) wipe breadcrumb — a NON-SECRET cookie, purely so we can tell WHICH kind of wipe happened ---
+  // Cookies are not quota-managed, so they outlive an eviction but die with a full site-data clear.
+  // Fresh install + breadcrumb present  → the browser evicted our storage (persistence problem).
+  // Fresh install + breadcrumb gone too → something cleared the whole site (a setting, or the OS).
+  // Holds a timestamp and nothing else — see the warning above about what must never go in a cookie.
+  var CRUMB="sqrtseen";
+  function crumbGet(){ try{ var m=(" "+document.cookie).match(/[; ]sqrtseen=([^;]*)/); return m?decodeURIComponent(m[1]):""; }catch(e){ return ""; } }
+  function crumbSet(){ try{ document.cookie=CRUMB+"="+Date.now()+"; path=/; max-age=34128000; SameSite=Lax"+(location.protocol==="https:"?"; Secure":""); }catch(e){} }
+  var wipeKind="";   // "" = normal boot · "evicted" · "cleared" — set once, at boot, on a fresh install
 
   // --- 2) IndexedDB mirror: a redundant on-device copy of the whole backup ---
   var IDB_DB="sqrtcal",IDB_STORE="kv",IDB_KEY="snapshot",IDB_SIDE="snapshot-small";   // side key holds a shrunken state so the good snapshot survives it
@@ -3014,7 +3059,7 @@
       if(!r.ok)throw new Error("pull "+r.status);
       return r.json(); }); }).then(function(rec){ if(rec.none)return {none:true};
       return decryptBlob(code,rec.blob).then(function(plain){var o=JSON.parse(plain);return {data:(o&&o.data)?o.data:o,ts:rec.ts};}); }); }
-  function enableCloud(cb){ if(!hasCrypto()){if(cb)cb(null);return;} if(!rcode){rcode=genCode();save("rcode",rcode);} cloudOn=true;save("cloud",true); cloudStatus(); if(cb)cb(rcode); cloudPush().then(cloudStatus); }
+  function enableCloud(cb){ if(!hasCrypto()){if(cb)cb(null);return;} if(!rcode){rcode=genCode();save("rcode",rcode);} cloudOn=true;save("cloud",true); cloudStatus(); if(cb)cb(rcode); vaultSave(rcode); cloudPush().then(cloudStatus); }   // vaultSave: the code outlives a wiped browser only if the password manager has it
 
   // ===== Paid unlock ($9.99 one time) — the recovery code doubles as the license, no accounts =====
   var PAYLINK_APP="https://buy.stripe.com/3cIaEY9VB7Xa1AA9qx5c400";    // Stripe Payment Link — $9.99 one-time App Unlock
@@ -3084,7 +3129,17 @@
     document.getElementById("gateCodeRestore").onclick=function(){ gateMsg("Checking…");
       restoreByCode(document.getElementById("gateCodeIn").value,function(res){
         gateMsg(res==="empty"?"Enter your recovery code first.":res==="none"?"No cloud backup found for that code — double-check it.":res==="unavail"?"Cloud isn't reachable right now. Try again shortly.":"Couldn't read that code. Check for typos.",true); }); };
+    wireVaultUse("gateVaultUse","gateCodeIn","gateCodeRestore");
   })();
+  // One tap instead of 19 typed characters: ask the password manager for the code, drop it in the
+  // box, and run the normal restore. Only shown where the Credential Management API exists —
+  // everywhere else the autocomplete="username" hint still lets ordinary Android autofill do it.
+  function wireVaultUse(btnId,inId,goId){ var b=document.getElementById(btnId); if(!b||!vaultAvail())return;
+    b.hidden=false;
+    b.onclick=function(){ b.disabled=true; vaultRecall("optional").then(function(code){ b.disabled=false;
+      if(!code){ b.hidden=true; return; }   // nothing saved for this site — get out of the way
+      var i=document.getElementById(inId); if(i)i.value=code;
+      var g=document.getElementById(goId); if(g)g.click(); },function(){ b.disabled=false; }); }; }
   function startPurchase(){
     if(!PAYLINK_APP){ payMsg("Purchases open very soon \u2014 check back shortly.",true); return; }
     function go(){ licenseIdP().then(function(id){ if(!id){payMsg("Couldn\u2019t create your license \u2014 try again.",true);return;}
@@ -3120,6 +3175,7 @@
       var st=JSON.stringify(rec.ts||0);   // mark this device as already in sync with the server version we just pulled →
       data.cbase=st; data.cloudts=st; data.cdirty="false"; data.cconf="false";   // no re-push/clobber, no false conflict
       data.cshrink="null";                // a deliberate restore ends the pause
+      vaultSave(code);   // this code just proved itself — bank it in the password manager so a wipe never asks for it again
       var doIt=function(){applyBackup(data);};   // applyBackup reloads the page
       if(at){   // Restoring an OLD copy (prev / a day) leaves the server HEAD newer than this device,
                 // so the very next open would fast-forward straight back onto the copy we just undid.
@@ -3326,7 +3382,18 @@
     var sync=document.getElementById("bakCloudSync"); if(on&&sync){ sync.textContent=shr?(shr.dir==="in"?"⏸ Sync is paused — this phone has more than the cloud copy.":"⏸ Sync is paused to protect your backup."):cloudConflict?"⚠︎ A newer backup exists from another device. Tap “Restore from cloud” to pull it, or “Back up to cloud now” to overwrite it with THIS phone.":(cloudAvail===false)?"⚠︎ Cloud server isn’t set up yet — your data is safe on this phone and will sync once it’s live.":(cloudLastTs?("✓ Last synced "+relTime(cloudLastTs)):"Syncing…"); }
     var en=document.getElementById("bakCloudEnable"); if(en&&!hasCrypto())en.disabled=true;
     var oOn=document.getElementById("onbCloudOn"); if(oOn&&!hasCrypto())oOn.style.display="none";
-    var persist=document.getElementById("bakPersist"); if(persist){ persist.textContent=(persistState==="granted")?"🛡️ Persistent storage is ON — this phone won’t auto-clear your calendar.":(persistState==="denied"?"🛡️ Tip: add this app to your Home Screen to lock storage in place.":""); persist.style.display=persist.textContent?"":"none"; } }
+    var vb=document.getElementById("bakCodeVault"); if(vb)vb.hidden=!(on&&vaultAvail());
+    // Storage health — the panel that answers "why did my phone lose everything?". Static strings only.
+    var persist=document.getElementById("bakPersist");
+    if(persist){ var L=[];
+      if(persistState==="granted")L.push("🛡️ Persistent storage is <b>ON</b> — the browser won’t evict your calendar to free space.");
+      else if(persistState==="denied")L.push("🛡️ Persistent storage is <b>OFF</b>. Installing the app and allowing notifications is what earns it.");
+      if(storEst&&storEst.usage!=null)L.push("💾 Using "+fmtBytes(storEst.usage)+(storEst.quota?(" of "+fmtBytes(storEst.quota)):"")+" on this phone.");
+      if(wipeKind==="evicted")L.push("⚠︎ This phone’s storage was <b>evicted by the browser</b> since your last visit.");
+      else if(wipeKind==="cleared")L.push("⚠︎ This phone’s app data was <b>cleared</b> since your last visit — a browser setting or the OS did it, not Square Root.");
+      if(on&&vaultAvail())L.push("🔐 Your recovery code can live in this phone’s password manager. That survives a cleared browser, and the app puts itself back on its own.");
+      persist.innerHTML=L.join("<br>"); persist.style.display=L.length?"":"none"; } }
+  function fmtBytes(n){ if(!n&&n!==0)return ""; var u=["B","KB","MB","GB"],i=0; while(n>=1024&&i<u.length-1){n/=1024;i++;} return (n<10&&i>0?n.toFixed(1):Math.round(n))+" "+u[i]; }
 
   // --- 4) install nudges ---
   var deferredPrompt=null;
@@ -3410,6 +3477,12 @@
     var nEl=document.getElementById("onbName");if(nEl)nEl.value=uname; var cEl=document.getElementById("onbCo");if(cEl)cEl.value=uco;
     Array.prototype.forEach.call(document.querySelectorAll("#onbPtSeg button"),function(x){x.classList.toggle("on",x.getAttribute("data-p")===(onbHasPt?"yes":"no"));});
     document.getElementById("onbPtWrap").hidden=!onbHasPt;
+    // Reached onboarding on a phone that HAD the app: lead with restore, not with the sales pitch.
+    if(wipeKind){ var rb=document.getElementById("onbRestoreBox"); if(rb)rb.hidden=false;
+      var wm=document.getElementById("onbWipeMsg"); if(wm){ wm.hidden=false;
+        wm.textContent=(wipeKind==="evicted")
+          ? "This phone had Square Root before — the browser cleared its storage to free space. Your encrypted backup is still in the cloud: restore it here."
+          : "This phone had Square Root before — something cleared the app’s data. Your encrypted backup is still in the cloud: restore it here."; } }
     showOnbStep(1); var o=document.getElementById("onb");o.classList.add("show");o.setAttribute("aria-hidden","false"); }
   function closeOnboarding(){ var o=document.getElementById("onb");o.classList.remove("show");o.setAttribute("aria-hidden","true"); }
   function commitGroups(){ my=onbMyVal; pt=onbHasPt?onbPtVal:0;
@@ -3440,6 +3513,7 @@
     document.getElementById("onbCodeRestore").onclick=function(){ var msg=document.getElementById("onbRestMsg");msg.className="onbrestmsg";msg.textContent="Checking…";
       restoreByCode(document.getElementById("onbCodeIn").value,function(res){ msg.className="onbrestmsg bad";
         msg.textContent=res==="empty"?"Enter your recovery code first.":res==="none"?"No cloud backup found for that code — double-check it.":res==="unavail"?"Cloud isn’t reachable right now. Try again shortly.":"Couldn’t read that code. Check for typos."; }); };
+    wireVaultUse("onbVaultUse","onbCodeIn","onbCodeRestore");
   })();
 
   // --- 6) cloud backup UI wiring (Backup sheet) ---
@@ -3450,6 +3524,9 @@
     if(shrinkPaused()){ appConfirm("Sync is paused because this phone and your backup don’t match.\n\nBacking up now overwrites the cloud copy with what’s on this phone — anything the backup has that this phone doesn’t will be gone.","Back up anyway",go); return; }
     go(); };
   document.getElementById("bakCodeCopy").onclick=function(){copyText(rcode,this);};
+  document.getElementById("bakCodeVault").onclick=function(){ var b=this; if(!rcode){bakSay("Turn on cloud backup first — that's what creates your recovery code.",true);return;}
+    b.disabled=true; vaultSave(rcode).then(function(ok){ b.disabled=false;
+      bakSay(ok?"Saved. If this phone ever clears the app’s data, Square Root reads the code back and restores itself.":"Your phone’s password manager turned that down. Copy the code and save it by hand instead.",!ok); }); };
   document.getElementById("bakCloudRestoreBtn").onclick=function(){var b=document.getElementById("bakCloudRestoreBox");b.hidden=!b.hidden;};
   document.getElementById("bakCloudPrev").onclick=function(){ if(!rcode){bakSay("Turn on cloud backup first.",true);return;}
     appConfirm("Put the copy from BEFORE your last backup onto this phone? Use this if something went missing — the server keeps one earlier copy.","Restore earlier copy",function(){
@@ -5013,12 +5090,46 @@ var TEN_CODES=[
   // ---- boot: recover-from-mirror → persist → onboarding/install → cloud ----
   function sessFlag(k){try{if(sessionStorage.getItem(k))return true;sessionStorage.setItem(k,"1");return false;}catch(e){return false;}}
   function isFreshInstall(){for(var i=0;i<LS.length;i++){var k=LS.key(i);if(k&&k.indexOf("sqrt:")===0)return false;}return true;}   // ANY sqrt: key → existing user (even a group-only user with no logged swaps)
+  // A wiped phone must not mean re-typing 19 characters. If the password manager still holds the
+  // recovery code (it is NOT site storage — see the CODE VAULT note), pull the cloud copy back down
+  // before the user ever sees the welcome screen. Once per session, with a timeout: applyBackup
+  // reloads on success, so a heal that keeps failing has to fall through to onboarding, never loop.
+  function healSplash(on){ var el=document.getElementById("healSplash");
+    if(on){ if(!el){ el=document.createElement("div"); el.id="healSplash";
+        el.setAttribute("style","position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;padding:28px;background:var(--bg);color:var(--ink);text-align:center;font-size:15px;line-height:1.55");
+        el.innerHTML='<div><div style="font-size:34px;margin-bottom:10px">🔑</div><b>Restoring your calendar…</b><div style="margin-top:8px;color:var(--mut)">This phone cleared the app’s data. Pulling your encrypted backup back down — nothing for you to do.</div></div>';
+        document.body.appendChild(el); } el.style.display="flex"; }
+    else if(el){ el.style.display="none"; } }
+  // Everyone already running with cloud backup got their code before the vault existed, so they'd
+  // never pass through enableCloud again. Offer it once. The tap is also the user gesture the
+  // Credential Management API wants before it will show its own save prompt.
+  function vaultAsked(v){ try{ if(v===undefined)return !!LS.getItem("sqrtvaulted"); LS.setItem("sqrtvaulted","1"); }catch(e){} return true; }   // OUTSIDE the sqrt: prefix — device-local, never rides a backup to another phone
+  function maybeVaultPop(){
+    if(!cloudOn||!rcode||!vaultAvail()||vaultAsked())return;
+    if(document.querySelector(".cmodal.show,.onb.show,.sheet.show,.swpick.show"))return;   // same courtesy as the other reminders
+    vaultAsked(1);   // asked once, whichever way it goes — appConfirm has no cancel callback, and the Settings button stays
+    appConfirm("Keep your recovery code in this phone’s password manager?\n\nIf this phone ever clears the app’s data, Square Root reads the code back and puts your calendar back on its own — no typing.","Save it",function(){ vaultSave(rcode); });
+  }
+  function autoHeal(cb){
+    if(crumbGet())wipeKind="evicted";                       // storage went, the cookie didn't → the browser evicted us
+    if(sessFlag("sqrtHeal")||!vaultAvail()||!hasCrypto()){cb(false);return;}
+    var done=false,fin=function(ok){ if(done)return; done=true; healSplash(false); cb(ok); };
+    setTimeout(function(){fin(false);},7000);               // cloud unreachable → don't strand the user on a blank screen
+    vaultRecall("silent").then(function(code){
+      if(!code){fin(false);return;}
+      if(!wipeKind)wipeKind="cleared";                      // the manager knows this phone even though no site data survived it
+      healSplash(true);
+      restoreByCode(code,function(){fin(false);},null,true);   // onResult fires on FAILURE only — success reloads the page
+    },function(){fin(false);}); }
+
   function afterBoot(){
-    requestPersist().then(cloudStatus,cloudStatus);
-    if(!load("seen",false)){ if(isFreshInstall()){startOnboarding();} else {save("seen",1);maybeInstallLater();} }   // only brand-new (no sqrt data at all) gets onboarding
+    requestPersist().then(function(){return readEstimate();},function(){}).then(cloudStatus,cloudStatus);
+    if(!load("seen",false)){ if(isFreshInstall()){ autoHeal(function(healed){ if(!healed)startOnboarding(); }); } else {save("seen",1);maybeInstallLater();} }   // only brand-new (no sqrt data at all) gets onboarding — and even then, try to heal a wipe first
     else if(!unlocked()){ showGate(); }   // set up but not paid / not in a live house / not restored → the calendar stays behind the gate
     else { maybeInstallLater(); }
+    crumbSet();   // re-stamp the (non-secret) breadcrumb on every boot, so the NEXT wipe can be classified
     setTimeout(maybeRemindPop,900);   // due reminders pop AFTER the calendar has settled (the guard skips if onboarding/a sheet is up)
+    setTimeout(maybeVaultPop,1800);   // …and, once ever, offer to bank the recovery code where a wipe can't reach it
     if(cloudOn&&rcode&&cloudDirty&&!cloudConflict)schedulePush();   // only push UNSYNCED local changes on boot — never clobber the cloud with a clean/stale device
     if(cloudOn&&rcode&&!cloudDirty){                                // a clean device's state IS the synced state — refresh the three-way merge base…
       var _ob=loadMergeBase(),_cd=collectData(),_sb=_ob?shrank(_ob,_cd):null;
