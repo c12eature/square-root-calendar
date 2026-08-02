@@ -2537,9 +2537,13 @@
     var splitHTML=showSplit?buildSplitter(set):"";   // one-press partner-set splits (only on sets you share with your Mutual Partner)
     var awDay=abcdOf(y,m,d);   // ABCD day: one whole-day work-state card on top, then the 9×/6× cards for marks & notes only
     var one=(only===9||only===6)&&!lsDay&&!trDay;   // light-duty / training days keep their own whole-day sheet
+    // The splitter acts on the whole 4-tour set, so it belongs on the focused sheet too — leaving it
+    // off the per-tour branch meant tapping a 9×/6× pill (the natural gesture) silently hid
+    // 1st half / 2nd half / Insides / Outsides, and only the date-number tap still offered them.
+    var setHead=(awDay?abcdWholeCard(y,m,d,awDay):splitHTML);
     var cards=one
-      ? (awDay?abcdWholeCard(y,m,d,awDay):"")+tourSwitch(y,m,d,only)+tourCard(y,m,d,only)
-      : (awDay?abcdWholeCard(y,m,d,awDay):splitHTML)+tourSwitch(y,m,d,0)+tourCard(y,m,d,9)+tourCard(y,m,d,6)+(awDay?'':'<div class="sbnote"><b>*</b> standby — the first 3 groups of a tour. The job can force them to work overtime the following tour.</div>');
+      ? setHead+tourSwitch(y,m,d,only)+tourCard(y,m,d,only)
+      : setHead+tourSwitch(y,m,d,0)+tourCard(y,m,d,9)+tourCard(y,m,d,6)+(awDay?'':'<div class="sbnote"><b>*</b> standby — the first 3 groups of a tour. The job can force them to work overtime the following tour.</div>');
     document.getElementById("shTours").innerHTML=head+(lsDay?ldDaySheet(y,m,d,lsDay):trDay?trDaySheet(y,m,d,trDay):cards);
     Array.prototype.forEach.call(document.querySelectorAll("#shTours .tswitch button"),function(b){ b.onclick=function(){ var v=+b.getAttribute("data-tsw"); openDay(y,m,d,v||undefined); }; });
     if(lsDay)wireLdDay(y,m,d,lsDay); else if(trDay)wireLdDay(y,m,d,{p:trDay.p});   // training reuses the LD Other-OT + edit wiring (no per-day time edits)
