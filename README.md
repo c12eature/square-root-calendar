@@ -88,6 +88,50 @@ new phone → it pulls + decrypts → done. There are **no accounts** — the re
 No secrets live in this repo. Data stored server-side is opaque ciphertext only — good for privacy **and** for the
 pending legal/privacy-policy posture.
 
+## Tour feed (ICS) — no setup
+
+`api/ics.js` publishes a subscribable read-only calendar of the tours the user actually works
+(`worked()` nets out swaps, comp, leave and hand-offs). The client computes absolute UTC instants
+itself, so there is no timezone maths server-side and DST is handled by the device that knows the
+user's zone — verified across the Nov 2026 transition (09:00 local = 13:00Z in August, 14:00Z in
+December).
+
+**This is the only endpoint that stores readable user data.** A subscription URL is a bearer
+capability: Google must be able to read the feed, and so can anyone with the link. Hence: opt-in
+behind an explicit confirm, tours only, and its own random token that cannot be joined to the sync
+id, licence id or reminder queue id. Deleting the feed rotates the token so a shared link dies.
+
+Uses the existing `KV_REST_API_*`. No cron, no new env vars. 5th of 12 serverless functions.
+
+⚠️ Expectation to set with users: **Google decides its own refresh cadence** — typically several
+hours, sometimes up to a day. The app is always right immediately; the subscribed copy lags.
+
+## Personal reminders — ⚙️ one-time QStash setup
+
+The Personal calendar can ring with the app fully closed. `api/remind.js` holds, per queue,
+*when* to ring and an **opaque ciphertext** — the title and body are AES-GCM encrypted on the
+phone and opened by the service worker, so the server can never read what an appointment says.
+The queue id is its own random value, deliberately not the sync/license id, so a reminder
+schedule cannot be joined back to a backup blob or a Stripe purchase.
+
+It needs a scheduler that fires more often than the two daily Vercel crons (which are pinned to
+the tour times, and Hobby caps cron frequency anyway). QStash — already used by this project —
+does it:
+
+1. QStash → **Schedules** → *Create schedule*
+2. **Destination**: `https://squarerootcalendar.com/api/remind?a=cron`
+3. **Schedule**: `*/15 * * * *`  (every 15 minutes — reminders fire up to 30s early, never late by
+   more than the interval; anything over 2h late is dropped rather than rung at the wrong time)
+4. **Method**: `POST`
+5. **Header**: `Authorization: Bearer <CRON_SECRET>` — the same `CRON_SECRET` already set in the
+   Vercel env for `tourcron`
+
+No new env vars. Uses the existing `KV_REST_API_*`, `VAPID_PUBLIC`, `VAPID_PRIVATE`,
+`VAPID_SUBJECT` and `CRON_SECRET`. Without Upstash credentials the endpoint returns 501 and the
+app simply doesn't offer reminders. This is the **4th** serverless function (Hobby allows 12).
+
+⚠️ The privacy policy must say that reminder *times* are stored server-side. The contents are not.
+
 ## Optional: a downloadable Android **.apk** (Play Store or sideload)
 The PWA above already installs on Android. You only need an actual `.apk` for the **Google Play Store** or for
 a direct download/sideload. Easiest path — **PWABuilder** (no Android SDK required):

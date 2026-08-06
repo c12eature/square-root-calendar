@@ -45,8 +45,19 @@
     <li><b>Where it lives:</b> house data is stored with our database provider (Upstash Redis, US region) and expires from the server if a house goes unused for an extended period.</li>
   </ul>
 
-  <h2>Push notifications</h2>
-  <p>If you turn notifications on, your device's push subscription is stored server-side in a private record tied to your membership — never shown to other members. Turning notifications off deletes it.</p>
+  <h2>Push notifications and reminders</h2>
+  <p>If you turn notifications on, your device's push subscription is stored server-side in a private record — never shown to other members. Turning notifications off deletes it. Notifications work whether or not you belong to a House Calendar.</p>
+  <p><b>Reminders for tours and personal events</b> are scheduled on our server so they can still reach you with the app closed. The server stores <b>when</b> to send each reminder and an <b>encrypted</b> block of what it says. The wording is encrypted on your device with a key that never leaves it and is decrypted by the app on your phone when the notification arrives — so the reminder times are visible to us, but what the reminder is <i>about</i> is not. The reminder queue uses its own random id, unrelated to your recovery code, your backup, or any purchase.</p>
+
+  <h2>Calendar subscription link (optional)</h2>
+  <p>This is the one feature where your data is stored in a form we could read, and it is off unless you switch it on.</p>
+  <ul>
+    <li>If you create a calendar link, your <b>tour schedule</b> — dates, times, and whether a tour is overtime or a mutual — is published to a private URL so Google Calendar, Apple Calendar or similar can subscribe to it. Those services have to be able to read a feed in order to display it, so this content is <b>not encrypted</b>.</li>
+    <li><b>Anyone who has the link can read your tour schedule.</b> Treat it like a password. Deleting the link in the app removes the published copy and permanently invalidates that URL; turning it back on issues a brand-new one.</li>
+    <li>The feed contains <b>tours only</b>. It never contains your personal calendar events, notes, overtime pay, mutual partners' names, phone numbers, or anything about anyone else.</li>
+    <li>The link uses its own random token that is not derived from and cannot be linked back to your recovery code, your encrypted backup, your reminders, or your purchase.</li>
+    <li>Once you subscribe, the calendar service you chose (for example Google) fetches and stores its own copy on its servers, under its privacy policy rather than ours.</li>
+  </ul>
 
   <h2>What we don't do</h2>
   <ul>

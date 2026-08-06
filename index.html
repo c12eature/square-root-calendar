@@ -601,7 +601,40 @@
   .lgsw.lggold{background:#e0a30c;}
   .ootrow .wutop .lab b{color:var(--pay);}
   /* bottom bar: spotlight toggle + key button on one row */
-  .botbar{display:flex; align-items:center; justify-content:space-between; gap:10px; margin:9px 4px 0;}
+  .botbar{display:flex; align-items:center; justify-content:flex-start; gap:8px; margin:9px 4px 0;}
+  .botbar .toggle,.botbar #pAddBtn{margin-left:auto;}   /* mode switch anchored left; whatever else is showing goes hard right */
+  /* ---- work / personal mode switch (the bottom-most control — thumb reach) ---- */
+  /* Work / Personal lives IN the bottom row, not on a row of its own — a second row cost the
+     calendar ~50px of height, which is the one thing the grid cannot spare on a phone. */
+  .modebar{display:flex; gap:3px; flex:none; padding:3px; background:var(--panel2); border:1px solid var(--line); border-radius:11px;}
+  .modeseg{flex:none; min-height:32px; padding:0 9px; border:none; border-radius:9px; background:transparent; color:var(--mut); font:inherit; font-size:12px; font-weight:800; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:5px; white-space:nowrap;}
+  .modeseg.on{background:var(--panel); color:var(--ink); box-shadow:0 1px 3px rgba(0,0,0,.16);}
+  .spotlbl{white-space:nowrap;}
+  @media (max-width:344px){                 /* only the very narrowest phones drop the word — measured, the row still has ~110px spare at 375 */
+    .spotlbl{display:none;}
+    .modeseg{padding:0 7px; font-size:11.5px;}
+  }
+  /* ---- personal-mode day cell: a thin tour underlay + the day's events ---- */
+  .ptour{display:flex; gap:2px; height:4px; margin:1px 0 3px;}
+  .ptour i{flex:1; border-radius:2px; background:transparent;}
+  .ptour i.on{background:var(--red-fill);}                       /* you work that tour — the layer a general calendar app can't draw */
+  .ptour i.duty{background:var(--mut);}
+  .pevs{display:flex; flex-direction:column; gap:2px; overflow:hidden; min-width:0;}
+  .pevc{display:flex; align-items:center; gap:3px; font-size:9.5px; font-weight:700; line-height:1.25; color:var(--ink2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0;}
+  .pevc i{width:5px; height:5px; border-radius:3px; flex:none;}
+  .pevmore{font-size:9px; font-weight:800; color:var(--mut);}
+  /* ---- personal day sheet ---- */
+  .pdrow{display:flex; align-items:flex-start; gap:10px; width:100%; text-align:left; background:var(--bg); border:1px solid var(--line); border-radius:12px; padding:12px; font:inherit; color:var(--ink); cursor:pointer; flex:none;}
+  .pdrow .pdbar{width:4px; align-self:stretch; border-radius:3px; flex:none;}
+  .pdrow .pdmain{flex:1; min-width:0;}
+  .pdrow .pdt{font-weight:800; font-size:14px; overflow:hidden; text-overflow:ellipsis;}
+  .pdrow .pdw{font-size:12px; color:var(--mut); margin-top:2px;}
+  .pdtour{font-size:12.5px; font-weight:700; color:var(--ink2); background:var(--panel2); border:1px solid var(--line); border-radius:11px; padding:10px 12px; margin-bottom:11px;}
+  .pdempty{font-size:13px; color:var(--mut); text-align:center; padding:18px 6px;}
+  .icswarn{font-size:12.5px; line-height:1.5; color:var(--ink2); background:color-mix(in srgb,var(--amber) 12%,var(--panel2)); border:1px solid color-mix(in srgb,var(--amber) 40%,var(--line)); border-radius:12px; padding:11px 12px; margin-bottom:12px;}
+  .icsurl{font-size:11px; word-break:break-all; line-height:1.45;}
+  .icssteps{font-size:12.5px; line-height:1.55; color:var(--ink2); margin:10px 0;}
+  .icssteps ol{margin:4px 0 10px; padding-left:20px;} .icssteps li{margin:2px 0;}
   .keybtn{flex:none; display:inline-flex; align-items:center; gap:5px; padding:7px 13px; border:1px solid var(--line); border-radius:999px; background:var(--panel); color:var(--ink2); font-size:12px; font-weight:800; cursor:pointer; font-family:inherit;}
   .keybtn:active{background:var(--line);}
   /* long-press swap/cover request builder */
@@ -1030,11 +1063,16 @@
   </div>
 
   <div class="botbar">
-    <div class="toggle">
-      <div class="switch" id="spot"></div>
-      <span>Spotlight my tours only</span>
+    <div class="modebar" id="modeBar">
+      <button class="modeseg on" data-mode="work" type="button">🚒 Work</button>
+      <button class="modeseg" data-mode="personal" type="button">📅 Personal</button>
     </div>
-    <button class="keybtn" id="openLegend" type="button">🔑 Key</button>
+    <div class="toggle" id="spotWrap" title="Spotlight my tours only">
+      <div class="switch" id="spot"></div>
+      <span class="spotlbl">Spotlight</span>
+    </div>
+    <button class="keybtn" id="openLegend" type="button" aria-label="Key">🔑</button>
+    <button class="keybtn" id="pAddBtn" type="button" hidden>＋ Add event</button>
   </div>
 </div>
 <div class="reqbar" id="reqbar">
@@ -1137,6 +1175,7 @@
     <div class="setlbl">Data</div>
     <div class="setlist">
       <button class="setrow" id="openBak"><span class="setico">💾</span><span class="settx"><span class="settl">Backup &amp; Restore</span><span class="setsub">Save your data · move to a new phone</span></span><span class="setchev">›</span></button>
+      <button class="setrow" id="openIcs"><span class="setico">🗓️</span><span class="settx"><span class="settl">Add Tours to Your Phone&rsquo;s Calendar</span><span class="setsub">Subscribe in Google or Apple Calendar</span></span><span class="setchev">›</span></button>
       <a class="setrow" href="privacy.html" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><span class="setico">🔒</span><span class="settx"><span class="settl">Privacy &amp; your data</span><span class="setsub">What's stored, where, and who can see it</span></span><span class="setchev">›</span></a>
     </div>
   </div>
@@ -1325,6 +1364,87 @@
   <div class="perr" id="evErr"></div>
   <div class="rlist" id="evList"></div>
   <button class="done" id="evDone">Done</button>
+</div>
+
+<div class="sheet set" id="icsSheet">
+  <div class="grip"></div>
+  <h3>Tours in Your Phone&rsquo;s Calendar</h3>
+  <p class="rsub">Subscribe once and your tours show up in Google or Apple Calendar &mdash; on your phone&rsquo;s calendar app, your watch, in the car, and when you ask your assistant what you&rsquo;re doing Saturday. It updates itself as you log swaps and overtime.</p>
+  <div class="icswarn" id="icsWarn">
+    <b>&#9888;&#65039; Read this first.</b> Everything else in this app is encrypted so that even I can&rsquo;t read it. This feed can&rsquo;t be &mdash; Google has to be able to read it to show it to you. <b>Anyone who gets the link can see your tour schedule</b>, so treat it like a password. It carries <b>tours only</b> &mdash; never your personal events, notes, overtime dollars, or anyone else&rsquo;s information.
+  </div>
+  <div id="icsOffBox">
+    <button class="bakact bakprime" id="icsEnable">🗓️ Create my calendar link</button>
+  </div>
+  <div id="icsOnBox" hidden>
+    <div class="bakcode">
+      <div class="onbcodelbl">Your private calendar link</div>
+      <div class="onbcodeval icsurl" id="icsUrl"></div>
+      <button class="onbcopy" id="icsCopy" type="button">⧉ Copy link</button>
+    </div>
+    <div class="bakcloudsync" id="icsStat"></div>
+    <div class="icssteps">
+      <b>Google Calendar</b> (do this on a computer &mdash; the phone app can&rsquo;t add subscriptions):
+      <ol><li>calendar.google.com → <b>Other calendars</b> <b>+</b> → <b>From URL</b></li><li>Paste the link → <b>Add calendar</b></li></ol>
+      <b>iPhone</b>: Settings → Apps → Calendar → <b>Accounts</b> → Add Account → <b>Other</b> → <b>Add Subscribed Calendar</b> → paste.
+    </div>
+    <p class="baknote"><b>It is not instant.</b> Google decides when to re-read the link &mdash; usually every several hours, sometimes up to a day. Square Root is always right the moment you change it; your phone&rsquo;s calendar catches up later. Apple lets you pick the refresh rate.</p>
+    <button class="bakact" id="icsRefresh">⟳ Push my latest tours now</button>
+    <button class="bakact bakdanger" id="icsDisable">Turn off &amp; delete the link</button>
+  </div>
+  <div class="bakmsg" id="icsMsg"></div>
+  <button class="done" id="icsDone">Done</button>
+</div>
+
+<div class="sheet set" id="pdaySheet">
+  <div class="grip"></div>
+  <h3 id="pdDate">Day</h3>
+  <div class="pdtour" id="pdTour"></div>
+  <div class="rlist" id="pdList"></div>
+  <button class="raddbtn" id="pdAdd" type="button">＋ Add an event</button>
+  <button class="done" id="pdDone">Done</button>
+</div>
+
+<div class="sheet set" id="pevSheet">
+  <div class="grip"></div>
+  <h3 id="pevTitle">Personal Event</h3>
+  <p class="rsub">Yours only — personal events never reach your firehouse, and they ride the same encrypted backup as the rest of your calendar.</p>
+  <input class="cevin" id="pevName" type="text" autocomplete="off" placeholder="What is it? (e.g. Dentist, Kid&rsquo;s game, Anniversary)">
+  <div class="cevgrid">
+    <div class="vfield"><label>Date</label><input type="date" id="pevDate" aria-label="Event date"></div>
+    <div class="vfield"><label>Start <span class="opt">(optional)</span></label><input type="time" id="pevT1" aria-label="Start time"></div>
+    <div class="vfield"><label>End <span class="opt">(optional)</span></label><input type="time" id="pevT2" aria-label="End time"></div>
+    <label class="cevcol"><span>Color</span><input type="color" id="pevColor" value="#2563eb" aria-label="Event color"></label>
+  </div>
+  <div class="cevrep">
+    <span class="cevreplbl">Repeat</span>
+    <div class="rseg" id="pevRep">
+      <button data-rep="" class="on" type="button">Just this day</button>
+      <button data-rep="w" type="button">Weekly</button>
+      <button data-rep="2w" type="button">2 wks</button>
+      <button data-rep="m" type="button">Monthly</button>
+    </div>
+  </div>
+  <div class="vfield cevuntil" id="pevUntilWrap" style="display:none"><label>Repeat until</label><input type="date" id="pevUntil" aria-label="Repeat until date"></div>
+  <div class="cevrep">
+    <span class="cevreplbl">Remind me</span>
+    <div class="rseg" id="pevRem">
+      <button data-rm="" class="on" type="button">Off</button>
+      <button data-rm="0" type="button">At time</button>
+      <button data-rm="30" type="button">30 min</button>
+      <button data-rm="60" type="button">1 hr</button>
+      <button data-rm="1440" type="button">1 day</button>
+    </div>
+  </div>
+  <div class="baknote" id="pevRemNote" style="display:none">🔔 The reminder time is kept on the server so it can reach you with the app closed — <b>what the event says is encrypted</b> and only your phone can open it.</div>
+  <button class="cevadddate" id="pevAddDate" type="button">＋ Add date(s)</button>
+  <div class="cevchips" id="pevChips"></div>
+  <input class="cevin" id="pevLoc" type="text" autocomplete="off" placeholder="Where? (optional)">
+  <textarea class="cevin cevnote" id="pevNote" rows="2" placeholder="Notes (optional)…"></textarea>
+  <div class="cevaddrow"><button class="cevcancel" id="pevCancel" type="button" style="display:none">Cancel</button><button class="raddbtn" id="pevSave">Save event</button></div>
+  <div class="perr" id="pevErr"></div>
+  <div class="rlist" id="pevList"></div>
+  <button class="done" id="pevDone">Done</button>
 </div>
 
 <div class="sheet set" id="cevSheet">
@@ -1709,6 +1829,7 @@
     <div class="paymsg" id="payMsg"></div>
     <p class="paysub">Always free: your full calendar &mdash; tours, mutuals, overtime &amp; time-off logging, CFR, events, notes, and encrypted cloud backup. In a house with an active <b>House Calendar</b>? The invite code unlocks everything &mdash; no separate purchase. Your <b>recovery code</b> is your license &mdash; it restores the purchase and your data on any phone.</p>
     <p class="paysub" id="payLic" hidden style="word-break:break-all"></p>
+    <button class="done" id="payDone" type="button">Done</button>
   </div>
 </div>
 
@@ -1766,7 +1887,7 @@
   var saveWarned=false;
   function warnNoSave(){if(saveWarned)return;saveWarned=true;try{var b=document.createElement("div");b.setAttribute("role","alert");b.style.cssText="position:fixed;left:8px;right:8px;bottom:8px;z-index:9999;background:#7f1d1d;color:#fff;padding:11px 13px;border-radius:11px;font:600 12.5px/1.45 -apple-system,BlinkMacSystemFont,system-ui,sans-serif;box-shadow:0 8px 26px rgba(0,0,0,.45)";b.textContent="⚠︎ Changes aren’t being saved — storage is full or you’re in Private Browsing. Entries will be lost when you close the app. (Tap to dismiss.)";b.onclick=function(){b.remove();};document.body.appendChild(b);}catch(e){}}
   var _staleTab=false;   // another tab/window rewrote our state (merge, adoption, restore) — this tab's memory is stale and must never write over it
-  window.addEventListener("storage",function(e){ if(e.key==="sqrt:editat"||e.key==="sqrtmergebase"){ _staleTab=true; try{ if(!document.querySelector(".sheet.show,.onb.show,.cmodal.show"))location.reload(); }catch(_){location.reload();} } });
+  window.addEventListener("storage",function(e){ if(e.key==="sqrt:editat"||e.key==="sqrtmergebase"){ _staleTab=true; try{ if(!anyOverlayOpen())location.reload(); }catch(_){location.reload();} } });
   function save(k,v){if(_staleTab){location.reload();return false;}try{LS.setItem("sqrt:"+k,JSON.stringify(v));afterWrite(k);return true;}catch(e){warnNoSave();return false;}}
   var my=load("my",7), pt=load("pt",19), spot=load("spot",false), ov=load("ov",{}), ot=load("ot",{}), ar=load("ar",{}), mx=load("mx",{}), pass=load("pass",{}), add=load("add",{}), note=load("note",{}), events=load("ev",[]), cev=load("cev",[]);
   var uname=load("name",""), uco=load("co","");   // your identity — full name + company/assignment (shown to your House Calendar crew)
@@ -2017,6 +2138,159 @@
   function cevSummary(e){var ds=cevDatesOf(e).slice().sort();if(!ds.length)return "";if(ds.length===1)return fmtVD(ds[0]);return ds.length+" dates · "+fmtVD(ds[0])+" → "+fmtVD(ds[ds.length-1]);}
   function cevOn(y,m,d){var t=Date.UTC(y,m,d),r=[];for(var i=0;i<cev.length;i++){if(cev[i]&&cevHits(cev[i],t))r.push(cev[i]);}return r;}
   function cevC(c){return /^#[0-9a-fA-F]{3,8}$/.test(c||"")?c:"#e0930f";}   // only allow a hex color into inline styles
+
+  // ============================================================================
+  //  PERSONAL CALENDAR — the same app, switched to your own life
+  // ============================================================================
+  // Same event shape as a Company Event (name / explicit dates / times / colour / note) plus a
+  // location and a reminder lead-time, kept in its OWN list so nothing personal can ever be read
+  // by the House layer: myProfile() never touches `pev`, and the House API is only ever handed
+  // duty, OT and mutual data. It rides the encrypted backup like everything else.
+  //   rem = minutes before the start to be reminded (0 = none). Wired to push separately.
+  var pev=(function(){var a=load("pev",[]);return (Array.isArray(a)?a:[]).filter(function(e){return e&&typeof e==="object";});})();
+  var pmode=(function(){try{return localStorage.getItem("sqrtmode")==="personal";}catch(e){return false;}})();   // OUTSIDE the sqrt: prefix — which view you left open is this device's business, not a synced preference
+  function setPmode(on){pmode=!!on;try{localStorage.setItem("sqrtmode",pmode?"personal":"work");}catch(e){}}
+  function pevC(c){return /^#[0-9a-fA-F]{3,8}$/.test(c||"")?c:"#2563eb";}   // same CSS-injection guard as cevC — a hand-edited backup must not reach an inline style
+  function pevDates(e){return (e&&Array.isArray(e.dates))?e.dates:[];}
+  function pevOn(y,m,d){var t=Date.UTC(y,m,d),r=[];
+    for(var i=0;i<pev.length;i++){var ds=pevDates(pev[i]);for(var j=0;j<ds.length;j++){if(vacMs(ds[j])===t){r.push(pev[i]);break;}}}
+    return r.sort(function(a,b){return (a.t1||"99:99").localeCompare(b.t1||"99:99")||(a.n||"").localeCompare(b.n||"");});}   // timed events first, in clock order; untimed last
+  function pevWhen(e){ if(!e.t1)return "All day";
+    return fmtT(e.t1)+(e.t2?" – "+fmtT(e.t2):""); }
+  function pevNewId(){var r=new Uint8Array(8);crypto.getRandomValues(r);var s="";for(var i=0;i<8;i++)s+=(r[i]+256).toString(16).slice(-2);return "p"+s;}
+  function savePev(){save("pev",pev);}
+  // The tour underlay: what the work calendar knows about this day, reduced to two bars.
+  function pdayTours(y,m,d){var o={n9:false,n6:false,duty:null};
+    o.duty=dutyStatus(y,m,d,9)||dutyStatus(y,m,d,6)||leaveOn(y,m,d,9)||leaveOn(y,m,d,6)||null;
+    o.n9=worked(y,m,d,9); o.n6=worked(y,m,d,6); return o;}
+  function pdayTourText(y,m,d){var t=pdayTours(y,m,d);
+    if(t.duty)return dutyEmoji(t.duty)+" "+dutyLabel(t.duty)+" — you're off your tours.";
+    if(t.n9&&t.n6)return "🚒 You're working both tours — 9× day and 6× night.";
+    if(t.n9)return "🚒 You're working the ☀️ 9× day tour (09:00–18:00).";
+    if(t.n6)return "🚒 You're working the 🌙 6× night tour (18:00–09:00).";
+    return "🏠 You're off both tours this day.";}
+  // ---- reminders: the server is an alarm clock that can't read the alarms ----
+  // Two values, both of which ride the encrypted backup so a restored phone keeps working:
+  //   remid  — a random queue id. Deliberately NOT the sync/license id, so a reminder schedule
+  //            can't be joined back to a backup blob or a Stripe purchase.
+  //   remkey — a random AES-256 key. Titles are encrypted with it here and decrypted by the
+  //            service worker; it never goes to the server. Mirrored into IndexedDB because a
+  //            service worker cannot read localStorage.
+  var remid=load("remid",""), remkey=load("remkey",""), rempush=load("rempush",false);
+  function b64From(u8){var s="";for(var i=0;i<u8.length;i++)s+=String.fromCharCode(u8[i]);return btoa(s);}
+  function b64To(b64){var raw=atob(b64),u=new Uint8Array(raw.length);for(var i=0;i<raw.length;i++)u[i]=raw.charCodeAt(i);return u;}
+  function ensureRem(){ if(!hasCrypto())return false;
+    if(!/^[0-9a-f]{32}$/.test(remid)){var r=new Uint8Array(16);crypto.getRandomValues(r);remid=toHex(r);save("remid",remid);}
+    if(!remkey){var k=new Uint8Array(32);crypto.getRandomValues(k);remkey=b64From(k);save("remkey",remkey);}
+    idbPut({k:remkey},"remkey")["catch"](function(){});   // the SW reads it from here on every push
+    return true; }
+  function remEncrypt(obj){ var iv=new Uint8Array(12); crypto.getRandomValues(iv);
+    return crypto.subtle.importKey("raw",b64To(remkey),{name:"AES-GCM"},false,["encrypt"]).then(function(key){
+      return crypto.subtle.encrypt({name:"AES-GCM",iv:iv},key,new TextEncoder().encode(JSON.stringify(obj)));
+    }).then(function(buf){ var ct=new Uint8Array(buf),all=new Uint8Array(iv.length+ct.length);
+      all.set(iv,0); all.set(ct,iv.length); return b64From(all); }); }
+  var REM_OPTS=[["","Off"],["0","At time"],["30","30 min"],["60","1 hr"],["1440","1 day"]];
+  function remMins(e){ var v=e&&e.rem; return (typeof v==="number"&&isFinite(v)&&v>=0)?v:null; }   // null = no reminder
+  function remLabel(v){ for(var i=0;i<REM_OPTS.length;i++)if(REM_OPTS[i][0]===String(v))return REM_OPTS[i][1]; return ""; }
+  function pevStartMs(e,ds){ var p=String(ds).split("-"); if(p.length!==3)return NaN;
+    var t=(e.t1||"09:00").split(":");                                    // an all-day event rings at 09:00 local, not at midnight
+    return new Date(+p[0],(+p[1])-1,+p[2],+t[0]||0,+t[1]||0,0,0).getTime(); }
+  // The client always uploads the FULL upcoming queue, never a diff: idempotent, and a dropped
+  // request heals itself on the next edit.
+  function buildRemQueue(){ var now=Date.now(),out=buildTourReminders();
+    if(!npref.pers)return out.sort(function(a,b){return a.at-b.at;}).slice(0,120);
+    for(var i=0;i<pev.length;i++){ var e=pev[i],mins=remMins(e); if(mins===null)continue;
+      var ds=pevDates(e);
+      for(var j=0;j<ds.length;j++){ var st=pevStartMs(e,ds[j]); if(!isFinite(st))continue;
+        var at=st-mins*60000; if(at<now+30000)continue;                  // already past — the server drops stale rings anyway
+        out.push({rid:(e.id||"x")+"-"+String(ds[j]).replace(/-/g,""), at:at,
+          t:"⏰ "+(e.n||"Reminder"), b:pevWhen(e)+(e.loc?" · "+e.loc:"")+(mins?" · starts in "+remLabel(mins).toLowerCase():"")}); } }
+    out.sort(function(a,b){return a.at-b.at;});
+    return out.slice(0,120); }
+  // Tour reminders are computed HERE, on the phone, and enqueued encrypted — which is why they work
+  // for everyone, House or no House. (The House cron still exists for crew requests; it just isn't
+  // the only way to be reminded about your own tours any more.)
+  var npref=load("npref",{tour:true,lead:60,pers:true});
+  var LEADS=[["0","At start"],["60","1 hr"],["120","2 hr"],["720","12 hr"],["1440","1 day"]];
+  function leadLabel(v){ for(var i=0;i<LEADS.length;i++)if(LEADS[i][0]===String(v))return LEADS[i][1]; return "1 hr"; }
+  function buildTourReminders(){ var out=[],now=Date.now(),t0=new Date();
+    if(!npref.tour)return out;
+    var lead=(+npref.lead||0)*60000;
+    for(var i=0;i<70;i++){ var dt=new Date(t0.getFullYear(),t0.getMonth(),t0.getDate()+i),
+      y=dt.getFullYear(),m=dt.getMonth(),d=dt.getDate();
+      [9,6].forEach(function(tr){ if(!worked(y,m,d,tr))return;
+        var st=new Date(y,m,d,tr===9?9:18,0,0,0).getTime(), at=st-lead;
+        if(at<now+30000)return;
+        out.push({rid:"t"+y+pad2(m+1)+pad2(d)+"-"+tr, at:at,
+          t:tourLabel(y,m,d,tr).replace("🚒 ","🚒 "),
+          b:(tr===9?"Starts 09:00":"Starts 18:00")+(lead?" · in "+leadLabel(npref.lead).toLowerCase():" now")}); }); }
+    return out; }
+  var _remT=null;
+  function scheduleRemSync(){ if(_remT)clearTimeout(_remT); _remT=setTimeout(function(){_remT=null;pushRemQueue();},1200); }
+  function pushRemQueue(){ if(!ensureRem())return Promise.resolve(false);
+    var q=buildRemQueue();
+    if(!q.length){ return fetch("/api/remind",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({a:"set",qid:remid,items:[]})}).then(function(){return true;},function(){return false;}); }
+    return Promise.all(q.map(function(it){ return remEncrypt({t:it.t,b:it.b,u:"/"}).then(function(ct){return {rid:it.rid,at:it.at,ct:ct};}); }))
+      .then(function(items){ return fetch("/api/remind",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({a:"set",qid:remid,items:items})}); })
+      .then(function(r){ return !!(r&&r.ok); },function(){ return false; }); }
+  function remPushOn(cb){ enablePush(cb); }   // setting a reminder is just another way of asking for notifications
+
+  // ---- subscribable tour feed (ICS) ----
+  // The ONLY thing this app ever puts on a server in readable form, and it is opt-in for exactly
+  // that reason: Google has to be able to read a subscription feed to display it. So it carries
+  // TOURS ONLY, under its own random token — not the sync id, not the license id, not the reminder
+  // queue id — so a leaked link can't be joined back to a backup, a purchase or a reminder schedule.
+  // The phone computes absolute UTC instants itself, which keeps every DST decision on the device
+  // that actually knows the user's timezone.
+  var icstok=load("icstok",""), icson=load("icson",false);
+  var ICS_BACK=7, ICS_FWD=180;   // days: a week of history so last week's tours don't vanish, half a year ahead
+  function icsUrl(){ return icstok?(location.origin+"/api/ics?t="+icstok):""; }
+  function ensureIcsTok(){ if(!/^[0-9a-f]{32}$/.test(icstok)){ if(!hasCrypto())return false;
+    var r=new Uint8Array(16); crypto.getRandomValues(r); icstok=toHex(r); save("icstok",icstok); } return true; }
+  function tourWindow(y,m,d,tour){   // local wall-clock → absolute instants; 9× is 09:00–18:00, 6× runs 18:00 → 09:00 next day
+    var s=new Date(y,m,d,tour===9?9:18,0,0,0);
+    var e=tour===9?new Date(y,m,d,18,0,0,0):new Date(y,m,d+1,9,0,0,0);
+    return {s:s.toISOString(),e:e.toISOString()}; }
+  function tourLabel(y,m,d,tour){
+    var st=curState(y,m,d,tour), base=(tour===9?"🚒 9× Day tour":"🚒 6× Night tour");
+    if(st==="ot")return base+" · MSOT";
+    if(st==="rsot")return base+" · RSOT";
+    if(st==="oot")return base+" · OT";
+    if(st==="mxin")return base+" · mutual (picked up)";
+    if(st==="smxin")return base+" · self MX";
+    if(st==="pmxin")return base+" · partner swap";
+    return base; }
+  function buildIcsFeed(){ var out=[],t0=new Date(),tk=(icstok||"").slice(0,8);
+    for(var i=-ICS_BACK;i<ICS_FWD;i++){ var dt=new Date(t0.getFullYear(),t0.getMonth(),t0.getDate()+i),
+      y=dt.getFullYear(),m=dt.getMonth(),d=dt.getDate();
+      [9,6].forEach(function(tr){ if(!worked(y,m,d,tr))return;   // worked() nets out swaps, comp, leave and hand-offs — the feed shows what he ACTUALLY works
+        var w=tourWindow(y,m,d,tr);
+        out.push({uid:"sqrt-"+tk+"-"+y+pad2(m+1)+pad2(d)+"-"+tr, s:w.s, e:w.e, sum:tourLabel(y,m,d,tr)}); }); }
+    return out; }
+  function pad2(n){return (n<10?"0":"")+n;}
+  var _icsT=null;
+  function scheduleIcsSync(){ if(!icson)return; if(_icsT)clearTimeout(_icsT); _icsT=setTimeout(function(){_icsT=null;pushIcsFeed();},3000); }
+  function pushIcsFeed(){ if(!icson||!ensureIcsTok())return Promise.resolve(false);
+    return fetch("/api/ics",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({a:"set",t:icstok,cal:buildIcsFeed()})})
+      .then(function(r){ return r&&r.ok?r.json():null; })
+      .then(function(j){ if(j){save("icsts",Date.now());icsStatus();} return !!j; },function(){return false;}); }
+  function icsStatus(){ var on=document.getElementById("icsOnBox"), off=document.getElementById("icsOffBox");
+    if(on)on.hidden=!icson; if(off)off.hidden=!!icson;
+    var u=document.getElementById("icsUrl"); if(u)u.textContent=icsUrl();
+    var st=document.getElementById("icsStat");
+    if(st){ var ts=load("icsts",0); st.textContent=icson?(ts?("✓ "+buildIcsFeed().length+" tours published · updated "+relTime(ts)):"Publishing…"):""; } }
+  function icsSay(t,warn){ var el=document.getElementById("icsMsg"); if(el){el.textContent=t||"";el.className="bakmsg"+(warn?" warn":"");} }
+
+  function pcellHTML(y,m,d){
+    var t=pdayTours(y,m,d);
+    var bar='<div class="ptour"><i class="'+(t.duty?"duty":t.n9?"on":"")+'"></i><i class="'+(t.duty?"duty":t.n6?"on":"")+'"></i></div>';
+    var es=pevOn(y,m,d), lines="";
+    for(var i=0;i<es.length&&i<2;i++)lines+='<div class="pevc"><i style="background:'+pevC(es[i].c)+'"></i>'+esc(es[i].n||"(untitled)")+'</div>';
+    if(es.length>2)lines+='<div class="pevmore">+'+(es.length-2)+' more</div>';
+    return bar+'<div class="pevs">'+lines+'</div>';}
   function noteOf(y,m,d,tour){return note[K(y,m,d,tour)]||"";}
   function setNoteNr(y,m,d,tour,v){var k=K(y,m,d,tour);if(v&&v.replace(/\s/g,""))note[k]=v;else delete note[k];save("note",note);}   // persist only — no rebuild (keeps focus)
   function sbOf(y,m,d,tour){return sb[K(y,m,d,tour)]||null;}   // standby marker on a tour
@@ -2234,8 +2508,8 @@
       var elig=rsot?memberRSOT(mm,w.y,w.m,w.d,w.t):(memberWorks(mm,w.y,w.m,w.d,w.t)&&!memberRSOT(mm,w.y,w.m,w.d,w.t));   // RSOT give → only RSOT holders; regular give → only regular workers
       if(elig)out.push({id:id,name:mm.name||"—",co:mm.company||""}); }
     out.sort(function(a,b){return (a.name||"").localeCompare(b.name||"");}); return out; }
-  function doSwap(){ if(!reqMode||!reqMode.wants.length)return; renderSwapPicker(); document.getElementById("swpick").classList.add("show"); }
-  function closeSwapPicker(){ var s=document.getElementById("swpick"); if(s)s.classList.remove("show"); }
+  function doSwap(){ if(!reqMode||!reqMode.wants.length)return; renderSwapPicker(); openOverlay(document.getElementById("swpick")); }
+  function closeSwapPicker(){ closeOverlay(document.getElementById("swpick")); }
   function renderSwapPicker(){ if(!reqMode)return; var g=reqMode.give, wants=reqMode.wants, rsot=giveIsRsot();
     document.getElementById("swpickTitle").innerHTML="Swap your <b>"+reqTourLbl(g)+"</b>"+(rsot?' <span class="reqrsot">RSOT</span>':'');
     var body="";
@@ -2291,15 +2565,17 @@
       var mkr=lsc?' <span class="dld" title="Light duty">📋</span>':trc?' <span class="dld" title="Training">🎓</span>':(aw?' <span class="dltr">'+abcdLetter(y,m,d)+'</span>':'');
       cell.innerHTML=
         '<div class="dnum">'+d+mkr+(pd?' <span class="pay">$</span>':'')+'</div>'+
-        '<div class="chalf c9">'+chipHTML(y,m,d,9)+'</div>'+     // 9× day tour — top half (ABCD: your letter's day = mine)
-        '<div class="chalf c6">'+chipHTML(y,m,d,6)+'</div>';     // 6× night tour — bottom half
+        (pmode                                                   // personal view: your events, over a two-bar hint of the tours you work that day
+          ? pcellHTML(y,m,d)
+          : '<div class="chalf c9">'+chipHTML(y,m,d,9)+'</div>'+     // 9× day tour — top half (ABCD: your letter's day = mine)
+            '<div class="chalf c6">'+chipHTML(y,m,d,6)+'</div>');    // 6× night tour — bottom half
       cell.setAttribute("role","button");cell.setAttribute("tabindex","0");   // keyboard/AT reachable — the day cell is the app's core control
       cell.setAttribute("aria-label",DOWF[dow]+", "+MON[m]+" "+d+", "+y+(isTdy?" — today":"")+(pd?", payday":"")+(hol&&!ces.length?", "+hol:"")+(ces.length?", "+ces.map(function(e){return e.n;}).join(", "):""));
       applyReqMark(cell,y,m,d);
-      (function(y,m,d){function op(){if(Date.now()-swipeTs<350||Date.now()-lpTs<450||reqMode)return;openDay(y,m,d);}
+      (function(y,m,d){function op(){if(Date.now()-swipeTs<350||Date.now()-lpTs<450||reqMode)return;if(pmode){openPDay(y,m,d);return;}openDay(y,m,d);}
         cell.addEventListener("click",op);
         cell.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "||e.key==="Spacebar"){e.preventDefault();op();}});
-        [9,6].forEach(function(t){var half=cell.querySelector(t===9?".c9":".c6");if(!half)return;
+        if(!pmode)[9,6].forEach(function(t){var half=cell.querySelector(t===9?".c9":".c6");if(!half)return;
           half.addEventListener("click",function(e){ if(Date.now()-lpTs<450)return;
             if(reqMode){e.stopPropagation();reqTapTour(y,m,d,t);return;}
             if(Date.now()-swipeTs<350)return;
@@ -2314,21 +2590,74 @@
   var scrim=document.getElementById("scrim"),sheet=document.getElementById("sheet"),setSheet=document.getElementById("setSheet"),rsotSheet=document.getElementById("rsotSheet"),statSheet=document.getElementById("statSheet"),mxSheet=document.getElementById("mxSheet"),dirSheet=document.getElementById("dirSheet"),statsSheet=document.getElementById("statsSheet"),refSheet=document.getElementById("refSheet"),bakSheet=document.getElementById("bakSheet"),evSheet=document.getElementById("evSheet"),cevSheet=document.getElementById("cevSheet"),legendPop=document.getElementById("legendPop"),contactPop=document.getElementById("contactPop"),instSheet=document.getElementById("instSheet"),groupSheet=document.getElementById("groupSheet"),tenSheet=document.getElementById("tenSheet"),abcdSheet=document.getElementById("abcdSheet"),cfrSheet=document.getElementById("cfrSheet"),boxSheet=document.getElementById("boxSheet"),houseSheet=document.getElementById("houseSheet"),paySheet=document.getElementById("paySheet");
   var navStack=[];   // sheets in the open path — so the phone/browser Back (swipe-back) closes the current sheet, not the app
   function openSheet(s){
-    if(navStack.length&&navStack[navStack.length-1]===s){scrim.classList.add("show");s.classList.add("show");return;}   // re-render of the same sheet — no new history entry
+    if(navStack.length&&navStack[navStack.length-1]===s){clearDragStyle(s);scrim.classList.add("show");s.classList.add("show");return;}   // re-render of the same sheet — no new history entry
     if(navStack.length)navStack[navStack.length-1].classList.remove("show");
-    scrim.classList.add("show");s.classList.add("show");navStack.push(s);
-    try{history.pushState({sqSheet:navStack.length},"");}catch(e){}
+    if(reqMode)exitReq();   // opening a sheet abandons a half-built swap/cover request — otherwise the request bar floats over the sheet with live buttons, against a calendar you can no longer see
+    clearDragStyle(s); scrim.classList.add("show");s.classList.add("show");pushNav(s);
   }
-  function closeSheets(){if(_staleTab){location.reload();return;}var n=navStack.length;navStack=[];
-    [sheet,setSheet,rsotSheet,statSheet,mxSheet,dirSheet,statsSheet,refSheet,bakSheet,evSheet,cevSheet,legendPop,contactPop,instSheet,groupSheet,tenSheet,abcdSheet,cfrSheet,boxSheet,houseSheet,paySheet].forEach(function(x){x.classList.remove("show");});
+  // Derived from the DOM, NOT a hand-kept list. It used to be a hardcoded array of sheet variables,
+  // and a sheet added later (the personal calendar's) was missing from it: tapping the dim area
+  // removed the scrim but left the sheet on screen, with navStack already emptied — so Back and
+  // Done couldn't shift it either. A sheet you cannot close is about the worst thing this UI can do,
+  // and the list was always going to drift again. `.sheet` matches every bottom sheet and `.lgpop`
+  // the two little popovers; the confirm modal (.cmodal), swap picker (.swpick), request bar
+  // (.reqbar) and onboarding/gate (.onb) are deliberately NOT dismissible this way and match neither.
+  function everySheet(){return document.querySelectorAll(".sheet, .lgpop");}
+  function clearDragStyle(x){if(x&&(x.style.transform||x.style.transition)){x.style.transform="";x.style.transition="";}}   // a sheet closed mid-toss must not come back translated off-screen
+  function hideSheet(x){if(!x)return;x.classList.remove("show");clearDragStyle(x);}
+  // Every overlay that is CURRENTLY open, whether it is a bottom sheet or one of the full-screen
+  // pickers that stack on top of one. Used by every "is something already up?" guard — those had
+  // drifted into four different class subsets, so a nag could pop over the Key popover on one path
+  // and not another.
+  function anyOverlayOpen(){return !!document.querySelector(".sheet.show,.lgpop.show,.onb.show,.cmodal.show,.swpick.show");}
+  // navStack and the history stack have to be counted SEPARATELY. pushState is inside a try/catch
+  // (Safari throttles it: SecurityError after ~100 calls in 30s) and navStack.push is not, so one
+  // swallowed throw used to leave closeSheets doing history.go(-n) with n bigger than the number of
+  // entries we actually pushed — which walks the user off the app.
+  var navPushed=0, unwinding=0;
+  function pushNav(el){ navStack.push(el);
+    try{history.pushState({sqSheet:navStack.length},"");navPushed++;}catch(e){}   // only count what really landed
+  }
+  // Overlays that sit ON TOP of whatever is already open (the swap picker, the house date picker,
+  // the House intro) rather than replacing it. They used to be raised with a bare classList.add,
+  // so Back skipped straight past them: it closed the sheet UNDERNEATH — invisible behind the
+  // overlay, so Back looked broken — and the next Back left the app entirely.
+  function openOverlay(el){ if(!el)return; clearDragStyle(el); el.classList.add("show"); el.setAttribute("aria-hidden","false"); pushNav(el); }
+  function closeOverlay(el){ if(!el||!el.classList.contains("show"))return;
+    if(navStack.length&&navStack[navStack.length-1]===el&&navPushed>0){try{history.back();return;}catch(e){}}   // let popstate do it, so the history entry is consumed too
+    var i=navStack.indexOf(el); if(i>=0)navStack.splice(i,1);
+    el.classList.remove("show"); el.setAttribute("aria-hidden","true"); }
+  function closeSheets(){if(_staleTab){location.reload();return;}
+    var n=navPushed, stack=navStack; navStack=[]; navPushed=0;
+    stack.forEach(function(x){hideSheet(x);if(x.hasAttribute&&x.hasAttribute("aria-hidden"))x.setAttribute("aria-hidden","true");});   // whatever is actually open, overlays included
+    Array.prototype.forEach.call(everySheet(),hideSheet);
     scrim.classList.remove("show");
-    if(n>0){try{history.go(-n);}catch(e){}}   // unwind the states we pushed
+    if(n>0){unwinding=n;try{history.go(-n);}catch(e){unwinding=0;}}   // unwind exactly the entries we pushed
   }
-  window.addEventListener("popstate",function(){   // Back → close the top sheet (reveal the one behind it)
+  window.addEventListener("popstate",function(e){   // Back → close the top overlay (reveal the one behind it)
+    if(unwinding>0){unwinding--;return;}            // our own closeSheets() unwind — the DOM is already correct
     if(!navStack.length)return;
-    navStack.pop().classList.remove("show");
-    if(navStack.length)navStack[navStack.length-1].classList.add("show");
+    var want=(e&&e.state&&e.state.sqSheet)|0;       // how many overlays SHOULD be open at the entry we landed on
+    // A back-ish event ALWAYS closes at least one overlay. Trusting `want` on its own looked
+    // tidier, but an entry carrying a stale/equal count then closed nothing at all and left the
+    // sheet stuck open — the exact failure this whole pass is about. `want` is only allowed to
+    // make us pop MORE (a multi-step go(-n) some browsers deliver as a single event).
+    var target=Math.min(want,navStack.length-1);
+    while(navStack.length>target){ var popped=navStack.pop(); hideSheet(popped);
+      if(popped.hasAttribute&&popped.hasAttribute("aria-hidden"))popped.setAttribute("aria-hidden","true");
+      if(navPushed>0)navPushed--; }
+    if(navStack.length){var under=navStack[navStack.length-1];clearDragStyle(under);under.classList.add("show");}
     else scrim.classList.remove("show");
+  });
+  // Escape: the key a keyboard user reaches for first, previously bound nowhere. Order matters —
+  // the confirm modal sits above everything, so it goes first. The entry gate and onboarding are
+  // deliberately NOT escapable: they are the paywall and the first-run setup.
+  document.addEventListener("keydown",function(e){
+    if(e.key!=="Escape"&&e.key!=="Esc")return;
+    if(document.querySelector("#gate.show,#onb.show"))return;
+    var m=document.querySelector(".cmodal.show");
+    if(m){ var no=m.querySelector("#cno"); if(no&&no.style.display!=="none"){no.click();} else {m.classList.remove("show");} e.preventDefault(); return; }
+    if(navStack.length){ closeOverlay(navStack[navStack.length-1]); e.preventDefault(); }
   });
   // tapping the dim area: if the keyboard is up, just dismiss it (keep the sheet); tap again to close
   var kbOpen=false;
@@ -2342,12 +2671,18 @@
   // ---- swipe the sheet DOWN to dismiss it (grab-and-toss, like a native bottom sheet) ----
   function initSheetDrag(sheet){
     var y0=0, dy=0, drag=false, on=false;
-    function atTop(target){var n=target;   // is the scroll content under the finger already at the top?
+    // Is EVERY scroll container between the finger and the sheet already at its top? It used to
+    // answer on the first one it found, so a sheet scrolled halfway down would still get dragged
+    // away when the finger happened to be over an inner list that was itself at the top — the
+    // scroll you wanted was the sheet's, one level up. Keep walking; any container that is
+    // scrolled means this gesture belongs to the scroller, not to the sheet.
+    function atTop(target){var n=target;
       while(n && n!==sheet.parentNode && n.nodeType===1){
-        if(n.scrollHeight-n.clientHeight>2){var ov=getComputedStyle(n).overflowY;if(ov==="auto"||ov==="scroll")return n.scrollTop<=0;}
+        if(n.scrollHeight-n.clientHeight>2){var ov=getComputedStyle(n).overflowY;if((ov==="auto"||ov==="scroll")&&n.scrollTop>0)return false;}
         n=n.parentNode;
       } return true;}
-    sheet.addEventListener("touchstart",function(e){ if(e.touches.length!==1){on=false;return;} y0=e.touches[0].clientY; dy=0; drag=false; on=atTop(e.target); },{passive:true});
+    sheet.addEventListener("touchstart",function(e){ if(e.touches.length!==1){on=false;drag=false;dy=0;clearDragStyle(sheet);return;}   // a second finger abandons the drag — end() short-circuits on !on, so the transform has to be dropped HERE or the sheet stays translated
+      y0=e.touches[0].clientY; dy=0; drag=false; on=atTop(e.target); },{passive:true});
     sheet.addEventListener("touchmove",function(e){
       if(!on)return; dy=e.touches[0].clientY-y0;
       if(!drag){ if(dy>8)drag=true; else return; }
@@ -2368,10 +2703,12 @@
     sheet.addEventListener("touchend",end,{passive:true});
     sheet.addEventListener("touchcancel",end,{passive:true});
   }
-  [sheet,setSheet,rsotSheet,statSheet,mxSheet,dirSheet,statsSheet,refSheet,bakSheet,evSheet,cevSheet,instSheet,groupSheet,tenSheet,abcdSheet,cfrSheet,boxSheet,houseSheet,paySheet].forEach(initSheetDrag);
+  Array.prototype.forEach.call(document.querySelectorAll(".sheet"),initSheetDrag);   // every bottom sheet, including any added later — the hardcoded list is what left the personal sheets un-swipeable
   // ---- in-app confirm/prompt (the artifact sandbox blocks window.confirm/prompt/alert) ----
   var cmodal=document.getElementById("cmodal"),cmsg=document.getElementById("cmsg"),cfield=document.getElementById("cfield"),cinput=document.getElementById("cinput"),cinlab=document.getElementById("cinlab"),cselwrap=document.getElementById("cselwrap"),cselect=document.getElementById("cselect"),csellab=document.getElementById("csellab"),cyes=document.getElementById("cyes"),cno=document.getElementById("cno"),cmid=document.getElementById("cmid"),cCB=null,cMid=null,cMode="confirm";
   function appHideModal(){cmodal.classList.remove("show");cCB=null;}
+  // Reset every button the variants touch, so one dialog can never inherit the last one's chrome.
+  function modalChrome(){cno.style.display="";cmid.hidden=true;cMid=null;}
   function modalOpen(){return cmodal.classList.contains("show");}   // a background warning must never hijack a prompt the user is answering
   function coOpts(options,current){var has=false,html='<option value=""'+(current?"":" selected")+'>— Unassigned —</option>';(options||[]).forEach(function(o){if(o===current)has=true;html+='<option value="'+escA(o)+'"'+(o===current?" selected":"")+'>'+esc(o)+'</option>';});if(current&&!has)html+='<option value="'+escA(current)+'" selected>'+esc(current)+' — not in your list</option>';return html;}   // always offer Unassigned (selected when the member has no company) so we never silently auto-pick the first company
   function appConfirm(msg,yesLabel,cb){try{document.getElementById("remindPop").classList.remove("show");}catch(e){}   // a pending nag must never cover a decision
@@ -2380,9 +2717,9 @@
   // legitimate and the app must not pick for you.
   function appChoice(msg,yesLabel,midLabel,cbYes,cbMid){appConfirm(msg,yesLabel,cbYes);cmid.textContent=midLabel;cmid.hidden=false;cMid=cbMid;}
   function appAlert(msg,btnLabel){appConfirm(msg,btnLabel||"Got it",function(){});cno.style.display="none";}   // nothing to cancel — one button only
-  function appPrompt(msg,value,cb,itype){cCB=cb;cMode="prompt";cmsg.textContent=msg;cselwrap.classList.remove("show");cinlab.textContent="";cfield.classList.add("show");var it=itype||"number";cinput.type=it;if(it==="number"){cinput.setAttribute("inputmode","numeric");}else{cinput.removeAttribute("inputmode");}cinput.value=(value!=null?value:"");cyes.textContent="Set";cmodal.classList.add("show");setTimeout(function(){cinput.focus();cinput.select();},60);}
-  function appChoose(msg,options,current,cb){cCB=cb;cMode="choose";cmsg.textContent=msg;cfield.classList.remove("show");csellab.textContent="";cselect.innerHTML=coOpts(options,current);cselwrap.classList.add("show");cyes.textContent="Set";cmodal.classList.add("show");}
-  function appAssign(msg,companies,curCo,curGroup,cb){cCB=cb;cMode="assign";cmsg.textContent=msg;csellab.textContent="Company";cselect.innerHTML=coOpts(companies,curCo);cselwrap.classList.add("show");cinlab.textContent="Group (1–25)";cinput.type="number";cinput.setAttribute("inputmode","numeric");cinput.value=(curGroup!=null?curGroup:"");cfield.classList.add("show");cyes.textContent="Save";cmodal.classList.add("show");}
+  function appPrompt(msg,value,cb,itype){modalChrome();cCB=cb;cMode="prompt";cmsg.textContent=msg;cselwrap.classList.remove("show");cinlab.textContent="";cfield.classList.add("show");var it=itype||"number";cinput.type=it;if(it==="number"){cinput.setAttribute("inputmode","numeric");}else{cinput.removeAttribute("inputmode");}cinput.value=(value!=null?value:"");cyes.textContent="Set";cmodal.classList.add("show");setTimeout(function(){cinput.focus();cinput.select();},60);}
+  function appChoose(msg,options,current,cb){modalChrome();cCB=cb;cMode="choose";cmsg.textContent=msg;cfield.classList.remove("show");csellab.textContent="";cselect.innerHTML=coOpts(options,current);cselwrap.classList.add("show");cyes.textContent="Set";cmodal.classList.add("show");}
+  function appAssign(msg,companies,curCo,curGroup,cb){modalChrome();cCB=cb;cMode="assign";cmsg.textContent=msg;csellab.textContent="Company";cselect.innerHTML=coOpts(companies,curCo);cselwrap.classList.add("show");cinlab.textContent="Group (1–25)";cinput.type="number";cinput.setAttribute("inputmode","numeric");cinput.value=(curGroup!=null?curGroup:"");cfield.classList.add("show");cyes.textContent="Save";cmodal.classList.add("show");}
   cno.onclick=appHideModal;
   cmid.onclick=function(){var f=cMid;appHideModal();if(f)f();};
   cmodal.onclick=function(e){if(e.target===cmodal)appHideModal();};
@@ -2553,7 +2890,7 @@
   function wireLdDay(y,m,d,ls){var p=ls.p, key=dk(y,m,d);
     function setEx(o){if(!p.ex)p.ex={};p.ex[key]=o;save("periods",periods);render();openDay(y,m,d,dayOnly||undefined);}
     var ed=document.querySelector("#shTours .ldedit");
-    if(ed)ed.onclick=function(){document.getElementById("sheet").classList.remove("show");startPeriodEdit(p);openSheet(statSheet);};
+    if(ed)ed.onclick=function(){hideSheet(document.getElementById("sheet"));startPeriodEdit(p);openSheet(statSheet);};
     var ts=document.querySelector("#shTours .ldTimeS"), te=document.querySelector("#shTours .ldTimeE");
     if(ts&&te){ts.onchange=te.onchange=function(){setEx({on:true,s:ts.value||"09:00",e:te.value||"18:00"});};}
     var off=document.querySelector("#shTours .ldOff"); if(off)off.onclick=function(){setEx({on:false});};
@@ -2597,17 +2934,17 @@
     document.getElementById("shTours").innerHTML=head+(lsDay?ldDaySheet(y,m,d,lsDay):trDay?trDaySheet(y,m,d,trDay):cards);
     Array.prototype.forEach.call(document.querySelectorAll("#shTours .tswitch button"),function(b){ b.onclick=function(){ var v=+b.getAttribute("data-tsw"); openDay(y,m,d,v||undefined); }; });
     if(lsDay)wireLdDay(y,m,d,lsDay); else if(trDay)wireLdDay(y,m,d,{p:trDay.p});   // training reuses the LD Other-OT + edit wiring (no per-day time edits)
-    var hh=document.querySelector("#shTours .househint"); if(hh)hh.onclick=function(){document.getElementById("sheet").classList.remove("show");openHouseOnDate(y,m,d);};   // jump to the house day view for this date
+    var hh=document.querySelector("#shTours .househint"); if(hh)hh.onclick=function(){hideSheet(document.getElementById("sheet"));openHouseOnDate(y,m,d);};   // jump to the house day view for this date
     var dg=document.querySelector("#shTours .dutygo");   // tap the status banner → EDIT the period covering this day (the banner says "Edit ›" — honor it, don't open a blank Add form)
-    if(dg)dg.onclick=function(){document.getElementById("sheet").classList.remove("show");
+    if(dg)dg.onclick=function(){hideSheet(document.getElementById("sheet"));
       var cov=(periods||[]).filter(function(p){return p&&p.t===pt2&&isRealDate(p.s)&&vacMs(p.s)<=Date.UTC(y,m,d)&&(!p.e||Date.UTC(y,m,d)<=vacMs(p.e));})[0];
       resetPForm();setPType(pt2);renderPeriods();openSheet(statSheet);
       if(cov)startPeriodEdit(cov);};
     var eg=document.querySelector("#shTours .evgo");   // tap the education/medical banner → jump to that editor (pre-select type)
-    if(eg)eg.onclick=function(){evType=evd;document.getElementById("sheet").classList.remove("show");
+    if(eg)eg.onclick=function(){evType=evd;hideSheet(document.getElementById("sheet"));
       Array.prototype.forEach.call(document.querySelectorAll("#evTypes .stype"),function(x){x.classList.toggle("on",x.getAttribute("data-ev")===evd);});
       evErr("");renderEvents();openSheet(evSheet);};
-    Array.prototype.forEach.call(document.querySelectorAll("#shTours .cevgo"),function(cg){cg.onclick=function(){document.getElementById("sheet").classList.remove("show");cevErr("");renderCev();openSheet(cevSheet);};});   // tap a Company Event banner → editor
+    Array.prototype.forEach.call(document.querySelectorAll("#shTours .cevgo"),function(cg){cg.onclick=function(){hideSheet(document.getElementById("sheet"));cevErr("");renderCev();openSheet(cevSheet);};});   // tap a Company Event banner → editor
     if(showSplit)Array.prototype.forEach.call(document.querySelectorAll("#shTours .setsplit [data-sp]"),function(bn){
       bn.onclick=function(){var sp=bn.getAttribute("data-sp");
         function go(){if(sp==="clear")clearSet(set);else applySplit(set,SPLITS[sp]);render();openDay(y,m,d,dayOnly||undefined);}
@@ -2739,6 +3076,58 @@
   document.getElementById("mtitle").onclick=function(){var n=new Date();view={y:n.getFullYear(),m:n.getMonth()};render();};
   document.querySelector(".toggle").onclick=function(){spot=!spot;save("spot",spot);render();};
 
+  // ---- work ⇄ personal ----
+  function syncMode(){
+    Array.prototype.forEach.call(document.querySelectorAll("#modeBar .modeseg"),function(b){b.classList.toggle("on",(b.getAttribute("data-mode")==="personal")===pmode);});
+    var sw=document.getElementById("spotWrap"); if(sw)sw.hidden=pmode;            // spotlighting YOUR tours means nothing in the personal view
+    var kb=document.getElementById("openLegend"); if(kb)kb.hidden=pmode;
+    var pa=document.getElementById("pAddBtn"); if(pa)pa.hidden=!pmode;
+    document.getElementById("app").classList.toggle("pmode",pmode);
+  }
+  Array.prototype.forEach.call(document.querySelectorAll("#modeBar .modeseg"),function(b){
+    b.onclick=function(){ var want=(b.getAttribute("data-mode")==="personal"); if(want===pmode)return;
+      if(reqMode)exitReq();   // a half-built swap/cover request cannot survive the switch: the personal view has no tour halves to tap, and the `||reqMode` guard would swallow every day tap
+      setPmode(want); closeSheets(); syncMode(); render(); }; });
+  document.getElementById("pAddBtn").onclick=function(){ pdayCur=null; openPev(null); };
+  document.getElementById("pdAdd").onclick=function(){ openPev(null); };
+  document.getElementById("pdDone").onclick=closeSheets;
+  document.getElementById("pevDone").onclick=function(){   // finished with the editor → step back to the day you were in, not all the way out to the calendar
+    if(navStack.length>1)history.back(); else closeSheets(); };
+  document.getElementById("pevCancel").onclick=function(){ resetPevForm(); renderPevList(); };
+  Array.prototype.forEach.call(document.querySelectorAll("#pevRem button"),function(b){
+    b.onclick=function(){ pevRemSel=b.getAttribute("data-rm"); syncPevRem(); }; });
+  Array.prototype.forEach.call(document.querySelectorAll("#pevRep button"),function(b){
+    b.onclick=function(){ pevRep=b.getAttribute("data-rep");
+      Array.prototype.forEach.call(document.querySelectorAll("#pevRep button"),function(x){x.classList.toggle("on",x===b);});
+      document.getElementById("pevUntilWrap").style.display=pevRep?"":"none"; }; });
+  document.getElementById("pevAddDate").onclick=function(){
+    var ds=document.getElementById("pevDate").value;
+    if(!isRealDate(ds)){pevErr("Pick a date first.");return;}
+    var until=document.getElementById("pevUntil").value;
+    if(pevRep&&!isRealDate(until)){pevErr("A repeating event needs a “repeat until” date.");return;}
+    if(pevRep&&vacMs(until)<vacMs(ds)){pevErr("“Repeat until” has to be on or after the start date.");return;}
+    var add=pevRep?genSeries(ds,pevRep,until):[ds];
+    var seen={}; pevDraft.concat(add).forEach(function(x){seen[x]=1;});
+    pevDraft=Object.keys(seen); pevErr(""); renderPevChips(); };
+  document.getElementById("pevSave").onclick=function(){
+    var n=document.getElementById("pevName").value.trim();
+    if(!n){pevErr("Give it a name.");return;}
+    var ds=document.getElementById("pevDate").value;
+    if(!pevDraft.length&&isRealDate(ds))pevDraft=[ds];      // typed a date but never tapped "Add date(s)" — take the obvious meaning
+    if(!pevDraft.length){pevErr("Add at least one date.");return;}
+    var t1=document.getElementById("pevT1").value, t2=document.getElementById("pevT2").value;
+    if(t1&&t2&&t2<t1){pevErr("The end time is before the start time.");return;}
+    var rec={id:pevEditId||pevNewId(), n:n, dates:pevDraft.slice().sort(), t1:t1||"", t2:t2||"",
+      c:pevC(document.getElementById("pevColor").value), loc:document.getElementById("pevLoc").value.trim(),
+      note:document.getElementById("pevNote").value.trim(), rem:(pevRemSel===""?null:+pevRemSel)};
+    var wantRem=(rec.rem!==null);
+    if(pevEditId){ for(var i=0;i<pev.length;i++)if(pev[i].id===pevEditId){pev[i]=rec;break;} }
+    else pev.push(rec);
+    savePev(); resetPevForm(); renderPevList(); renderPDayList(); render();
+    pevErr("");
+    if(wantRem&&!rempush)remPushOn(function(){});   // first reminder on this device → ask for permission, then the queue goes up
+    else scheduleRemSync(); };
+
   // swipe
   var sx=0,sy=0;
   grid.addEventListener("touchstart",function(e){sx=e.touches[0].clientX;sy=e.touches[0].clientY;},{passive:true});
@@ -2757,9 +3146,15 @@
     if(u){ u.hidden=unlocked();                                                                                          // unlocked ANY way (paid / grandfathered / riding a live house) → no "unlock" ask
       var s=document.getElementById("unlockSub"); if(s)s.textContent=houseCovered()?"Covered by your House Calendar · restore a purchase":"One-time — yours forever · restore a purchase"; }
     var g=document.getElementById("secGetApp"); if(g)g.hidden=isStandalone(); }                                          // already installed → drop the whole "Get the App" section
-  document.getElementById("openUnlock").onclick=function(){setSheet.classList.remove("show");openPay();};
+  document.getElementById("openUnlock").onclick=function(){hideSheet(setSheet);openPay();};
   Array.prototype.forEach.call(document.querySelectorAll(".setcolhd"),function(b){b.onclick=function(){b.parentNode.classList.toggle("collapsed");};});
-  document.getElementById("setNotif").addEventListener("click",function(e){ var b=e.target.closest("[data-act]"); if(!b)return; var act=b.getAttribute("data-act"); if(act==="pushon")enablePush(); else if(act==="pushoff")disablePush(); else if(act==="pref")togglePref(b.getAttribute("data-k")); });
+  document.getElementById("setNotif").addEventListener("click",function(e){
+    var lb=e.target.closest("[data-lead]");
+    if(lb){ npref.lead=+lb.getAttribute("data-lead"); save("npref",npref); renderSetNotif(); pushRemQueue(); return; }
+    var b=e.target.closest("[data-act]"); if(!b)return; var act=b.getAttribute("data-act");
+    if(act==="pushon")enablePush(); else if(act==="pushoff")disablePush();
+    else if(act==="npref"){ var k=b.getAttribute("data-k"); npref[k]=!npref[k]; save("npref",npref); renderSetNotif(); pushRemQueue(); }
+    else if(act==="pref")togglePref(b.getAttribute("data-k")); });
   document.getElementById("setName").oninput=function(){uname=this.value;save("name",uname);};   // save-as-you-type (no calendar rebuild)
   document.getElementById("setCo").oninput=function(){uco=this.value.trim();save("co",uco);};
   document.getElementById("setPhone").oninput=function(){uphone=this.value.trim();save("phone",uphone);};
@@ -2809,7 +3204,7 @@
   Array.prototype.forEach.call(document.querySelectorAll("#gcPtStep button"),function(b){b.onclick=function(){gcPtVal=mod(gcPtVal-1+(+b.getAttribute("data-d")),G)+1;updGcPt();};});
   Array.prototype.forEach.call(document.querySelectorAll("#gcPtSeg button"),function(b){b.onclick=function(){gcHasPt=(b.getAttribute("data-p")==="yes");Array.prototype.forEach.call(document.querySelectorAll("#gcPtSeg button"),function(x){x.classList.toggle("on",x===b);});document.getElementById("gcPtWrap").hidden=!gcHasPt;};});
   document.getElementById("openGroups").onclick=function(){
-    setSheet.classList.remove("show");
+    hideSheet(setSheet);
     var t=new Date();
     document.getElementById("gcDate").value=t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0");
     gcMyVal=my; gcPtVal=(pt||19); gcHasPt=false; updGcMy(); updGcPt();
@@ -2851,7 +3246,7 @@
   }
   Array.prototype.forEach.call(document.querySelectorAll("#abLtrSeg button"),function(b){b.onclick=function(){abLtr=b.getAttribute("data-l");Array.prototype.forEach.call(document.querySelectorAll("#abLtrSeg button"),function(x){x.classList.toggle("on",x===b);});};});
   document.getElementById("openAbcd").onclick=function(){
-    setSheet.classList.remove("show");
+    hideSheet(setSheet);
     var t=new Date();
     document.getElementById("abStart").value=t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0");
     document.getElementById("abEnd").value=""; abLtr="A";
@@ -2913,14 +3308,14 @@
       restoreByCode((raw||"").trim(),function(res){ bakSay(res==="none"?"No cloud backup found for that code — check it character by character.":res==="unavail"?"Cloud isn't reachable right now. Try again in a minute.":"Couldn't read that code — check for typos.",true); });
       return; }
     var p=parseBackup(raw);if(!p){bakSay("That's not a valid backup. Paste the whole code (it starts with SQRTCAL1:) or your recovery code (SQRT-…), or choose your .json file.",true);return;}var has=Object.keys(p.data).filter(function(k){return typeof p.data[k]==="string";});if(!has.length){   /* accept ANY sqrt key (notes, events, company events, theme…) — mirror collectData so the two can't drift */bakSay("That backup has no readable Square Root data — it may be incomplete or hand-edited. Nothing was changed.",true);return;}var when=(p.meta&&p.meta.ts)?(" from "+new Date(p.meta.ts).toLocaleDateString()):"";appConfirm("Restore this backup"+when+"? It REPLACES all swaps, overtime, ledger, and settings on THIS device.","Replace & restore",function(){p.data.cdirty=JSON.stringify(true);p.data.cconf=JSON.stringify(false);applyBackup(p.data);});}   // a file restore has unknown ancestry — mark dirty so it MERGES with the cloud (base-less union) instead of sitting stale or mass-deleting
-  document.getElementById("openBak").onclick=function(){setSheet.classList.remove("show");document.getElementById("bakMsg").className="bakmsg";document.getElementById("bakIn").value="";bakUpdate();openSheet(bakSheet);};
+  document.getElementById("openBak").onclick=function(){hideSheet(setSheet);document.getElementById("bakMsg").className="bakmsg";document.getElementById("bakIn").value="";bakUpdate();openSheet(bakSheet);};
   document.getElementById("bakDone").onclick=closeSheets;
   document.getElementById("bakCopy").onclick=copyBackup;
   document.getElementById("bakFile").onclick=downloadBackup;
   document.getElementById("bakPaste").onclick=function(){doRestore(document.getElementById("bakIn").value);};
   document.getElementById("bakFileIn").onchange=function(){var f=this.files&&this.files[0];if(!f){return;}var r=new FileReader();r.onload=function(){doRestore(String(r.result));};r.onerror=function(){bakSay("Couldn't read that file.",true);};r.readAsText(f);this.value="";};
   // gentle reminder banner — shows when there's real data that hasn't been backed up in a while (snooze 7d)
-  function hasData(){if((periods&&periods.length)||(events&&events.length)||(cev&&cev.length)||(abcd&&abcd.length)||(cfr&&(cfr.exp||cfr.ses)))return true;var m=[ov,ot,ar,mx,pass,add,fh,note,sb],j,kk;for(j=0;j<m.length;j++){for(kk in m[j])return true;}return false;}
+  function hasData(){if((periods&&periods.length)||(events&&events.length)||(cev&&cev.length)||(pev&&pev.length)||(abcd&&abcd.length)||(cfr&&(cfr.exp||cfr.ses)))return true;var m=[ov,ot,ar,mx,pass,add,fh,note,sb],j,kk;for(j=0;j<m.length;j++){for(kk in m[j])return true;}return false;}
   function bakAgeDays(){var t=load("bakts",null);if(!t)return 1e9;return (Date.now()-new Date(t).getTime())/864e5;}
   function bakSnoozed(){var s=load("baksnooze",null);if(!s)return false;return (Date.now()-new Date(s).getTime())<7*864e5;}
   // Reminders (backup nag, CFR due) are a POP-UP overlay — never an in-flow banner that pushes the calendar down.
@@ -2928,7 +3323,7 @@
   var remindShown=false;
   function maybeRemindPop(){
     if(remindShown)return;
-    if(document.querySelector(".cmodal.show,.onb.show,.sheet.show,.swpick.show"))return;   // never pop over onboarding, another modal, or an open sheet
+    if(anyOverlayOpen())return;   // never pop over onboarding, another modal, a picker or an open sheet
     var inf=cfrExpInfo(), cfrDue=(inf.state!=="none"&&inf.days<=120)&&!cfrSnoozed();
     var bakDue=hasData()&&bakAgeDays()>21&&!bakSnoozed()&&!(cloudOn&&rcode);
     var pick=(cfrDue&&inf.state==="overdue")?"cfr":bakDue?"bak":cfrDue?"cfr":null;   // an overdue CFR outranks the backup nag
@@ -2939,11 +3334,11 @@
     if(pick==="bak"){ var never=(load("bakts",null)==null);
       msg.textContent="⚠︎ "+(never?"Your data isn’t backed up yet":"Your backup is out of date")+" — save it so a new phone or a cleared browser can’t wipe it.";
       go.textContent="Back up";
-      go.onclick=function(){ close(function(){ setSheet.classList.remove("show"); document.getElementById("bakMsg").className="bakmsg"; document.getElementById("bakIn").value=""; bakUpdate(); openSheet(bakSheet); }); };
+      go.onclick=function(){ close(function(){ hideSheet(setSheet); document.getElementById("bakMsg").className="bakmsg"; document.getElementById("bakIn").value=""; bakUpdate(); openSheet(bakSheet); }); };
     } else {
       msg.textContent=inf.state==="overdue"?("📘 Your CFR expired "+fmtVD(inf.exp)+" — schedule a refresher."):("📘 CFR expires "+fmtVD(inf.exp)+" — "+inf.months+" month"+(inf.months===1?"":"s")+" left. Time to schedule a refresher.");
       go.textContent="Open";
-      go.onclick=function(){ close(function(){ setSheet.classList.remove("show"); openCfrSheet(); }); };
+      go.onclick=function(){ close(function(){ hideSheet(setSheet); openCfrSheet(); }); };
     }
     later.onclick=function(){ close(); };
     rp.onclick=function(e){ if(e.target===rp)close(); };   // scrim tap = Later
@@ -2958,12 +3353,14 @@
   // every save() runs this: keep the on-device mirror fresh + queue a cloud push.
   // NOTE: pure sync-metadata keys must NOT re-trigger a push, or cloudPush's own
   // save("cloudts") would loop forever (push → save cloudts → push → …).
-  var _mirrorT=null, NOSYNC={cloudts:1,cbase:1,cdirty:1,cconf:1,cshrink:1,bakts:1,baksnooze:1,cfrsnooze:1,hgack:1,curhouse:1,editat:1};   // sync-metadata keys never re-trigger a push (curhouse = which house you're currently viewing, device-local; cshrink = this device's pause latch — it must never ride the blob to a healthy phone)
+  var _mirrorT=null, NOSYNC={rempush:1,cloudts:1,cbase:1,cdirty:1,cconf:1,cshrink:1,bakts:1,baksnooze:1,cfrsnooze:1,hgack:1,curhouse:1,editat:1};   // sync-metadata keys never re-trigger a push (curhouse = which house you're currently viewing, device-local; cshrink = this device's pause latch — it must never ride the blob to a healthy phone)
   // NOSYNC-guard is null-safe: during module init (before the var above is assigned) NOSYNC is
   // undefined, so an early save() (e.g. mutual-name seeding) must NOT throw here.
   function afterWrite(k){ if(NOSYNC&&NOSYNC[k])return;
     try{LS.setItem("sqrt:editat",JSON.stringify(Date.now()));}catch(e){}   // device-level last-edit clock — the merge tiebreak (rides the blob; direct write skips recursion)
     if(_mirrorT)clearTimeout(_mirrorT); _mirrorT=setTimeout(function(){_mirrorT=null;idbMirror();},600);
+    scheduleIcsSync();   // the published feed follows the schedule — a swap logged now shows up at Google's next refresh
+    scheduleRemSync();   // …and so does anything the reminder queue needs to ring for
     if(cloudOn&&rcode){ if(!cloudDirty){cloudDirty=true;save("cdirty",true);} schedulePush(); } }
   function flushMirror(){ if(_mirrorT){clearTimeout(_mirrorT);_mirrorT=null;idbMirror();} }
 
@@ -3040,7 +3437,7 @@
       idbPut({v:1,ts:Date.now(),data:cur})["catch"](function(){});
     },function(){ idbPut({v:1,ts:Date.now(),data:cur})["catch"](function(){}); });
   }catch(e){}}
-  var SYSKEYS={theme:1,seen:1,instdone:1,instsnooze:1,cloud:1,rcode:1,cloudts:1,cbase:1,cdirty:1,cconf:1,defecc:1,defcfr:1,spot:1,my:1,pt:1,groups:1,mxnames:1,cfrsnooze:1};
+  var SYSKEYS={remid:1,remkey:1,rempush:1,theme:1,seen:1,instdone:1,instsnooze:1,cloud:1,rcode:1,cloudts:1,cbase:1,cdirty:1,cconf:1,defecc:1,defcfr:1,spot:1,my:1,pt:1,groups:1,mxnames:1,cfrsnooze:1};
   function blobHasData(b){ for(var k in b){ if(SYSKEYS[k])continue; var v=b[k]; if(v&&v!=="{}"&&v!=="[]"&&v!=="null"&&v!=="false")return true; } return false; }
   function lsHasData(){return blobHasData(collectData());}
   // on boot: if the primary store lost its data but the IDB snapshot still has some, write it back (only ever ADDS to an empty primary)
@@ -3254,9 +3651,9 @@
   // lists (adds from both sides survive, a deletion by either side sticks), and the device that
   // edited most recently wins the rare both-changed-the-exact-same-thing conflict.
   var MERGE_MAPS={ov:1,ot:1,mx:1,pass:1,ar:1,add:1,note:1,sb:1,fh:1,hqapplied:1,hseen:1,hsub:1};
-  var MERGE_ARRS={ev:1,mxnames:1,cev:1,abcd:1,periods:1,groups:1};
+  var MERGE_ARRS={ev:1,mxnames:1,cev:1,pev:1,abcd:1,periods:1,groups:1};
   var MERGE_UNION={houses:1};   // union-only: a merge must never DELETE a house entry — it holds the membership key, and losing it locks you out (a stale entry self-heals via the 403 → hDrop path instead)
-  var MERGE_LOCAL={rcode:1,cloud:1,seen:1,cshrink:1,curhouse:1,hgack:1,hpush:1,housedoc:1,instdone:1,instsnooze:1,cbase:1,cloudts:1,cdirty:1,cconf:1,editat:1,bakts:1,baksnooze:1,cfrsnooze:1};
+  var MERGE_LOCAL={rempush:1,rcode:1,cloud:1,seen:1,cshrink:1,curhouse:1,hgack:1,hpush:1,housedoc:1,instdone:1,instsnooze:1,cbase:1,cloudts:1,cdirty:1,cconf:1,editat:1,bakts:1,baksnooze:1,cfrsnooze:1};
   // force = "this smaller state is correct" (the exact snapshot that just reached the cloud, or a
   // deletion the user confirmed). Everything else may only ever rebase SIDEWAYS OR UP: a base that
   // silently follows the data down is what let a between-sessions loss look like a normal state.
@@ -3267,7 +3664,7 @@
   // (learned the hard way: one device dropped its OT + profile, pushed the smaller state, and every
   //  other device then fast-forwarded onto the damaged copy. Both directions are now gated.)
   var W_MAPS={ov:1,ot:1,mx:1,pass:1,ar:1,add:1,note:1,sb:1,fh:1,cfr:1};
-  var W_ARRS={ev:1,cev:1,periods:1,abcd:1,groups:1,mxnames:1,houses:1};
+  var W_ARRS={ev:1,cev:1,pev:1,periods:1,abcd:1,groups:1,mxnames:1,houses:1};
   var W_SCAL={name:1,co:1,phone:1,spouse:1,sphone:1,apptdate:1,hletter:1,pt:1};
   function dataWeight(d){ if(!d)return 0; var w=0,k,v;
     for(k in W_MAPS){ v=parseJ(d[k]); if(isObj(v))w+=Object.keys(v).length; }
@@ -3463,7 +3860,7 @@
   function isIOS(){return /iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);}
   function isAndroid(){return /android/i.test(navigator.userAgent);}
   function instSnoozed(){var s=load("instsnooze",null);if(!s)return false;return (Date.now()-new Date(s).getTime())<10*864e5;}
-  function anySheetOpen(){return !!document.querySelector(".sheet.show,.onb.show,.cmodal.show,.lgpop.show");}
+  function anySheetOpen(){return anyOverlayOpen();}
   function apkDownload(){ try{var a=document.createElement("a");a.href=APK_URL;a.setAttribute("download","square-root-calendar.apk");document.body.appendChild(a);a.click();a.remove();}catch(e){location.href=APK_URL;} save("instdone",1); }
   function doAndroidInstall(){ if(!deferredPrompt)return; var p=deferredPrompt;deferredPrompt=null; p.prompt(); p.userChoice.then(function(c){ if(c&&c.outcome==="accepted"){save("instdone",1);closeSheets();} else { var add=document.getElementById("instAdd"); if(add)add.outerHTML='<p class="baknote">No rush — you can add it anytime from Chrome’s <b>⋮</b> menu → <b>Add to Home screen</b>.</p>'; } }); }
   function openInstall(){ var t=document.getElementById("instTitle"),s=document.getElementById("instSub"),b=document.getElementById("instBody"),body="";
@@ -3672,7 +4069,7 @@
       return '<div class="ritem"><span class="rd">'+esc(n)+'<span class="mxbreak">'+e.credit+' in · '+e.debit+' out</span></span>'+badge+'</div>';
     }).join("");
   }
-  document.getElementById("openMx").onclick=function(){if(!requireUnlock())return;setSheet.classList.remove("show");renderLedger();openSheet(mxSheet);};
+  document.getElementById("openMx").onclick=function(){if(!requireUnlock())return;hideSheet(setSheet);renderLedger();openSheet(mxSheet);};
   document.getElementById("mxDone").onclick=closeSheets;
 
   // ---- Overtime dollars: "on the job since" date → hourly OT rate from the UFA chart (8/1/2024). OVERTIME ONLY — no salary tracking. ----
@@ -3721,7 +4118,7 @@
   function brkParts(r){var p=[];if(r.ms)p.push('MSOT '+r.ms+'h');if(r.rs)p.push('RSOT '+r.rs+'h');if(r.oo)p.push('Other OT '+r.oo+'h'+(r.ool?' ('+esc(r.ool)+')':''));if(r.ar)p.push('AR '+fmtHM(r.ar));if(r.p2p)p.push('P2P '+fmtHM(r.p2p));if(r.wu)p.push('Washup '+fmtHM(r.wu));if(r.oth)p.push(esc(r.otl||'Other')+' '+fmtHM(r.oth));return p.join(' · ');}
   function stDays(tours){return tours.slice().sort(function(a,b){return Date.UTC(a.y,a.m,a.d)-Date.UTC(b.y,b.m,b.d)||b.t-a.t;}).map(function(x){
     return '<button class="stday" type="button" data-nav="'+x.y+'-'+x.m+'-'+x.d+'"><span class="stdd">'+MON[x.m].slice(0,3)+' '+x.d+' · '+(x.t===9?"9× Day":"6× Night")+'</span><span class="stdv">'+brkParts(x)+(x.usd?' · <b class="stusd">'+fmtUSD(x.usd)+'</b>':'')+' <span class="stdgo">›</span></span></button>';}).join("");}
-  function goToDate(y,m,d){statsSheet.classList.remove("show");view.y=y;view.m=m;render();openDay(y,m,d);}   // jump from the stats list to that day on the calendar
+  function goToDate(y,m,d){hideSheet(statsSheet);view.y=y;view.m=m;render();openDay(y,m,d);}   // jump from the stats list to that day on the calendar
   function sumBucket(list){var t={ms:0,rs:0,oo:0,ar:0,p2p:0,wu:0,oth:0,usd:0};list.forEach(function(r){t.ms+=r.ms;t.rs+=r.rs;t.oo+=r.oo;t.ar+=r.ar;t.p2p+=r.p2p;t.wu+=r.wu;t.oth+=r.oth;t.usd+=(r.usd||0);});return t;}
   function yearSumTxt(t,n,unit){var oth=t.ms+t.rs+t.oo,ext=t.ar+t.p2p+t.wu+t.oth;return oth+'h OT'+(ext?' · '+fmtHM(ext):'')+' · '+n+' '+unit;}
   function yearShell(yr,open,sumTxt,body){return '<div class="styear'+(open?' open':'')+'"><button class="styhd"><span class="styr">'+yr+'</span><span class="stysum">'+sumTxt+'</span><span class="stychev">&#9662;</span></button><div class="stybody">'+body+'</div></div>';}
@@ -3753,14 +4150,14 @@
       (haveAppt?'<div class="stdisc">Dollars are estimates from the UFA '+UFA_ASOF+' firefighter chart, at your step when each tour was worked (night tours at the night-shift OT rate). Your check is the real number.</div>'
                :'<button class="stdisc stset" type="button" id="stSetAppt">💵 Add the date you got on the job (Settings → You) and every hour here shows a dollar estimate — tap to set it.</button>');
     var sa=document.getElementById("stSetAppt");
-    if(sa)sa.onclick=function(){statsSheet.classList.remove("show");document.getElementById("gear").onclick();document.getElementById("secYou").classList.remove("collapsed");setTimeout(function(){var f=document.getElementById("setAppt");if(f){f.scrollIntoView({block:"center"});f.focus();}},150);};
+    if(sa)sa.onclick=function(){hideSheet(statsSheet);document.getElementById("gear").onclick();document.getElementById("secYou").classList.remove("collapsed");setTimeout(function(){var f=document.getElementById("setAppt");if(f){f.scrollIntoView({block:"center"});f.focus();}},150);};
     var list=document.getElementById("stList");
     if(!ks.length){list.innerHTML='<div class="rempty">No overtime or extras recorded yet — add MSOT/RSOT/Other OT, AR, P2P or a washup on a worked tour and it lands here.</div>';return;}
     list.innerHTML=renderYMP(byK);
     Array.prototype.forEach.call(list.querySelectorAll(".styhd, .stmhd, .stphd"),function(b){b.onclick=function(){b.parentNode.classList.toggle("open");};});   // year / month / pay-period headers collapse
     Array.prototype.forEach.call(list.querySelectorAll(".stday"),function(b){b.onclick=function(){var p=b.getAttribute("data-nav").split("-");goToDate(+p[0],+p[1],+p[2]);};});   // tap a day → jump to it on the calendar
   }
-  document.getElementById("openStats").onclick=function(){if(!requireUnlock())return;setSheet.classList.remove("show");renderStats();openSheet(statsSheet);};
+  document.getElementById("openStats").onclick=function(){if(!requireUnlock())return;hideSheet(setSheet);renderStats();openSheet(statsSheet);};
   document.getElementById("stDone").onclick=closeSheets;
 
   var FH=[["Engine 4/Ladder 15","42 South Street","M","10005",40.703694,-74.007717,"212-570-4204"],
@@ -4388,7 +4785,7 @@ var TEN_CODES=[
   }
   function maybePromptHouseGroup(){   // prompt ONCE when the house's group for me differs — keyed on the last house value SEEN, so my own group edits never trigger it and it never nags
     if(!HS||!HD||hBusy) return;
-    if(document.querySelector(".cmodal.show,.onb.show,.swpick.show,.lgpop.show")) return;   // don't stack over a modal / onboarding / picker
+    if(anyOverlayOpen()) return;   // don't stack over a modal / onboarding / picker / sheet
     var hg=myHouseGroup(); if(!hg) return;
     var _dt=new Date(), _tt=Date.UTC(_dt.getFullYear(),_dt.getMonth(),_dt.getDate());
     if((periods||[]).some(function(p){return p&&p.t==="det"&&(!isRealDate(p.e)||vacMs(p.e)>=_tt);})) return;   // an active OR still-pending detail owns your group during its window — don't nag or clobber the detail epochs
@@ -4477,26 +4874,49 @@ var TEN_CODES=[
     return '<span class="hmem"><span class="hmname">'+esc(mem.name||"—")+'</span>'+(mem.group?'<span class="hmg">g'+mem.group+'</span>':'')+(mem.letter&&houseAbcdActive(hVY,hVM,hVD)?'<span class="hmg">'+mem.letter+'</span>':'')+call+'</span>'; }
   function pushMyProfile(){ return hOp(Object.assign({type:"updateProfile"},myProfile(HS?HS.id:""))); }   // scope duty/detail flag to the ACTIVE house
   function urlB64ToU8(b64){ var pad="=".repeat((4-b64.length%4)%4); var s=(b64+pad).replace(/-/g,"+").replace(/_/g,"/"); var raw=atob(s); var out=new Uint8Array(raw.length); for(var i=0;i<raw.length;i++)out[i]=raw.charCodeAt(i); return out; }
-  function enablePush(){ if(!HS||!pushSupported()){ appConfirm(pushSupported()?"Join a house first.":"This device can't do notifications. On iPhone, add the app to your Home Screen first, then try again.","OK",function(){}); return; }
-    Notification.requestPermission().then(function(perm){ if(perm!=="granted"){ appConfirm("Notifications are turned off. Enable them for this site in your browser/phone settings, then try again.","OK",function(){}); return; }
+  // Notifications are APP-WIDE. They used to be gated behind House membership, which meant a guy
+  // running the app solo could not be reminded about his own tours — backwards, since the tour
+  // schedule is the thing everyone has and the House is the optional extra. One permission prompt,
+  // one subscription, registered with whichever back-ends apply: the encrypted reminder queue
+  // always, the House only if he is in one.
+  function pushIsOn(){ return !!rempush; }
+  function enablePush(cb){ if(!pushSupported()){ appConfirm("This device can't do notifications. On iPhone, add the app to your Home Screen first, then try again.","OK",function(){}); if(cb)cb(false); return; }
+    if(!ensureRem()){ appConfirm("This browser can't set up secure reminders.","OK",function(){}); if(cb)cb(false); return; }
+    Notification.requestPermission().then(function(perm){ if(perm!=="granted"){ appConfirm("Notifications are turned off for this app. Turn them on in your browser or phone settings, then try again.","OK",function(){}); if(cb)cb(false); return; }
       navigator.serviceWorker.ready.then(function(reg){ return reg.pushManager.getSubscription().then(function(sub){ return sub||reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlB64ToU8(VAPID_PUB)}); }); })
-        .then(function(sub){ return hFetch("POST","?a=savepush",{id:HS.id,m:HS.m,s:HS.s,sub:(sub.toJSON?sub.toJSON():sub),prefs:hpushPrefs}); })
-        .then(function(r){ if(r&&r.status===200){ hpushOn=true; save("hpush",true); refreshNotifUI(); } else { appConfirm("Couldn't turn on notifications right now — try again in a bit.","OK",function(){}); } })
-        .catch(function(){ appConfirm("Couldn't set up notifications on this device.","OK",function(){}); });
-    }).catch(function(){ appConfirm("Couldn't request notification permission.","OK",function(){}); }); }
-  function disablePush(){ hpushOn=false; save("hpush",false);
-    if(navigator.serviceWorker&&navigator.serviceWorker.ready)navigator.serviceWorker.ready.then(function(reg){ if(reg.pushManager)reg.pushManager.getSubscription().then(function(sub){ if(sub)sub.unsubscribe().catch(function(){}); }); }).catch(function(){});
-    if(HS)hFetch("POST","?a=clearpush",{m:HS.m,s:HS.s}).catch(function(){});
+        .then(function(sub){ var js=(sub.toJSON?sub.toJSON():sub);
+          var jobs=[fetch("/api/remind",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({a:"sub",qid:remid,sub:js})}).then(function(r){return !!(r&&r.ok);},function(){return false;})];
+          if(HS)jobs.push(hFetch("POST","?a=savepush",{id:HS.id,m:HS.m,s:HS.s,sub:js,prefs:hpushPrefs}).then(function(r){return !!(r&&r.status===200);},function(){return false;}));
+          return Promise.all(jobs); })
+        .then(function(res){ if(res[0]){ rempush=true; save("rempush",true); }
+          if(HS&&res[1]){ hpushOn=true; save("hpush",true); }
+          if(!res[0]&&!(HS&&res[1])){ appConfirm("Couldn't turn on notifications right now — try again in a bit.","OK",function(){}); if(cb)cb(false); return; }
+          pushRemQueue(); refreshNotifUI(); if(cb)cb(true); })
+        ["catch"](function(){ appConfirm("Couldn't set up notifications on this device.","OK",function(){}); if(cb)cb(false); });
+    })["catch"](function(){ if(cb)cb(false); }); }
+  function disablePush(){ var wasRem=rempush;
+    rempush=false; save("rempush",false); hpushOn=false; save("hpush",false);
+    if(wasRem&&remid)fetch("/api/remind",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({a:"unsub",qid:remid,endpoint:_lastEndpoint||""})})["catch"](function(){});
+    if(navigator.serviceWorker&&navigator.serviceWorker.ready)navigator.serviceWorker.ready.then(function(reg){ if(reg.pushManager)reg.pushManager.getSubscription().then(function(sub){ if(sub){ if(!_lastEndpoint)_lastEndpoint=sub.endpoint; sub.unsubscribe()["catch"](function(){}); } }); })["catch"](function(){});
+    if(HS)hFetch("POST","?a=clearpush",{m:HS.m,s:HS.s})["catch"](function(){});
     refreshNotifUI(); }
+  var _lastEndpoint="";
+  (function(){ if(navigator.serviceWorker&&navigator.serviceWorker.ready)navigator.serviceWorker.ready.then(function(reg){ if(reg.pushManager)reg.pushManager.getSubscription().then(function(sub){ if(sub)_lastEndpoint=sub.endpoint; })["catch"](function(){}); })["catch"](function(){}); })();   // remembered so an unsubscribe can still tell the server WHICH device went away
   function togglePref(k){ hpushPrefs[k]=!hpushPrefs[k]; save("hpushprefs",hpushPrefs); if(HS)hFetch("POST","?a=setprefs",{m:HS.m,s:HS.s,prefs:hpushPrefs}).catch(function(){}); refreshNotifUI(); }
   function refreshNotifUI(){ if(HS&&document.getElementById("houseSheet")&&document.getElementById("houseSheet").classList.contains("show"))renderHouse(); renderSetNotif(); }
   function prefTog(k,lbl,sub){ return '<button class="hprefrow" data-act="pref" data-k="'+k+'"><span class="hprefl">'+lbl+'<span class="hprefsub">'+sub+'</span></span><span class="htgl'+(hpushPrefs[k]?" on":"")+'"><span class="htglk"></span></span></button>'; }
   function notifTogglesHTML(){ return '<div class="hprefs">'+prefTog("personal","Personal requests","when someone picks you for a swap or cover")+prefTog("general","General requests","any open tour posted to your house")+prefTog("tours","Tour reminders","before each tour you're scheduled to work")+'</div>'; }
+  function nprefTog(k,lbl,sub){ return '<button class="hprefrow" data-act="npref" data-k="'+k+'"><span class="hprefl">'+lbl+'<span class="hprefsub">'+sub+'</span></span><span class="htgl'+(npref[k]?" on":"")+'"><span class="htglk"></span></span></button>'; }
+  function leadSegHTML(){ return '<div class="arrow" style="padding:0 2px"><span class="lab">⏰ Remind me</span><div class="arseg leadseg">'+
+    LEADS.map(function(o){return '<button data-lead="'+o[0]+'"'+(String(npref.lead)===o[0]?' class="on"':'')+'>'+o[1]+'</button>';}).join("")+'</div></div>'; }
   function renderSetNotif(){ var el=document.getElementById("setNotif"); if(!el)return;
     if(!pushSupported()){ el.innerHTML='<p class="ldsub">This device can’t show push notifications.<br>On iPhone, add the app to your Home Screen first, then reopen this.</p>'; return; }
-    if(!HS){ el.innerHTML='<p class="ldsub">Join or create a House Calendar (🏠) first, then turn on notifications here.</p>'; return; }
-    if(!hpushOn){ el.innerHTML='<p class="ldsub" style="margin-top:0">Get a heads-up on your phone for swaps, open tours, and the tours you’re about to work.</p><button class="raddbtn" data-act="pushon" style="width:100%">🔔 Turn on push notifications</button>'; return; }
-    el.innerHTML='<div class="hpushrow on" style="margin-top:0">🔔 Push notifications on <button class="hpxbtn" data-act="pushoff">Turn off</button></div><p class="ldsub" style="margin:0 0 8px">Choose what pings your phone:</p>'+notifTogglesHTML(); }
+    if(!pushIsOn()){ el.innerHTML='<p class="ldsub" style="margin-top:0">A heads-up before every tour you work, before anything on your personal calendar'+(HS?', and when your crew posts a swap':'')+'.</p><button class="raddbtn" data-act="pushon" style="width:100%">🔔 Turn on notifications</button>'; return; }
+    el.innerHTML='<div class="hpushrow on" style="margin-top:0">🔔 Notifications on <button class="hpxbtn" data-act="pushoff">Turn off</button></div>'+
+      '<p class="ldsub" style="margin:0 0 8px">Choose what pings your phone:</p>'+
+      '<div class="hprefs">'+nprefTog("tour","Tour reminders","before every tour you’re working")+nprefTog("pers","Personal events","for anything you set a reminder on")+'</div>'+
+      (npref.tour?leadSegHTML():"")+
+      (HS?('<p class="ldsub" style="margin:10px 0 6px">From your house:</p>'+notifTogglesHTML()):''); }
   function hSwitchRow(){ if(houses.length<2)return "";   // chips to switch between the houses this device belongs to
     return '<div class="hswrow">'+houses.map(function(h){return '<button class="hswch'+(h.id===curHouse?' on':'')+'" data-act="switchhouse" data-hid="'+escA(h.id)+'">🏠 '+esc(h.name||h.code||"House")+'</button>';}).join("")+'</div>'; }
   function renderHouse(){ var body=document.getElementById("houseBody"); if(!body)return;
@@ -4689,7 +5109,7 @@ var TEN_CODES=[
       if(hNewCos.some(function(c){return c.toLowerCase()===nv.toLowerCase();})){hMsg="“"+nv+"” is already in the list.";renderHouse();return;}
       if(hNewCos.length>=24){hMsg="That’s plenty of companies for now.";renderHouse();return;} hNewCos.push(nv); hMsg=""; renderHouse(); setTimeout(function(){var f=document.getElementById("hNewCoAdd");if(f)f.focus();},0); return; }   // stage a company for the new house (no server yet)
     if(act==="delnewco"){ var dnc=el.getAttribute("data-co"); hNewCos=hNewCos.filter(function(c){return c!==dnc;}); renderHouse(); return; }
-    if(act==="profilefirst"){ houseSheet.classList.remove("show"); document.getElementById("gear").click();   // jump them straight to the two required fields
+    if(act==="profilefirst"){ hideSheet(houseSheet); document.getElementById("gear").click();   // jump them straight to the two required fields
       document.getElementById("secYou").classList.remove("collapsed"); setTimeout(function(){var f=document.getElementById(uname?"setCo":"setName");if(f)f.focus();},250); return; }
     if(act==="create"){ var nm=(document.getElementById("hCreateName")||{}).value||""; if(!nm.trim()){hMsg="Name your house first.";renderHouse();return;} hReloadThen(houseCreate(nm.trim(),hNewCos.slice())); return; }
     if(act==="join"){ var cd=((document.getElementById("hJoinCode")||{}).value||"").trim(); if(!cd){hMsg="Enter the join code.";renderHouse();return;} if(hBusy)return; hBusy=true; houseJoin(cd).then(function(res){ hBusy=false; hMsg=res.err?("⚠ "+res.err):(res.pending?"Request sent — waiting for approval.":""); renderHouse(); }).catch(function(){ hBusy=false; renderHouse(); }); return; }
@@ -4760,12 +5180,28 @@ var TEN_CODES=[
   }
   function openHouseOnDate(y,mm,dd){ if(!HS)return; hVY=y;hVM=mm;hVD=dd; hview="day"; hMsg=""; hReqPre=null; hAddMode=false; renderHouse(); openSheet(houseSheet); hGet().then(function(r){ if(r&&r.doc)renderHouse(); }); }
   document.getElementById("openHouse").onclick=function(){ hReqPre=null; hview="requests"; hMsg=""; hAddMode=false; renderHouse(); openSheet(houseSheet); if(HS)hGet().then(function(r){ if(r&&r.doc)pushMyProfile().then(function(){renderHouse();}); else renderHouse(); });   // open straight to the Requests feed; reset compose context so a stale directed target doesn't misdirect a later request
-    if((!houses||!houses.length)&&!load("hintro",false)){ var hi=document.getElementById("hIntro"); if(hi){hi.classList.add("show");hi.setAttribute("aria-hidden","false");} } };   // not in a house yet → pitch what the House Calendar does (until they say don't-show-again)
-  (function(){ function hideHi(){ var hi=document.getElementById("hIntro"); if(hi){hi.classList.remove("show");hi.setAttribute("aria-hidden","true");} }
+    if((!houses||!houses.length)&&!load("hintro",false))openOverlay(document.getElementById("hIntro")); };   // not in a house yet → pitch what the House Calendar does (until they say don't-show-again)
+  (function(){ function hideHi(){ closeOverlay(document.getElementById("hIntro")); }
     var g=document.getElementById("hiGo"),n=document.getElementById("hiNever");
     if(g)g.onclick=hideHi;
     if(n)n.onclick=function(){ save("hintro",true); hideHi(); }; })();
   document.getElementById("houseDone").onclick=closeSheets;
+  document.getElementById("payDone").onclick=closeSheets;
+  document.getElementById("openIcs").onclick=function(){ hideSheet(setSheet); icsSay(""); icsStatus(); openSheet(document.getElementById("icsSheet")); };
+  document.getElementById("icsDone").onclick=closeSheets;
+  document.getElementById("icsEnable").onclick=function(){
+    if(!ensureIcsTok()){ icsSay("This browser can't create a secure link.",true); return; }
+    appConfirm("Publish your TOUR schedule to a private web link?\n\nGoogle has to be able to read it, so unlike the rest of your calendar it is NOT encrypted — anyone with the link can see when you work. Tours only: no personal events, no notes, no pay.","Create the link",function(){
+      icson=true; save("icson",true); icsStatus(); icsSay("Publishing…",false);
+      pushIcsFeed().then(function(ok){ icsStatus(); icsSay(ok?"Published. Copy the link and add it in Google or Apple Calendar.":"Couldn't reach the server — try again in a bit.",!ok); }); }); };
+  document.getElementById("icsCopy").onclick=function(){ copyText(icsUrl(),this); };
+  document.getElementById("icsRefresh").onclick=function(){ icsSay("Publishing…",false);
+    pushIcsFeed().then(function(ok){ icsSay(ok?"Sent. Your phone's calendar will pick it up on its next refresh.":"Couldn't reach the server — your calendar link still works with what it had.",!ok); }); };
+  document.getElementById("icsDisable").onclick=function(){
+    appConfirm("Delete the calendar link? The tours will disappear from Google/Apple Calendar at their next refresh, and the old link stops working immediately.","Delete it",function(){
+      var t=icstok; icson=false; save("icson",false); icstok=""; save("icstok",""); icsStatus();   // new token next time — a shared link can never be revived
+      fetch("/api/ics",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({a:"clear",t:t})})["catch"](function(){});
+      icsSay("Deleted. Remove the subscription in your phone's calendar too.",false); }); };   // paySheet was the only sheet with no Done — and it opens mid-flow, exactly when you want out fast
   document.getElementById("houseBody").addEventListener("click",function(e){ var b=e.target.closest("[data-act]"); if(!b)return; if(b.tagName==="A")return; e.preventDefault(); hAct(b.getAttribute("data-act"),b); });
   document.getElementById("houseBody").addEventListener("click",function(e){ var seg=e.target.closest(".hrseg button"); if(!seg)return; var p=seg.parentNode; Array.prototype.forEach.call(p.querySelectorAll("button"),function(x){x.classList.toggle("on",x===seg);});
     if(p.id==="hReqType"){ var t=seg.getAttribute("data-rt"), tx=reqTexts(t);   // switching request type: update the hint, the "your tour" label, and which fields show
@@ -4776,8 +5212,8 @@ var TEN_CODES=[
   document.getElementById("houseBody").addEventListener("input",function(e){ if(e.target.id==="hRosterSearch"){ hRostQ=e.target.value; filterRoster(); } });
   // ---- in-app month-grid day picker (House Day tab → tap the date box) ----
   var hcY=0, hcM=0;
-  function openHCal(){ hcY=hVY; hcM=hVM; renderHCal(); document.getElementById("hcalPop").classList.add("show"); }
-  function closeHCal(){ var p=document.getElementById("hcalPop"); if(p)p.classList.remove("show"); }
+  function openHCal(){ hcY=hVY; hcM=hVM; renderHCal(); openOverlay(document.getElementById("hcalPop")); }
+  function closeHCal(){ closeOverlay(document.getElementById("hcalPop")); }
   function renderHCal(){ var mon=document.getElementById("hcalMon"), grid=document.getElementById("hcalGrid"); if(!mon||!grid)return;
     mon.textContent=MON[hcM]+" "+hcY;
     var first=new Date(hcY,hcM,1).getDay(), dim=new Date(hcY,hcM+1,0).getDate();
@@ -4832,7 +5268,7 @@ var TEN_CODES=[
     Array.prototype.forEach.call(list.querySelectorAll(".rx"),function(b){b.onclick=function(){delete ot[b.getAttribute("data-k")];save("ot",ot);render();renderRsot();};});
     wireYrAcc(list);
   }
-  document.getElementById("openRsot").onclick=function(){setSheet.classList.remove("show");renderRsot();openSheet(rsotSheet);};
+  document.getElementById("openRsot").onclick=function(){hideSheet(setSheet);renderRsot();openSheet(rsotSheet);};
   document.getElementById("rDone").onclick=closeSheets;
   Array.prototype.forEach.call(document.querySelectorAll("#rsotSheet .rseg button"),function(b){
     b.onclick=function(){rTour=parseInt(b.getAttribute("data-rt"),10);Array.prototype.forEach.call(b.parentNode.children,function(c){c.classList.remove("on");});b.classList.add("on");};
@@ -4945,7 +5381,7 @@ var TEN_CODES=[
   Array.prototype.forEach.call(document.querySelectorAll("#ldLtr button"),function(b){b.onclick=function(){ldELtr=b.getAttribute("data-l");showLdCfg();};});
   Array.prototype.forEach.call(document.querySelectorAll("#ldDays button"),function(b){b.onclick=function(){b.classList.toggle("on");};});
   Array.prototype.forEach.call(document.querySelectorAll("#trDays button"),function(b){b.onclick=function(){b.classList.toggle("on");};});
-  document.getElementById("openStat").onclick=function(){setSheet.classList.remove("show");resetPForm();setPType("vac");renderPeriods();openSheet(statSheet);};
+  document.getElementById("openStat").onclick=function(){hideSheet(setSheet);resetPForm();setPType("vac");renderPeriods();openSheet(statSheet);};
   document.getElementById("pDone").onclick=closeSheets;
   var pCancelBtn=document.getElementById("pCancel"); if(pCancelBtn)pCancelBtn.onclick=function(){resetPForm();renderPeriods();};
   document.getElementById("pAdd").onclick=function(){
@@ -5051,7 +5487,7 @@ var TEN_CODES=[
     cfrTourSel=(cfr.ses&&cfr.ses.tour)||"day"; document.getElementById("cfrSesTime").value=(cfr.ses&&cfr.ses.t)||"09:00";
     if(!cfr.ses)["cfrD1","cfrD2","cfrD3","cfrD4","cfrD5"].forEach(function(id){var el=document.getElementById(id);if(el)el.value="";});
     renderCfr();openSheet(cfrSheet);}
-  document.getElementById("openCfr").onclick=function(){setSheet.classList.remove("show");openCfrSheet();};
+  document.getElementById("openCfr").onclick=function(){hideSheet(setSheet);openCfrSheet();};
   document.getElementById("cfrDone").onclick=closeSheets;
   document.getElementById("cfrSaveExp").onclick=function(){var v=document.getElementById("cfrExpIn").value;if(!isRealDate(v)){cfrErr("Pick your CFR expiration date.");return;}cfr.exp=v;save("cfrsnooze","");saveCfr();cfrErr("");render();renderCfr();};   // clear any snoozed reminder when a fresh date is set
   function cfrSnoozed(){var s=load("cfrsnooze",null);if(!s)return false;return (Date.now()-new Date(s).getTime())<30*864e5;}   // dismiss the reminder for 30 days
@@ -5081,7 +5517,7 @@ var TEN_CODES=[
       evErr("");
     };
   });
-  document.getElementById("openEv").onclick=function(){setSheet.classList.remove("show");evErr("");renderEvents();openSheet(evSheet);};
+  document.getElementById("openEv").onclick=function(){hideSheet(setSheet);evErr("");renderEvents();openSheet(evSheet);};
   document.getElementById("evDone").onclick=closeSheets;
   document.getElementById("evAdd").onclick=function(){
     var s=document.getElementById("evDate").value;
@@ -5093,6 +5529,82 @@ var TEN_CODES=[
   };
   // ---- Company Events (custom: name, date, time, color, note) ----
   function cevErr(msg){var el=document.getElementById("cevErr");if(el)el.textContent=msg||"";}
+  // ---- personal day sheet: what you have on, and what the job has you doing ----
+  var pdayCur=null;   // the date the personal day sheet is showing — the editor returns here
+  function openPDay(y,m,d){ pdayCur={y:y,m:m,d:d};
+    document.getElementById("pdDate").textContent=DOWF[new Date(y,m,d).getDay()]+" · "+MON[m]+" "+d+", "+y;
+    document.getElementById("pdTour").textContent=pdayTourText(y,m,d);
+    renderPDayList(); openSheet(document.getElementById("pdaySheet")); }
+  function renderPDayList(){ if(!pdayCur)return; var list=document.getElementById("pdList");
+    var es=pevOn(pdayCur.y,pdayCur.m,pdayCur.d);
+    if(!es.length){ list.innerHTML='<div class="pdempty">Nothing on this day yet.</div>'; return; }
+    list.innerHTML=es.map(function(e){
+      return '<button class="pdrow" type="button" data-pid="'+escA(e.id||"")+'">'+
+        '<span class="pdbar" style="background:'+pevC(e.c)+'"></span>'+
+        '<span class="pdmain"><span class="pdt">'+esc(e.n||"(untitled)")+'</span>'+
+        '<span class="pdw">'+esc(pevWhen(e))+(e.loc?" · "+esc(e.loc):"")+(remMins(e)!==null?" · 🔔 "+esc(remLabel(remMins(e))):"")+'</span>'+
+        (e.note?'<span class="pdw">'+esc(e.note)+'</span>':'')+'</span></button>';
+    }).join("");
+    Array.prototype.forEach.call(list.querySelectorAll(".pdrow"),function(b){
+      b.onclick=function(){ var id=b.getAttribute("data-pid");
+        for(var i=0;i<pev.length;i++)if(pev[i].id===id){ openPev(pev[i]); return; } }; });
+  }
+
+  // ---- personal event editor (same shape as the Company Events editor, its own list) ----
+  var pevDraft=[], pevRep="", pevEditId=null, pevRemSel="";
+  function pevErr(t){var el=document.getElementById("pevErr");if(el)el.textContent=t||"";}
+  function syncPevRem(){ Array.prototype.forEach.call(document.querySelectorAll("#pevRem button"),function(b){b.classList.toggle("on",b.getAttribute("data-rm")===pevRemSel);});
+    var n=document.getElementById("pevRemNote"); if(n)n.style.display=pevRemSel===""?"none":"";   // the privacy trade-off is stated where the choice is made, not buried in a policy
+  }
+  function renderPevChips(){ var w=document.getElementById("pevChips");
+    w.innerHTML=pevDraft.slice().sort().map(function(ds,i){return '<span class="cevchip">'+esc(fmtVD(ds))+'<button data-di="'+i+'" type="button" aria-label="Remove date">✕</button></span>';}).join("");
+    Array.prototype.forEach.call(w.querySelectorAll("button"),function(b){ b.onclick=function(){
+      var srt=pevDraft.slice().sort(); srt.splice(+b.getAttribute("data-di"),1); pevDraft=srt; renderPevChips(); }; }); }
+  function resetPevForm(){ pevDraft=[]; pevRep=""; pevEditId=null; pevRemSel="";
+    syncPevRem();
+    ["pevName","pevDate","pevT1","pevT2","pevUntil","pevLoc","pevNote"].forEach(function(id){var el=document.getElementById(id);if(el)el.value="";});
+    document.getElementById("pevColor").value="#2563eb";
+    Array.prototype.forEach.call(document.querySelectorAll("#pevRep button"),function(b){b.classList.toggle("on",b.getAttribute("data-rep")==="");});
+    document.getElementById("pevUntilWrap").style.display="none";
+    document.getElementById("pevCancel").style.display="none";
+    document.getElementById("pevSave").textContent="Save event";
+    document.getElementById("pevTitle").textContent="Personal Event";
+    pevErr(""); renderPevChips(); }
+  function openPev(e){   // e = an existing event to edit, or null/undefined for a new one
+    resetPevForm();
+    if(e){ pevEditId=e.id;
+      document.getElementById("pevName").value=e.n||"";
+      document.getElementById("pevT1").value=e.t1||"";
+      document.getElementById("pevT2").value=e.t2||"";
+      document.getElementById("pevLoc").value=e.loc||"";
+      document.getElementById("pevNote").value=e.note||"";
+      document.getElementById("pevColor").value=pevC(e.c);
+      pevDraft=pevDates(e).slice();
+      pevRemSel=(remMins(e)===null)?"":String(remMins(e)); syncPevRem();
+      document.getElementById("pevCancel").style.display="";
+      document.getElementById("pevSave").textContent="Save changes";
+      document.getElementById("pevTitle").textContent="Edit Event";
+      renderPevChips();
+    } else if(pdayCur){ document.getElementById("pevDate").value=isoLocal(pdayCur.y,pdayCur.m,pdayCur.d); }   // opened from a day → prefill it
+    renderPevList(); openSheet(document.getElementById("pevSheet")); }
+  function renderPevList(){ var list=document.getElementById("pevList");
+    if(!pev.length){ list.innerHTML='<div class="rempty">No personal events yet. Add one above — it stays on your phone and in your own encrypted backup.</div>'; return; }
+    var srt=pev.slice().sort(function(a,b){var x=pevDates(a).slice().sort()[0]||"",z=pevDates(b).slice().sort()[0]||"";return x.localeCompare(z);});
+    list.innerHTML=srt.map(function(e){ var ds=pevDates(e).slice().sort();
+      var when=ds.length>1?(ds.length+" dates · "+fmtVD(ds[0])+" → "+fmtVD(ds[ds.length-1])):(ds.length?fmtVD(ds[0]):"no date");
+      return '<div class="ritem cevitem"><span class="cevsw" style="background:'+pevC(e.c)+'"></span><span class="rd"><b>'+esc(e.n||"(untitled)")+'</b>'+
+        '<span class="cevmeta">'+(ds.length>1?'🔁 ':'')+esc(when)+(e.t1?' · '+esc(pevWhen(e)):'')+(e.loc?' · '+esc(e.loc):'')+'</span></span>'+
+        '<button class="cevedit" data-ed="'+escA(e.id||"")+'" aria-label="Edit" type="button">✎</button><button class="rx" data-rm="'+escA(e.id||"")+'" aria-label="Remove" type="button">✕</button></div>';
+    }).join("");
+    Array.prototype.forEach.call(list.querySelectorAll("[data-ed]"),function(b){b.onclick=function(){
+      var id=b.getAttribute("data-ed");for(var i=0;i<pev.length;i++)if(pev[i].id===id){openPev(pev[i]);return;}};});
+    Array.prototype.forEach.call(list.querySelectorAll("[data-rm]"),function(b){b.onclick=function(){
+      var id=b.getAttribute("data-rm"),hit=null;
+      for(var i=0;i<pev.length;i++)if(pev[i].id===id)hit=pev[i];
+      if(!hit)return;
+      appConfirm("Delete “"+(hit.n||"this event")+"”? Every date it covers goes with it.","Delete",function(){
+        pev=pev.filter(function(x){return x.id!==id;}); savePev(); renderPevList(); renderPDayList(); render(); scheduleRemSync(); }); };});
+  }
   function renderCev(){
     var list=document.getElementById("cevList");
     if(!cev.length){list.innerHTML='<div class="rempty">Nothing added yet — name an event, add its date(s) &amp; a color above.</div>';return;}
@@ -5120,7 +5632,7 @@ var TEN_CODES=[
     cevDates=cevDatesOf(e).slice();document.getElementById("cevDate").value="";resetCevRep();renderChips();
     cevErr("");syncCevMode();
     var sh=document.getElementById("cevSheet");if(sh)sh.scrollTop=0;document.getElementById("cevName").focus();}
-  document.getElementById("openCev").onclick=function(){setSheet.classList.remove("show");clearCevForm();renderCev();openSheet(cevSheet);};
+  document.getElementById("openCev").onclick=function(){hideSheet(setSheet);clearCevForm();renderCev();openSheet(cevSheet);};
   document.getElementById("cevDone").onclick=closeSheets;
   document.getElementById("cevCancel").onclick=function(){clearCevForm();};
   Array.prototype.forEach.call(document.querySelectorAll("#cevRep button"),function(b){
@@ -5165,9 +5677,10 @@ var TEN_CODES=[
     });
   });
 
-  document.getElementById("getAppInstall").onclick=function(){setSheet.classList.remove("show");openInstall();};
+  document.getElementById("getAppInstall").onclick=function(){hideSheet(setSheet);openInstall();};
   document.getElementById("instDone").onclick=function(){save("instsnooze",isoNow());closeSheets();};
 
+  syncMode();   // the bottom switch, the botbar controls and #app.pmode must agree with the saved view BEFORE the first paint
   render();
 
   // ---- boot: recover-from-mirror → persist → onboarding/install → cloud ----
@@ -5189,7 +5702,7 @@ var TEN_CODES=[
   function vaultAsked(v){ try{ if(v===undefined)return !!LS.getItem("sqrtvaulted"); LS.setItem("sqrtvaulted","1"); }catch(e){} return true; }   // OUTSIDE the sqrt: prefix — device-local, never rides a backup to another phone
   function maybeVaultPop(){
     if(!cloudOn||!rcode||!vaultAvail()||vaultAsked())return;
-    if(document.querySelector(".cmodal.show,.onb.show,.sheet.show,.swpick.show"))return;   // same courtesy as the other reminders
+    if(anyOverlayOpen())return;   // same courtesy as the other reminders
     vaultAsked(1);   // asked once, whichever way it goes — appConfirm has no cancel callback, and the Settings button stays
     appConfirm("Keep your recovery code in this phone’s password manager?\n\nIf this phone ever clears the app’s data, Square Root reads the code back and puts your calendar back on its own — no typing.","Save it",function(){ vaultSave(rcode); });
   }

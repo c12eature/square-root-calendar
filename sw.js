@@ -2,7 +2,7 @@
 // The deployed /sw.js stays the kill switch while the app is OFF. At relaunch:
 //   cp sw.real.js sw.js   (then bump CACHE if assets changed) and push.
 // Bump CACHE whenever assets change.
-var CACHE = 'sqrtcal-v31';
+var CACHE = 'sqrtcal-v38';
 var ASSETS = [
   '/', '/index.html', '/manifest.webmanifest', '/boxdata.js',
   '/icons/icon-192.png', '/icons/icon-512.png', '/icons/apple-touch-icon.png', '/icons/favicon-32.png'
@@ -42,10 +42,54 @@ self.addEventListener('fetch', function(e){
   );
 });
 
-// ---- Web Push (House Calendar requests) ----
+// ---- personal reminders: the payload arrives ENCRYPTED and is opened here, on the phone ----
+// The server relays a blob it cannot read (see api/remind.js). The key lives in IndexedDB because
+// a service worker cannot reach localStorage — the page mirrors it there whenever it changes.
+function remKey(){
+  return new Promise(function(res){
+    try {
+      var r = indexedDB.open('sqrtcal', 1);
+      r.onupgradeneeded = function(){ try { r.result.createObjectStore('kv'); } catch (e) {} };
+      r.onerror = function(){ res(null); };
+      r.onsuccess = function(){
+        try {
+          var tx = r.result.transaction('kv', 'readonly'), rq = tx.objectStore('kv').get('remkey');
+          rq.onsuccess = function(){ res(rq.result || null); };
+          rq.onerror = function(){ res(null); };
+        } catch (e) { res(null); }
+      };
+    } catch (e) { res(null); }
+  });
+}
+function b64bytes(b64){ var raw = atob(b64), u = new Uint8Array(raw.length); for (var i = 0; i < raw.length; i++) u[i] = raw.charCodeAt(i); return u; }
+function openReminder(ct){
+  return remKey().then(function(rec){
+    if (!rec || !rec.k || !self.crypto || !crypto.subtle) return null;
+    var all = b64bytes(ct);
+    if (all.length < 13) return null;                       // 12-byte IV + at least a byte of ciphertext
+    return crypto.subtle.importKey('raw', b64bytes(rec.k), { name: 'AES-GCM' }, false, ['decrypt'])
+      .then(function(key){ return crypto.subtle.decrypt({ name: 'AES-GCM', iv: all.slice(0, 12) }, key, all.slice(12)); })
+      .then(function(buf){ return JSON.parse(new TextDecoder().decode(buf)); });
+  }).catch(function(){ return null; });
+}
+
+// ---- Web Push (House Calendar requests + personal reminders) ----
 self.addEventListener('push', function(e){
   var data = {};
   try { data = e.data ? e.data.json() : {}; } catch (err) { data = { body: (e.data && e.data.text && e.data.text()) || '' }; }
+  if (data.enc) {   // an encrypted personal reminder — decrypt, then ALWAYS show something
+    e.waitUntil(openReminder(data.enc).then(function(p){
+      return self.registration.showNotification((p && p.t) || '⏰ Reminder', {
+        body: (p && p.b) || 'You have something on your calendar.',   // key missing / restored on a new device → still ring, just without the detail
+        icon: '/icons/icon-192.png',
+        badge: '/icons/favicon-32.png',
+        tag: data.tag || 'reminder',
+        renotify: true,
+        data: { url: (p && p.u) || data.url || '/' }
+      });
+    }));
+    return;
+  }
   var title = data.title || 'Square Root Calendar';
   var opts = {
     body: data.body || '',
@@ -60,9 +104,10 @@ self.addEventListener('push', function(e){
 self.addEventListener('notificationclick', function(e){
   e.notification.close();
   var url = (e.notification.data && e.notification.data.url) || '/?house=1';
+  var toHouse = url.indexOf('house=1') >= 0;   // a reminder must NOT throw an open app into the House tab
   e.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(list){
-      for (var i = 0; i < list.length; i++){ var c = list[i]; if ('focus' in c){ c.postMessage({ house: true }); return c.focus(); } }
+      for (var i = 0; i < list.length; i++){ var c = list[i]; if ('focus' in c){ if (toHouse) c.postMessage({ house: true }); return c.focus(); } }
       if (self.clients.openWindow) return self.clients.openWindow(url);
     })
   );
