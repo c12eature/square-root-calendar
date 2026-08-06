@@ -26,8 +26,12 @@
 
 var REST_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || "";
 var REST_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || "";
-var VAPID_PUBLIC = process.env.VAPID_PUBLIC || "";
-var VAPID_PRIVATE = process.env.VAPID_PRIVATE || "";
+// Accept BOTH namings. This project uses VAPID_PUBLIC/VAPID_PRIVATE; the sibling study app uses
+// the *_KEY suffix, and the same person configures both — a habit-typo here does not fail loudly,
+// it just means no notification ever arrives. Reading either name costs nothing and removes a
+// whole class of silent outage.
+var VAPID_PUBLIC = process.env.VAPID_PUBLIC || process.env.VAPID_PUBLIC_KEY || "";
+var VAPID_PRIVATE = process.env.VAPID_PRIVATE || process.env.VAPID_PRIVATE_KEY || "";
 var VAPID_SUBJECT = process.env.VAPID_SUBJECT || "mailto:support@squarerootcalendar.com";
 var CRON_SECRET = process.env.CRON_SECRET || "";
 
@@ -54,12 +58,20 @@ function redis(cmd) {
   }).then(function (j) { return j.result; });
 }
 
-var _wp = null, _wpTried = false;
+var _wp = null, _wpTried = false, _wpWhy = "";
+// Why this reports a reason: when VAPID is unset, sendPush() in api/house.js silently no-ops and
+// the cron still returns healthy-looking counts — so a project missing its keys looks identical to
+// one that is working. Never delivering a notification should not be indistinguishable from
+// delivering one. The reason is a fixed string, never a value, and the route is CRON_SECRET-gated.
 function webpush() {
   if (_wpTried) return _wp;
   _wpTried = true;
-  if (!VAPID_PUBLIC || !VAPID_PRIVATE) return (_wp = null);
-  try { _wp = require("web-push"); _wp.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE); } catch (e) { _wp = null; }
+  if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
+    _wpWhy = "missing-env:" + (VAPID_PUBLIC ? "" : "VAPID_PUBLIC ") + (VAPID_PRIVATE ? "" : "VAPID_PRIVATE");
+    return (_wp = null);
+  }
+  try { _wp = require("web-push"); _wp.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE); }
+  catch (e) { _wp = null; _wpWhy = "web-push-load-failed: " + ((e && e.message) || "unknown"); }
   return _wp;
 }
 
@@ -116,7 +128,7 @@ module.exports = async function handler(req, res) {
     if (q.a === "cron") {
       if (!CRON_SECRET || (H["authorization"] || "") !== "Bearer " + CRON_SECRET) { res.status(401).json({ error: "bad-cron" }); return; }
       var wp = webpush();
-      if (!wp) { res.status(200).json({ ok: true, sent: 0, note: "push-not-configured" }); return; }
+      if (!wp) { res.status(200).json({ ok: true, sent: 0, note: "push-not-configured", why: _wpWhy }); return; }
       var now = Date.now();
       var dueQids = (await redis(["ZRANGE", DUE_ZSET, "0", String(now + EARLY), "BYSCORE", "LIMIT", "0", String(MAX_CRON)])) || [];
       var sent = 0, dropped = 0, queues = 0;

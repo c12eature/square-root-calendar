@@ -140,8 +140,12 @@ async function houseSubStatus(doc) {
 // Subscriptions are stored in a PRIVATE per-member key (never in the house doc), so no member
 // can see another's push endpoint. web-push is lazy-required + no-ops without keys/dep, so the
 // backend still runs locally without the package or env set.
-var VAPID_PUBLIC = process.env.VAPID_PUBLIC || "";
-var VAPID_PRIVATE = process.env.VAPID_PRIVATE || "";
+// Accept BOTH namings. This project uses VAPID_PUBLIC/VAPID_PRIVATE; the sibling study app uses
+// the *_KEY suffix, and the same person configures both — a habit-typo here does not fail loudly,
+// it just means no notification ever arrives. Reading either name costs nothing and removes a
+// whole class of silent outage.
+var VAPID_PUBLIC = process.env.VAPID_PUBLIC || process.env.VAPID_PUBLIC_KEY || "";
+var VAPID_PRIVATE = process.env.VAPID_PRIVATE || process.env.VAPID_PRIVATE_KEY || "";
 var VAPID_SUBJECT = process.env.VAPID_SUBJECT || "mailto:support@squarerootcalendar.com";
 var PUSH_PREFIX = "sqrtcal:push:";
 // Only these real push-service origins are accepted as subscription endpoints — blocks SSRF via a hostile endpoint.

@@ -6,6 +6,11 @@ sw.real.js
 _preview.html
 app.src.html.bak
 README.md
-package.json
-package-lock.json
 scratchpad/
+
+# ⛔ DO NOT add package.json / package-lock.json here. They were excluded to keep them from being
+# served publicly, but .vercelignore controls what gets UPLOADED, not what gets served — with no
+# manifest in the deployment Vercel never runs npm install, `web-push` is absent, and
+# require("web-push") throws inside api/house.js and api/remind.js. Both swallow that and no-op
+# silently, so every push cron kept returning healthy counts while ZERO notifications were ever
+# delivered. They are kept out of the public tree by the redirects in vercel.json instead.

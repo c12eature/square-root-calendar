@@ -1,10 +1,30 @@
 {
   "functions": {
-    "api/house.js": { "maxDuration": 60 }
+    "api/house.js": {
+      "maxDuration": 60
+    }
   },
   "crons": [
-    { "path": "/api/house?a=tourcron&tour=9", "schedule": "0 12 * * *" },
-    { "path": "/api/house?a=tourcron&tour=6", "schedule": "0 21 * * *" }
+    {
+      "path": "/api/house?a=tourcron&tour=9",
+      "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/house?a=tourcron&tour=6",
+      "schedule": "0 21 * * *"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/package.json",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/package-lock.json",
+      "destination": "/",
+      "permanent": false
+    }
   ],
   "headers": [
     {
