@@ -2188,20 +2188,26 @@
     return new Date(+p[0],(+p[1])-1,+p[2],+t[0]||0,+t[1]||0,0,0).getTime(); }
   // The client always uploads the FULL upcoming queue, never a diff: idempotent, and a dropped
   // request heals itself on the next edit.
-  function buildRemQueue(){ var now=Date.now(),out=buildTourReminders();
-    if(!npref.pers)return out.sort(function(a,b){return a.at-b.at;}).slice(0,120);
+  function buildRemQueue(){ var now=Date.now(),out=buildTourReminders().concat(buildOtherReminders());
+    if(!npref.pers)return finishQueue(out);
     for(var i=0;i<pev.length;i++){ var e=pev[i],mins=remMins(e); if(mins===null)continue;
       var ds=pevDates(e);
       for(var j=0;j<ds.length;j++){ var st=pevStartMs(e,ds[j]); if(!isFinite(st))continue;
         var at=st-mins*60000; if(at<now+30000)continue;                  // already past — the server drops stale rings anyway
-        out.push({rid:(e.id||"x")+"-"+String(ds[j]).replace(/-/g,""), at:at,
+        out.push({rid:(e.id||"x")+"-"+String(ds[j]).replace(/-/g,""), at:at, st:st,
           t:"⏰ "+(e.n||"Reminder"), b:pevWhen(e)+(e.loc?" · "+e.loc:"")+(mins?" · starts in "+remLabel(mins).toLowerCase():"")}); } }
+    return finishQueue(out); }
+  function finishQueue(out){
+    out=applyQuiet(out.filter(function(i){return isFinite(i.at)&&i.at>Date.now()+30000;}));
     out.sort(function(a,b){return a.at-b.at;});
-    return out.slice(0,120); }
+    return out.slice(0,120).map(function(i){return {rid:i.rid,at:i.at,t:i.t,b:i.b};}); }   // `st` was only for the quiet-hours clamp — it never leaves the phone
   // Tour reminders are computed HERE, on the phone, and enqueued encrypted — which is why they work
   // for everyone, House or no House. (The House cron still exists for crew requests; it just isn't
   // the only way to be reminded about your own tours any more.)
-  var npref=load("npref",{tour:true,lead:60,pers:true});
+  var npref=(function(){ var d={tour:true,lead:60,pers:true,cev:true,ev:true,sched:true,off:true,pay:false,cfr:true,
+      qh:false,qhFrom:"22:00",qhTo:"07:00"}, v=load("npref",null);
+    if(v&&typeof v==="object")for(var k in v)if(v[k]!==undefined)d[k]=v[k];   // an older {tour,lead,pers} keeps its answers and inherits the new defaults
+    return d; })();
   var LEADS=[["0","At start"],["60","1 hr"],["120","2 hr"],["720","12 hr"],["1440","1 day"]];
   function leadLabel(v){ for(var i=0;i<LEADS.length;i++)if(LEADS[i][0]===String(v))return LEADS[i][1]; return "1 hr"; }
   function buildTourReminders(){ var out=[],now=Date.now(),t0=new Date();
@@ -2212,9 +2218,74 @@
       [9,6].forEach(function(tr){ if(!worked(y,m,d,tr))return;
         var st=new Date(y,m,d,tr===9?9:18,0,0,0).getTime(), at=st-lead;
         if(at<now+30000)return;
-        out.push({rid:"t"+y+pad2(m+1)+pad2(d)+"-"+tr, at:at,
+        out.push({rid:"t"+y+pad2(m+1)+pad2(d)+"-"+tr, at:at, st:st,
           t:tourLabel(y,m,d,tr).replace("🚒 ","🚒 "),
           b:(tr===9?"Starts 09:00":"Starts 18:00")+(lead?" · in "+leadLabel(npref.lead).toLowerCase():" now")}); }); }
+    return out; }
+  // Everything ELSE the calendar already knows about. Each of these was already drawn on the grid
+  // and had no reminder at all — the app would happily show you a company event it never mentioned
+  // again. All of it rides the same encrypted queue as tours, so a category is a few lines and a
+  // toggle. `st` rides along internally for the quiet-hours clamp and is stripped before upload.
+  function remAt(y,m,d,hh,mm){ return new Date(y,m,d,hh||0,mm||0,0,0).getTime(); }
+  function hhmm(t,dh,dm){ var p=String(t||"").split(":"); var h=+p[0],n=+p[1];
+    return {h:isFinite(h)?h:dh, m:isFinite(n)?n:dm}; }
+  function buildOtherReminders(){
+    var out=[],now=Date.now(),t0=new Date(),LEAD=60*60000;   // an hour before anything with a clock time
+    for(var i=0;i<70;i++){
+      var dt=new Date(t0.getFullYear(),t0.getMonth(),t0.getDate()+i),y=dt.getFullYear(),m=dt.getMonth(),d=dt.getDate();
+      if(npref.cev){ cevOn(y,m,d).forEach(function(e,ix){ var c=hhmm(e.t1,9,0), st=remAt(y,m,d,c.h,c.m);
+        out.push({rid:"c"+y+pad2(m+1)+pad2(d)+"-"+ix, at:st-(e.t1?LEAD:0), st:st,
+          t:"📌 "+(e.n||"Company event"), b:(e.t1?fmtT(e.t1):"All day")+(e.loc?" · "+e.loc:"")}); }); }
+      if(npref.ev){ var ed=eventOf(y,m,d); if(ed){ var stE=remAt(y,m,d,9,0);
+        out.push({rid:"e"+y+pad2(m+1)+pad2(d), at:stE-LEAD, st:stE,
+          t:evEmoji(ed)+" "+evLabel(ed), b:"9× day tour · reports 09:00"}); } }
+      if(npref.sched){ var ls=ldSched(y,m,d);
+        if(ls&&ls.work&&ls.shifts&&ls.shifts.length){ var f=hhmm(ls.shifts[0].s,9,0), stL=remAt(y,m,d,f.h,f.m);
+          out.push({rid:"l"+y+pad2(m+1)+pad2(d), at:stL-LEAD, st:stL,
+            t:"📋 Light duty", b:"Reports "+fmtT(ls.shifts[0].s)+(ls.p&&ls.p.gig?" · "+ls.p.gig:"")}); }
+        var tr=trSched(y,m,d);
+        if(tr&&tr.inClass){ var g=hhmm(tr.s,9,0), stT=remAt(y,m,d,g.h,g.m);
+          out.push({rid:"r"+y+pad2(m+1)+pad2(d), at:stT-LEAD, st:stT,
+            t:"🎓 "+(tr.name||"Training"), b:"Starts "+(tr.s?fmtT(tr.s):"09:00")}); } }
+      if(npref.pay&&payday(y,m,d)){ var stP=remAt(y,m,d,9,0);
+        out.push({rid:"p"+y+pad2(m+1)+pad2(d), at:remAt(y,m,d-1,17,0), st:stP,
+          t:"💵 Payday tomorrow", b:"Your check lands "+MON[m].slice(0,3)+" "+d+"."}); }
+    }
+    // Time off: driven off the period list rather than a day scan — one reminder the evening before
+    // it starts, not one for every day of a two-week vacation.
+    if(npref.off)(periods||[]).forEach(function(pd,ix){ if(!pd||!isRealDate(pd.s))return;
+      var ms=vacMs(pd.s); if(!isFinite(ms))return;
+      var sd=new Date(ms), y2=sd.getUTCFullYear(), m2=sd.getUTCMonth(), d2=sd.getUTCDate();
+      var st=remAt(y2,m2,d2,9,0), at=remAt(y2,m2,d2-1,17,0);
+      if(at<now+30000)return;
+      out.push({rid:"v"+ix+"-"+y2+pad2(m2+1)+pad2(d2), at:at, st:st,
+        t:dutyEmoji(pd.t)+" "+dutyLabel(pd.t)+" starts tomorrow", b:"From "+fmtVD(pd.s)+(pd.e?" to "+fmtVD(pd.e):" · ongoing")}); });
+    // CFR: the in-app nag only shows when you open the app. Two pushes, so it can reach you.
+    if(npref.cfr){ var ci=cfrExpInfo();
+      if(ci&&ci.state!=="none"&&isFinite(ci.days)&&ci.days>0){
+        var em=vacMs(ci.exp), ed2=new Date(em), ey=ed2.getUTCFullYear(), emo=ed2.getUTCMonth(), edd=ed2.getUTCDate();
+        [30,7].forEach(function(k){ var at=remAt(ey,emo,edd-k,10,0); if(at<now+30000)return;
+          out.push({rid:"f"+k+"-"+ey+pad2(emo+1)+pad2(edd), at:at, st:remAt(ey,emo,edd,10,0),
+            t:"📘 CFR expires in "+k+" days", b:"Expires "+fmtVD(ci.exp)+" — book a refresher."}); }); } }
+    return out; }
+
+  // Quiet hours. A 6× with a 12-hour lead lands at 06:00; without this the app wakes you to tell you
+  // about work. A reminder inside the window is pushed to the far edge, but never past the thing it
+  // is reminding you about — a notification that arrives after the tour started is worse than none.
+  function applyQuiet(items){
+    if(!npref.qh)return items;
+    var f=hhmm(npref.qhFrom,22,0), t=hhmm(npref.qhTo,7,0);
+    var fm=f.h*60+f.m, tm=t.h*60+t.m;
+    if(fm===tm)return items;                                  // a zero-width window silences nothing
+    var out=[];
+    for(var i=0;i<items.length;i++){ var it=items[i], dt=new Date(it.at), mins=dt.getHours()*60+dt.getMinutes();
+      var inside=(fm<tm)?(mins>=fm&&mins<tm):(mins>=fm||mins<tm);
+      if(!inside){ out.push(it); continue; }
+      var day=(fm<tm||mins<tm)?0:1;                           // past the evening edge → the window ends TOMORROW
+      var shifted=new Date(dt.getFullYear(),dt.getMonth(),dt.getDate()+day,t.h,t.m,0,0).getTime();
+      if(isFinite(it.st)&&shifted>it.st)shifted=it.st;         // clamp to the event itself
+      if(shifted<Date.now()+30000)continue;                    // shifting moved it into the past — drop it
+      it.at=shifted; out.push(it); }
     return out; }
   var _remT=null;
   function scheduleRemSync(){ if(_remT)clearTimeout(_remT); _remT=setTimeout(function(){_remT=null;pushRemQueue();},1200); }
@@ -2226,7 +2297,15 @@
       .then(function(items){ return fetch("/api/remind",{method:"POST",headers:{"Content-Type":"application/json"},
         body:JSON.stringify({a:"set",qid:remid,items:items})}); })
       .then(function(r){ return !!(r&&r.ok); },function(){ return false; }); }
-  function remPushOn(cb){ enablePush(cb); }   // setting a reminder is just another way of asking for notifications
+  function remPushOn(cb){ enablePush(cb); }
+  // "Is this even working?" was unanswerable without waiting for a real reminder — which is exactly
+  // how a dead sender hid for six weeks. One tap, and it surfaces the server's own reason on failure.
+  function sendTestPush(cb){ if(!ensureRem()){cb({ok:false,why:"no-crypto"});return;}
+    remEncrypt({t:"🔔 Square Root Calendar",b:"Notifications are working on this phone.",u:"/"}).then(function(ct){
+      return fetch("/api/remind",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({a:"test",qid:remid,ct:ct})});
+    }).then(function(r){ return r.json().then(function(j){ j._status=r.status; return j; },function(){ return {ok:false,_status:r.status}; }); })
+      .then(function(j){ cb(j||{ok:false}); },function(){ cb({ok:false,why:"unreachable"}); }); }   // setting a reminder is just another way of asking for notifications
 
   // ---- subscribable tour feed (ICS) ----
   // The ONLY thing this app ever puts on a server in readable form, and it is opt-in for exactly
@@ -3142,10 +3221,23 @@
     var g=document.getElementById("secGetApp"); if(g)g.hidden=isStandalone(); }                                          // already installed → drop the whole "Get the App" section
   document.getElementById("openUnlock").onclick=function(){hideSheet(setSheet);openPay();};
   Array.prototype.forEach.call(document.querySelectorAll(".setcolhd"),function(b){b.onclick=function(){b.parentNode.classList.toggle("collapsed");};});
+  document.getElementById("setNotif").addEventListener("change",function(e){
+    var t=e.target; if(!t||(t.id!=="qhFrom"&&t.id!=="qhTo"))return;
+    if(!/^\d{2}:\d{2}$/.test(t.value||""))return;                    // an empty/partial time must not silence everything
+    npref[t.id]=t.value; save("npref",npref); pushRemQueue(); });
   document.getElementById("setNotif").addEventListener("click",function(e){
     var lb=e.target.closest("[data-lead]");
     if(lb){ npref.lead=+lb.getAttribute("data-lead"); save("npref",npref); renderSetNotif(); pushRemQueue(); return; }
     var b=e.target.closest("[data-act]"); if(!b)return; var act=b.getAttribute("data-act");
+    if(act==="pushtest"){ var msg=document.getElementById("ntfMsg");
+      var say=function(t,bad){ if(msg){msg.textContent=t;msg.className="bakmsg show"+(bad?" bad":" ok");} };
+      b.disabled=true; say("Sending…",false);
+      sendTestPush(function(j){ b.disabled=false;
+        if(j&&j.ok&&j.sent)say("✓ Sent to "+j.sent+" device"+(j.sent>1?"s":"")+" — it should arrive within a second or two.",false);
+        else if(j&&j.note==="no-devices")say("This phone isn’t registered for notifications. Turn them off and on again.",true);
+        else if(j&&j._status===429)say("Easy — wait ten seconds and try again.",true);
+        else say("Couldn’t send it"+((j&&j.why)?" ("+j.why+")":"")+". Notifications may not be set up on the server.",true); });
+      return; }
     if(act==="pushon")enablePush(); else if(act==="pushoff")disablePush();
     else if(act==="npref"){ var k=b.getAttribute("data-k"); npref[k]=!npref[k]; save("npref",npref); renderSetNotif(); pushRemQueue(); }
     else if(act==="pref")togglePref(b.getAttribute("data-k")); });
@@ -4927,9 +5019,26 @@ var TEN_CODES=[
     if(!pushSupported()){ el.innerHTML='<p class="ldsub">This device can’t show push notifications.<br>On iPhone, add the app to your Home Screen first, then reopen this.</p>'; return; }
     if(!pushIsOn()){ el.innerHTML='<p class="ldsub" style="margin-top:0">A heads-up before every tour you work, before anything on your personal calendar'+(HS?', and when your crew posts a swap':'')+'.</p><button class="raddbtn" data-act="pushon" style="width:100%">🔔 Turn on notifications</button>'; return; }
     el.innerHTML='<div class="hpushrow on" style="margin-top:0">🔔 Notifications on <button class="hpxbtn" data-act="pushoff">Turn off</button></div>'+
+      '<button class="bakact" data-act="pushtest" style="width:100%;margin:0 0 10px">🔔 Send me a test right now</button>'+
+      '<div class="bakmsg" id="ntfMsg"></div>'+
       '<p class="ldsub" style="margin:0 0 8px">Choose what pings your phone:</p>'+
-      '<div class="hprefs">'+nprefTog("tour","Tour reminders","before every tour you’re working")+nprefTog("pers","Personal events","for anything you set a reminder on")+'</div>'+
+      '<div class="hprefs">'+nprefTog("tour","Tour reminders","before every tour you’re working")+'</div>'+
       (npref.tour?leadSegHTML():"")+
+      '<div class="hprefs" style="margin-top:8px">'+nprefTog("pers","Personal events","for anything you set a reminder on")+'</div>'+
+      '<p class="ldsub" style="margin:10px 0 6px">Also remind me about:</p>'+
+      '<div class="hprefs">'+
+        nprefTog("cev","📌 Company events","an hour before it starts")+
+        nprefTog("ev","🎓 Education &amp; medicals","an hour before you report")+
+        nprefTog("sched","📋 Light duty &amp; training","an hour before the shift or class")+
+        nprefTog("off","🌴 Time off starting","the evening before it begins")+
+        nprefTog("cfr","📘 CFR expiring","30 days and 7 days out")+
+        nprefTog("pay","💵 Payday","the evening before")+
+      '</div>'+
+      '<p class="ldsub" style="margin:10px 0 6px">Quiet hours:</p>'+
+      '<div class="hprefs">'+nprefTog("qh","Don’t ring overnight","a reminder due in the window waits until it ends")+'</div>'+
+      (npref.qh?('<div class="cevgrid" style="margin-top:8px">'+
+        '<div class="vfield"><label>From</label><input type="time" id="qhFrom" value="'+escA(npref.qhFrom)+'"></div>'+
+        '<div class="vfield"><label>Until</label><input type="time" id="qhTo" value="'+escA(npref.qhTo)+'"></div></div>'):'')+
       (HS?('<p class="ldsub" style="margin:10px 0 6px">From your house:</p>'+notifTogglesHTML()):''); }
   function hSwitchRow(){ if(houses.length<2)return "";   // chips to switch between the houses this device belongs to
     return '<div class="hswrow">'+houses.map(function(h){return '<button class="hswch'+(h.id===curHouse?' on':'')+'" data-act="switchhouse" data-hid="'+escA(h.id)+'">🏠 '+esc(h.name||h.code||"House")+'</button>';}).join("")+'</div>'; }

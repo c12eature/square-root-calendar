@@ -16,6 +16,7 @@
 //   POST /api/remind  {a:"sub",   qid, sub}                  register this device
 //   POST /api/remind  {a:"unsub", qid, endpoint}             drop one device
 //   POST /api/remind  {a:"set",   qid, items:[{rid,at,ct}]}  REPLACE the whole queue
+//   POST /api/remind  {a:"test",  qid, ct}                   send ONE now (the "is this working?" button)
 //   POST /api/remind?a=cron   (Authorization: Bearer CRON_SECRET)
 //
 // The client always sends the FULL upcoming queue rather than a diff: it is
@@ -210,6 +211,39 @@ module.exports = async function handler(req, res) {
       if (cur2.length) await redis(["SET", S_PREFIX + qid2, JSON.stringify(cur2), "EX", String(TTL)]);
       else { await redis(["DEL", S_PREFIX + qid2]); await redis(["DEL", Q_PREFIX + qid2]); await redis(["ZREM", DUE_ZSET, qid2]); }   // last device off → nothing left to ring, drop the schedule too
       res.status(200).json({ ok: true, devices: cur2.length });
+      return;
+    }
+
+    // Send one immediately. This exists because "are notifications working?" was previously
+    // unanswerable without waiting for a real reminder — which is how a dead sender hid for six
+    // weeks. It returns the same `why` the cron does, so the button IS the health check.
+    if (a === "test") {
+      if (typeof body.ct !== "string" || !body.ct || body.ct.length > MAX_CT) { res.status(400).json({ error: "bad-ct" }); return; }
+      var twp = webpush();
+      if (!twp) { res.status(200).json({ ok: false, sent: 0, note: "push-not-configured", why: _wpWhy }); return; }
+      // one test per 10s per queue — the qid is a bearer secret, so cap the damage if one leaks
+      var gate = await redis(["SET", "sqrtcal:rtl:" + qid2, "1", "NX", "EX", "10"]);
+      if (!gate) { res.status(429).json({ error: "too-fast" }); return; }
+      var tsubs = parseJ(await redis(["GET", S_PREFIX + qid2]), []);
+      if (!Array.isArray(tsubs) || !tsubs.length) { res.status(200).json({ ok: false, sent: 0, note: "no-devices" }); return; }
+      var tsent = 0, tfail = null;
+      for (var ti = 0; ti < tsubs.length; ti++) {
+        var tsub = tsubs[ti];
+        if (!validSub(tsub)) continue;
+        try {
+          await twp.sendNotification({ endpoint: tsub.endpoint, keys: tsub.keys },
+            JSON.stringify({ enc: body.ct, tag: "rem-test", url: "/" }), { timeout: 3000 });
+          tsent++;
+        } catch (err) {
+          tfail = tfail || ((err && err.statusCode) ? ("http " + err.statusCode) : ((err && err.message) || "send-failed"));
+          if (err && (err.statusCode === 404 || err.statusCode === 410)) {
+            var alive2 = tsubs.filter(function (x) { return x.endpoint !== tsub.endpoint; });
+            if (alive2.length) await redis(["SET", S_PREFIX + qid2, JSON.stringify(alive2), "EX", String(TTL)]).catch(function () {});
+            else await redis(["DEL", S_PREFIX + qid2]).catch(function () {});
+          }
+        }
+      }
+      res.status(200).json({ ok: tsent > 0, sent: tsent, devices: tsubs.length, why: tsent ? undefined : tfail });
       return;
     }
 
