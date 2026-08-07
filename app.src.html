@@ -3615,7 +3615,17 @@
   var PAYLINK_APP="https://buy.stripe.com/3cIaEY9VB7Xa1AA9qx5c400";    // Stripe Payment Link — $9.99 one-time App Unlock
   var PAYLINK_HOUSE="https://buy.stripe.com/eVq3cw5Flelya760U15c401";  // Stripe Payment Link — $20/mo House Calendar subscription
   var unlockSt=load("unlock",null);
-  if(!unlockSt&&load("seen",false)){ unlockSt={k:"gf"}; save("unlock",unlockSt); }   // grandfather: set up before billing shipped → free forever
+  // Grandfather = "you built a calendar before billing existed, keep it free". The old test was
+  // just "seen is set and unlock is not", which a BRAND-NEW install satisfied: onboarding step 2
+  // tells you to install the app first, installing writes sqrt:instdone, and from then on
+  // isFreshInstall() says false — so boot took the fallback branch, set seen with no unlock and no
+  // gate, and the launch after that stamped gf. Reproduced: install, relaunch twice, paid features
+  // open. The fix is to demand EVIDENCE — a device that actually holds a calendar — instead of
+  // treating the mere absence of a marker as proof of seniority. Fails CLOSED: no data, no grandfather.
+  if(!unlockSt&&load("seen",false)){
+    var _pre=false; try{_pre=hasData();}catch(e){_pre=false;}
+    unlockSt=_pre?{k:"gf"}:{k:"none",ts:Date.now()};
+    save("unlock",unlockSt); }
   function houseCovered(){ var m=load("hsub",null)||{}; for(var k in m){ if(m[k]&&m[k]!=="lapsed")return true; } return false; }   // active member of a house whose trial/subscription is live → the house covers the whole app
   function unlocked(){ if(unlockSt&&(unlockSt.k==="gf"||unlockSt.k==="paid"))return true; return houseCovered(); }   // no free trial — pay up front, or ride your house's subscription
   function licenseIdP(){ return rcode?hex256("sqrtcal-id-v1:"+rcode):Promise.resolve(null); }   // the RAW code never leaves the device
@@ -4038,11 +4048,14 @@
           : "This phone had Square Root before — something cleared the app’s data. Your encrypted backup is still in the cloud: restore it here."; } }
     showOnbStep(1); var o=document.getElementById("onb");o.classList.add("show");o.setAttribute("aria-hidden","false"); }
   function closeOnboarding(){ var o=document.getElementById("onb");o.classList.remove("show");o.setAttribute("aria-hidden","true"); }
+  // The marker that says "this device was set up AFTER billing shipped". Without it, an unlock-less
+  // device looks indistinguishable from a pre-billing one.
+  function stampNoUnlock(){ if(!unlockSt){ unlockSt={k:"none",ts:Date.now()}; save("unlock",unlockSt); } }
   function commitGroups(){ my=onbMyVal; pt=onbHasPt?onbPtVal:0;
     var nEl=document.getElementById("onbName"),cEl=document.getElementById("onbCo");
     if(nEl){uname=nEl.value;save("name",uname);} if(cEl){uco=cEl.value.trim();save("co",uco);}   // capture name/company from onboarding
     groups=[{s:"1970-01-01",my:my,pt:pt}]; save("groups",groups); save("my",my); save("pt",pt); save("seen",1);   // fresh user → one base epoch
-    if(!unlockSt){ unlockSt={k:"none",ts:Date.now()}; save("unlock",unlockSt); }   // marker, NOT an unlock — without it a new install would look like a pre-billing device and get grandfathered at next boot
+    stampNoUnlock();   // marker, NOT an unlock — without it a new install would look like a pre-billing device and get grandfathered at next boot
     var vMy=document.getElementById("vMy");if(vMy)vMy.textContent=my; syncPt();render(); }
   function finishOnboarding(){ closeOnboarding(); if(!unlocked())showGate(); }   // setup done → the ENTRY GATE decides if the calendar opens (pay / house / restore)
   (function wireOnb(){
@@ -5853,9 +5866,14 @@ var TEN_CODES=[
 
   function afterBoot(){
     requestPersist().then(function(){return readEstimate();},function(){}).then(cloudStatus,cloudStatus);
-    if(!load("seen",false)){ if(isFreshInstall()){ autoHeal(function(healed){ if(!healed)startOnboarding(); }); } else {save("seen",1);maybeInstallLater();} }   // only brand-new (no sqrt data at all) gets onboarding — and even then, try to heal a wipe first
-    else if(!unlocked()){ showGate(); }   // set up but not paid / not in a live house / not restored → the calendar stays behind the gate
-    else { maybeInstallLater(); }
+    // Restructured so there is exactly ONE way past this point: either onboarding takes over, or the
+    // gate gets its say. The old shape had a third branch — "has a sqrt: key but no seen" — that set
+    // seen and went straight to the calendar, skipping the gate entirely on that launch.
+    if(!load("seen",false)&&isFreshInstall()){ autoHeal(function(healed){ if(!healed)startOnboarding(); }); }
+    else {
+      if(!load("seen",false)){ save("seen",1); stampNoUnlock(); }   // half-set-up install: NOT a pre-billing user
+      if(!unlocked()){ showGate(); } else { maybeInstallLater(); }
+    }
     crumbSet();   // re-stamp the (non-secret) breadcrumb on every boot, so the NEXT wipe can be classified
     setTimeout(maybeRemindPop,900);   // due reminders pop AFTER the calendar has settled (the guard skips if onboarding/a sheet is up)
     setTimeout(maybeVaultPop,1800);   // …and, once ever, offer to bank the recovery code where a wipe can't reach it
