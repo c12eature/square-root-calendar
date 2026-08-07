@@ -1150,14 +1150,10 @@
       <button class="setrow" id="openMx"><span class="setico">🤝</span><span class="settx"><span class="settl">Mutuals Ledger</span><span class="setsub">Who owes who</span></span><span class="setchev">›</span></button>
     </div>
   </div>
-  <div class="setsec setcol collapsed" id="secData">
-    <button class="setcolhd" type="button"><span class="setlbl">Data</span><span class="setcolsum" id="dataSum"></span><span class="hrgchev">▾</span></button>
+  <div class="setsec setcol collapsed" id="secNotif">
+    <button class="setcolhd" type="button"><span class="setlbl">🔔 Notifications</span><span class="setcolsum" id="notifSum"></span><span class="hrgchev">▾</span></button>
     <div class="setcolbody">
-    <div class="setlist">
-      <button class="setrow" id="openBak"><span class="setico">💾</span><span class="settx"><span class="settl">Backup &amp; Restore</span><span class="setsub">Save your data · move to a new phone</span></span><span class="setchev">›</span></button>
-      <button class="setrow" id="openIcs"><span class="setico">🗓️</span><span class="settx"><span class="settl">Add Tours to Your Phone&rsquo;s Calendar</span><span class="setsub">Subscribe in Google or Apple Calendar</span></span><span class="setchev">›</span></button>
-      <a class="setrow" href="privacy.html" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><span class="setico">🔒</span><span class="settx"><span class="settl">Privacy &amp; your data</span><span class="setsub">What's stored, where, and who can see it</span></span><span class="setchev">›</span></a>
-    </div>
+    <div id="setNotif"></div>
     </div>
   </div>
   <div class="setsec setcol collapsed" id="secAppear">
@@ -1170,9 +1166,15 @@
     </div>
     </div>
   </div>
-  <div class="setsec">
-    <div class="setlbl">🔔 Notifications</div>
-    <div id="setNotif"></div>
+  <div class="setsec setcol collapsed" id="secData">
+    <button class="setcolhd" type="button"><span class="setlbl">Data</span><span class="setcolsum" id="dataSum"></span><span class="hrgchev">▾</span></button>
+    <div class="setcolbody">
+    <div class="setlist">
+      <button class="setrow" id="openBak"><span class="setico">💾</span><span class="settx"><span class="settl">Backup &amp; Restore</span><span class="setsub">Save your data · move to a new phone</span></span><span class="setchev">›</span></button>
+      <button class="setrow" id="openIcs"><span class="setico">🗓️</span><span class="settx"><span class="settl">Add Tours to Your Phone&rsquo;s Calendar</span><span class="setsub">Subscribe in Google or Apple Calendar</span></span><span class="setchev">›</span></button>
+      <a class="setrow" href="privacy.html" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><span class="setico">🔒</span><span class="settx"><span class="settl">Privacy &amp; your data</span><span class="setsub">What's stored, where, and who can see it</span></span><span class="setchev">›</span></a>
+    </div>
+    </div>
   </div>
   <div class="setsec" id="secGetApp">
     <div class="setlbl">Get the App</div>
@@ -3132,6 +3134,7 @@
     document.getElementById("secGroups").classList.add("collapsed");
     document.getElementById("secData").classList.add("collapsed");
     document.getElementById("secAppear").classList.add("collapsed");
+    document.getElementById("secNotif").classList.add("collapsed");
     syncThmSeg();syncDataSum();renderSetNotif();syncUnlockRow();openSheet(setSheet);};
   function syncUnlockRow(){ var u=document.getElementById("openUnlock");
     if(u){ u.hidden=unlocked();                                                                                          // unlocked ANY way (paid / grandfathered / riding a live house) → no "unlock" ask
@@ -4912,7 +4915,15 @@ var TEN_CODES=[
   function nprefTog(k,lbl,sub){ return '<button class="hprefrow" data-act="npref" data-k="'+k+'"><span class="hprefl">'+lbl+'<span class="hprefsub">'+sub+'</span></span><span class="htgl'+(npref[k]?" on":"")+'"><span class="htglk"></span></span></button>'; }
   function leadSegHTML(){ return '<div class="arrow" style="padding:0 2px"><span class="lab">⏰ Remind me</span><div class="arseg leadseg">'+
     LEADS.map(function(o){return '<button data-lead="'+o[0]+'"'+(String(npref.lead)===o[0]?' class="on"':'')+'>'+o[1]+'</button>';}).join("")+'</div></div>'; }
-  function renderSetNotif(){ var el=document.getElementById("setNotif"); if(!el)return;
+  // A shut section still has to say whether notifications are actually ON — that is the whole
+  // point of a summary, and it is the setting most worth glancing at.
+  function syncNotifSum(){ var el=document.getElementById("notifSum"); if(!el)return;
+    if(!pushSupported()){ el.textContent="Not supported"; return; }
+    if(!pushIsOn()){ el.textContent="Off"; return; }
+    var bits=[]; if(npref.tour)bits.push("Tours"); if(npref.pers)bits.push("Personal");
+    if(HS&&hpushOn)bits.push("House");
+    el.textContent=bits.length?("On · "+bits.join(" · ")):"On"; }
+  function renderSetNotif(){ syncNotifSum(); var el=document.getElementById("setNotif"); if(!el)return;
     if(!pushSupported()){ el.innerHTML='<p class="ldsub">This device can’t show push notifications.<br>On iPhone, add the app to your Home Screen first, then reopen this.</p>'; return; }
     if(!pushIsOn()){ el.innerHTML='<p class="ldsub" style="margin-top:0">A heads-up before every tour you work, before anything on your personal calendar'+(HS?', and when your crew posts a swap':'')+'.</p><button class="raddbtn" data-act="pushon" style="width:100%">🔔 Turn on notifications</button>'; return; }
     el.innerHTML='<div class="hpushrow on" style="margin-top:0">🔔 Notifications on <button class="hpxbtn" data-act="pushoff">Turn off</button></div>'+
