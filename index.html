@@ -3414,7 +3414,9 @@
       bakSay("That's a recovery code — pulling that calendar from the cloud…",false);
       restoreByCode((raw||"").trim(),function(res){ bakSay(res==="none"?"No cloud backup found for that code — check it character by character.":res==="unavail"?"Cloud isn't reachable right now. Try again in a minute.":"Couldn't read that code — check for typos.",true); });
       return; }
-    var p=parseBackup(raw);if(!p){bakSay("That's not a valid backup. Paste the whole code (it starts with SQRTCAL1:) or your recovery code (SQRT-…), or choose your .json file.",true);return;}var has=Object.keys(p.data).filter(function(k){return typeof p.data[k]==="string";});if(!has.length){   /* accept ANY sqrt key (notes, events, company events, theme…) — mirror collectData so the two can't drift */bakSay("That backup has no readable Square Root data — it may be incomplete or hand-edited. Nothing was changed.",true);return;}var when=(p.meta&&p.meta.ts)?(" from "+new Date(p.meta.ts).toLocaleDateString()):"";appConfirm("Restore this backup"+when+"? It REPLACES all swaps, overtime, ledger, and settings on THIS device.","Replace & restore",function(){p.data.cdirty=JSON.stringify(true);p.data.cconf=JSON.stringify(false);applyBackup(p.data);});}   // a file restore has unknown ancestry — mark dirty so it MERGES with the cloud (base-less union) instead of sitting stale or mass-deleting
+    var p=parseBackup(raw);if(!p){bakSay("That's not a valid backup. Paste the whole code (it starts with SQRTCAL1:) or your recovery code (SQRT-…), or choose your .json file.",true);return;}var has=Object.keys(p.data).filter(function(k){return typeof p.data[k]==="string";});if(!has.length){   /* accept ANY sqrt key (notes, events, company events, theme…) — mirror collectData so the two can't drift */bakSay("That backup has no readable Square Root data — it may be incomplete or hand-edited. Nothing was changed.",true);return;}var when=(p.meta&&p.meta.ts)?(" from "+new Date(p.meta.ts).toLocaleDateString()):"";appConfirm("Restore this backup"+when+"? It REPLACES all swaps, overtime, ledger, and settings on THIS device.","Replace & restore",function(){p.data.cdirty=JSON.stringify(true);p.data.cconf=JSON.stringify(false);
+      p.data.unlock=JSON.stringify((unlockSt&&(unlockSt.k==="paid"||unlockSt.k==="gf"))?unlockSt:{k:"none",ts:Date.now()});   // a hand-written .json must not be able to set unlock=paid
+      applyBackup(p.data);});}   // a file restore has unknown ancestry — mark dirty so it MERGES with the cloud (base-less union) instead of sitting stale or mass-deleting
   document.getElementById("openBak").onclick=function(){hideSheet(setSheet);document.getElementById("bakMsg").className="bakmsg";document.getElementById("bakIn").value="";bakUpdate();openSheet(bakSheet);};
   document.getElementById("bakDone").onclick=closeSheets;
   document.getElementById("bakCopy").onclick=copyBackup;
@@ -3643,11 +3645,27 @@
   // gate, and the launch after that stamped gf. Reproduced: install, relaunch twice, paid features
   // open. The fix is to demand EVIDENCE — a device that actually holds a calendar — instead of
   // treating the mere absence of a marker as proof of seniority. Fails CLOSED: no data, no grandfather.
-  if(!unlockSt&&load("seen",false)){
-    var _pre=false; try{_pre=hasData();}catch(e){_pre=false;}
-    unlockSt=_pre?{k:"gf"}:{k:"none",ts:Date.now()};
-    save("unlock",unlockSt); }
-  function houseCovered(){ var m=load("hsub",null)||{}; for(var k in m){ if(m[k]&&m[k]!=="lapsed")return true; } return false; }   // active member of a house whose trial/subscription is live → the house covers the whole app
+  // Client-side grandfathering is not securable and this is the second attempt to patch it. Round
+  // one demanded EVIDENCE — an actual calendar — instead of the mere absence of a marker. That
+  // lasted until you notice the restore path SUPPLIES the evidence: paste any circulating recovery
+  // code (a mate's, an abandoned pre-billing one, or a blob you POST yourself — /api/sync takes
+  // unauthenticated writes), and applyBackup wipes every sqrt: key including `unlock`, writes the
+  // blob's calendar back, and boot obligingly stamps gf. Any proof the client can check, a restore
+  // can manufacture.
+  // So the inference is gone. The rule has been live since billing shipped, so every genuine
+  // pre-billing user who has opened the app since is already stamped and keeps it — nothing is
+  // revoked. A device that reaches here now is one we cannot vouch for, and it gets the marker,
+  // not the licence. checkPaidSilently() below then lets a REAL purchase re-assert itself from the
+  // server, which is the only party that actually knows who paid.
+  if(!unlockSt&&load("seen",false)){ unlockSt={k:"none",ts:Date.now()}; save("unlock",unlockSt); }
+  // Coverage requires BOTH a live subscription stamp AND a membership this device actually holds.
+  // hsub alone was enough, and hsub rides the backup — so restoring anyone's blob (or hand-writing
+  // {"x":"active"}) granted a permanent unlock for a house you were never in, which nothing ever
+  // revoked because hGet bails early when there is no membership to check.
+  function houseCovered(){ var m=load("hsub",null)||{}, hs=houses||[];
+    for(var k in m){ if(!m[k]||m[k]==="lapsed")continue;
+      for(var i=0;i<hs.length;i++){ if(hs[i]&&hs[i].id===k)return true; } }
+    return false; }
   function unlocked(){ if(unlockSt&&(unlockSt.k==="gf"||unlockSt.k==="paid"))return true; return houseCovered(); }   // no free trial — pay up front, or ride your house's subscription
   function licenseIdP(){ return rcode?hex256("sqrtcal-id-v1:"+rcode):Promise.resolve(null); }   // the RAW code never leaves the device
   function payMsg(t,warn){ var el=document.getElementById("payMsg"); if(el){el.textContent=t||""; el.className="paymsg"+(warn?" warn":"");} }
@@ -3658,6 +3676,15 @@
     if(lic){ lic.hidden=true; licenseIdP().then(function(id){ if(!id)return;   // bought before but lost the code? support re-links a purchase to this id
       lic.innerHTML="Bought it but locked out? Email <b>support@squarerootcalendar.com</b> with your receipt and this license ID: "; var c=document.createElement("b"); c.textContent=id; lic.appendChild(c); lic.hidden=false; }); }
     payMsg(""); openSheet(paySheet); }
+  // The server is the only party that knows who paid. If this device is locked but carries a
+  // recovery code, ask — quietly, once per launch. A genuine buyer restoring onto a new phone gets
+  // straight back in; a forged blob gets nothing, because the licence id is a hash of the code and
+  // no purchase is recorded against it.
+  function checkPaidSilently(){ if(unlocked()||!rcode||!hasCrypto())return;
+    licenseIdP().then(function(id){ if(!id)return;
+      return fetch("/api/billing?check="+id).then(function(r){ return r.ok?r.json():null; }).then(function(j){
+        if(j&&j.app){ unlockSt={k:"paid",id:id}; save("unlock",unlockSt); hideGate(); syncUnlockRow(); } }); })["catch"](function(){});
+  }
   function requireUnlock(){ if(unlocked())return true; openPay(); return false; }
   // ===== the ENTRY GATE: nobody reaches the calendar without paying, a house membership, or a restored purchase =====
   var _gatePollT=null;
@@ -3670,11 +3697,14 @@
     if(rs)rs.hidden=!lapsedHouse; }
   function showGate(){ var g=document.getElementById("gate"); if(!g||unlocked())return; gateSync(); gateMsg("");
     g.classList.add("show"); g.setAttribute("aria-hidden","false");
+    try{ document.getElementById("app").inert=true; }catch(e){}   // it was a visual cover only: one Tab put focus on ⚙ behind it and the whole app was drivable
+    checkPaidSilently();
     if(_gatePollT)clearInterval(_gatePollT);
     _gatePollT=setInterval(function(){ if(unlocked()){hideGate();return;}   // approval / cross-device purchase lands → straight in
       if(HS)hGet().then(function(){ if(unlocked())hideGate(); else gateSync(); })["catch"](function(){}); },15000); }
   function hideGate(){ var g=document.getElementById("gate"); if(!g)return;
     g.classList.remove("show"); g.setAttribute("aria-hidden","true");
+    try{ document.getElementById("app").inert=false; }catch(e){}
     if(_gatePollT){clearInterval(_gatePollT);_gatePollT=null;}
     syncUnlockRow(); render(); }
   (function wireGate(){
@@ -3753,6 +3783,10 @@
       var data=rec.data,keys=Object.keys(data||{}).filter(function(k){return typeof data[k]==="string";});
       if(!keys.length){onResult("bad");return;}
       data.rcode=JSON.stringify(code); data.cloud="true"; data.seen="1";   // this device keeps syncing with this code
+      // The incoming blob does NOT get to say who paid — it is attacker-controllable (any code, and
+      // /api/sync accepts unauthenticated writes). Keep this device's own licence if it already has
+      // a real one, otherwise stamp the marker and let the server decide via checkPaidSilently().
+      data.unlock=JSON.stringify((unlockSt&&(unlockSt.k==="paid"||unlockSt.k==="gf"))?unlockSt:{k:"none",ts:Date.now()});
       var st=JSON.stringify(rec.ts||0);   // mark this device as already in sync with the server version we just pulled →
       data.cbase=st; data.cloudts=st; data.cdirty="false"; data.cconf="false";   // no re-push/clobber, no false conflict
       data.cshrink="null";                // a deliberate restore ends the pause
