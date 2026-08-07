@@ -1782,7 +1782,7 @@
     <button class="onblink" id="gateActivate" type="button">I&rsquo;ve paid — activate</button>
     <div class="gatediv">or get in with your firehouse</div>
     <input class="bakcodein" id="gateHouseCode" placeholder="House invite code" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" style="margin-bottom:8px">
-    <button class="onbnext sm" id="gateJoin" type="button">🏠 Join my house &mdash; the crew rides free</button>
+    <button class="onbnext sm" id="gateJoin" type="button">🏠 Join my house with an invite code</button>
     <button class="onbnext sm" id="gateResub" type="button" hidden>⏸ Reactivate the house &middot; $20/mo</button>
     <button class="onblink" id="gateHasCode" type="button">Already have a recovery code? Restore it</button>
     <div class="onbrestore" id="gateRestoreBox" hidden>
@@ -3641,16 +3641,30 @@
   // hsub alone was enough, and hsub rides the backup — so restoring anyone's blob (or hand-writing
   // {"x":"active"}) granted a permanent unlock for a house you were never in, which nothing ever
   // revoked because hGet bails early when there is no membership to check.
+  // Only a house that has actually PAID covers its crew. The trial used to count, which meant
+  // creating a house — free, no card, no limit — handed the $9.99 app to everyone in it for 30
+  // days, and you could mint a fresh house on day 31 forever. Nine people had paid; not one house
+  // had ever converted to the $20/mo. Dropping "trial" from this list closes the loop and, more to
+  // the point, makes farming pointless rather than merely inconvenient.
+  // "grace" stays: that is a house that paid and whose card is retrying, not a free ride. A
+  // "degraded" reading from api/house.js arrives as "active" on purpose — an unreachable billing
+  // store must never lock out a house that is paid up.
+  var HOUSE_PAID={active:1,grace:1};
   function houseCovered(){ var m=load("hsub",null)||{}, hs=houses||[];
-    for(var k in m){ if(!m[k]||m[k]==="lapsed")continue;
+    for(var k in m){ if(!HOUSE_PAID[m[k]])continue;
+      for(var i=0;i<hs.length;i++){ if(hs[i]&&hs[i].id===k)return true; } }
+    return false; }
+  function houseOnTrial(){ var m=load("hsub",null)||{}, hs=houses||[];
+    for(var k in m){ if(m[k]!=="trial")continue;
       for(var i=0;i<hs.length;i++){ if(hs[i]&&hs[i].id===k)return true; } }
     return false; }
   function unlocked(){ if(unlockSt&&(unlockSt.k==="gf"||unlockSt.k==="paid"))return true; return houseCovered(); }   // no free trial — pay up front, or ride your house's subscription
   function licenseIdP(){ return rcode?hex256("sqrtcal-id-v1:"+rcode):Promise.resolve(null); }   // the RAW code never leaves the device
   function payMsg(t,warn){ var el=document.getElementById("payMsg"); if(el){el.textContent=t||""; el.className="paymsg"+(warn?" warn":"");} }
   function openPay(){ var st=document.getElementById("payTrial");
-    st.textContent = (houses&&houses.length&&!houseCovered()) ? "\u23F8 Your house\u2019s subscription has lapsed \u2014 any member can reactivate it in the \uD83C\uDFE0 House tab, or unlock the app just for you."
-      : "In a firehouse with the House Calendar? Ask for the invite code \u2014 the house subscription covers the whole crew.";
+    st.textContent = houseOnTrial() ? "\uD83C\uDFE0 Your house is on its free trial. Once any member subscribes ($20/mo) the app unlocks for the whole crew \u2014 until then it\u2019s $9.99 each."
+      : (houses&&houses.length&&!houseCovered()) ? "\u23F8 Your house\u2019s subscription has lapsed \u2014 any member can reactivate it in the \uD83C\uDFE0 House tab, or unlock the app just for you."
+      : "In a firehouse with the House Calendar? Once it\u2019s subscribed, the $20/mo covers the whole crew.";
     var lic=document.getElementById("payLic");
     if(lic){ lic.hidden=true; licenseIdP().then(function(id){ if(!id)return;   // bought before but lost the code? support re-links a purchase to this id
       lic.innerHTML="Bought it but locked out? Email <b>support@squarerootcalendar.com</b> with your receipt and this license ID: "; var c=document.createElement("b"); c.textContent=id; lic.appendChild(c); lic.hidden=false; }); }
@@ -3669,11 +3683,15 @@
   var _gatePollT=null;
   function gateMsg(t,bad){ var el=document.getElementById("gateMsg"); if(el){el.textContent=t||""; el.className="onbrestmsg"+(bad?" bad":"");} }
   function gateSync(){ var st=document.getElementById("gateStatus"), rs=document.getElementById("gateResub");
-    var pendingHouse=(HS&&hLoad==="pending"), lapsedHouse=(houses&&houses.length&&!houseCovered()&&!pendingHouse);
+    var pendingHouse=(HS&&hLoad==="pending"), trialHouse=(!pendingHouse&&houseOnTrial());
+    var lapsedHouse=(houses&&houses.length&&!houseCovered()&&!pendingHouse&&!trialHouse);
     if(st)st.textContent = pendingHouse ? "⏳ Your join request is in — the app opens the moment your house admin approves you."
+      : trialHouse ? "🏠 Your house is on its free trial. The trial covers the House Calendar itself — the app unlock comes with the subscription. Any member can start it, and then the whole crew is covered."
       : lapsedHouse ? "⏸ Your house's subscription has lapsed — any member can reactivate it, or unlock the app just for you."
       : "Your calendar is set up and saved on this phone — unlock it to open.";
-    if(rs)rs.hidden=!lapsedHouse; }
+    var sub=document.getElementById("gateResub");
+    if(sub){ sub.hidden=!(lapsedHouse||trialHouse);
+      sub.textContent=trialHouse?"🏠 Subscribe the house · $20/mo — covers everyone":"⏸ Reactivate the house · $20/mo"; } }
   function showGate(){ var g=document.getElementById("gate"); if(!g||unlocked())return; gateSync(); gateMsg("");
     g.classList.add("show"); g.setAttribute("aria-hidden","false");
     try{ document.getElementById("app").inert=true; }catch(e){}   // it was a visual cover only: one Tab put focus on ⚙ behind it and the whole app was drivable
