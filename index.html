@@ -1803,7 +1803,7 @@
     <button class="onblink" id="gateActivate" type="button">I&rsquo;ve paid — activate</button>
     <div class="gatediv">or get in with your firehouse</div>
     <input class="bakcodein" id="gateHouseCode" placeholder="House invite code" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" style="margin-bottom:8px">
-    <button class="onbnext sm" id="gateJoin" type="button">🏠 Join my house with an invite code</button>
+    <button class="onbnext sm" id="gateJoin" type="button">🏠 Join my house &mdash; 30-day free trial</button>
     <button class="onbnext sm" id="gateResub" type="button" hidden>⏸ Reactivate the house &middot; $20/mo</button>
     <button class="onblink" id="gateHasCode" type="button">Already have a recovery code? Restore it</button>
     <div class="onbrestore" id="gateRestoreBox" hidden>
@@ -3237,8 +3237,16 @@
     document.getElementById("secNotif").classList.add("collapsed");
     syncThmSeg();syncDataSum();renderSetNotif();syncUnlockRow();openSheet(setSheet);};
   function syncUnlockRow(){ var u=document.getElementById("openUnlock");
-    if(u){ u.hidden=unlocked();                                                                                          // unlocked ANY way (paid / grandfathered / riding a live house) → no "unlock" ask
-      var s=document.getElementById("unlockSub"); if(s)s.textContent=houseCovered()?"Covered by your House Calendar · restore a purchase":"One-time — yours forever · restore a purchase"; }
+    // A trial that nobody can see is a trial nobody converts on: while it runs the user IS unlocked,
+    // so every "unlock" prompt was hidden and there was no sign a clock was ticking. Keep the row up
+    // during the trial with the days left on it — that IS the conversion moment.
+    var onTrial=houseOnTrial()&&!trialSpent()&&!(unlockSt&&(unlockSt.k==="paid"||unlockSt.k==="gf"));
+    if(u){ u.hidden=unlocked()&&!onTrial;
+      var t=u.querySelector(".settl");
+      if(t)t.textContent=onTrial?("Free trial · "+Math.ceil(trialLeftMs()/864e5)+" day"+(Math.ceil(trialLeftMs()/864e5)===1?"":"s")+" left"):"Unlock Square Root · $9.99";
+      var s=document.getElementById("unlockSub");
+      if(s)s.textContent=onTrial?"Keep it for $9.99 once — or subscribe the house at $20/mo and cover the crew"
+        :houseCovered()?"Covered by your House Calendar · restore a purchase":"One-time — yours forever · restore a purchase"; }
     var g=document.getElementById("secGetApp"); if(g)g.hidden=isStandalone(); }                                          // already installed → drop the whole "Get the App" section
   document.getElementById("openUnlock").onclick=function(){hideSheet(setSheet);openPay();};
   Array.prototype.forEach.call(document.querySelectorAll(".setcolhd"),function(b){b.onclick=function(){b.parentNode.classList.toggle("collapsed");};});
@@ -3670,20 +3678,41 @@
   // "grace" stays: that is a house that paid and whose card is retrying, not a free ride. A
   // "degraded" reading from api/house.js arrives as "active" on purpose — an unreachable billing
   // store must never lock out a house that is paid up.
+  // A house that has PAID always covers its crew — active, or grace (a paid house whose card is
+  // retrying is not a free ride). A "degraded" reading arrives as active on purpose: an unreachable
+  // billing store must never lock out a house that is paid up.
   var HOUSE_PAID={active:1,grace:1};
+  // A house TRIAL covers you too, but once ever — thirty days per PERSON, not per house. Creating a
+  // house is free and unlimited, so counting every house's own trial meant a fresh 30 days on demand,
+  // forever. Anchoring the clock to the device instead keeps the taster (the invite code is the whole
+  // funnel in a firehouse) while giving the trial an end, which is the conversion moment the product
+  // did not previously have anywhere.
+  // `htrial` is a normal sqrt: key ON PURPOSE — it rides the encrypted backup, so wiping the app and
+  // restoring brings the spent trial back with it. Resetting it means abandoning your calendar.
+  var TRIAL_MS=30*864e5;
+  var htrial=(function(){var v=load("htrial",null);return (v&&typeof v==="object"&&isFinite(+v.s))?{s:+v.s}:null;})();
+  function myTrialHouse(){ var m=load("hsub",null)||{}, hs=houses||[];
+    for(var k in m){ if(m[k]!=="trial")continue;
+      for(var i=0;i<hs.length;i++){ if(hs[i]&&hs[i].id===k)return k; } }
+    return ""; }
+  function startTrialOnce(){ if(htrial)return; htrial={s:Date.now()}; save("htrial",htrial); }   // first time this person rides ANY house trial
+  function trialLeftMs(){ return htrial?Math.max(0,htrial.s+TRIAL_MS-Date.now()):TRIAL_MS; }
+  function trialSpent(){ return !!htrial&&trialLeftMs()<=0; }
   function houseCovered(){ var m=load("hsub",null)||{}, hs=houses||[];
     for(var k in m){ if(!HOUSE_PAID[m[k]])continue;
       for(var i=0;i<hs.length;i++){ if(hs[i]&&hs[i].id===k)return true; } }
+    // Start the clock HERE as well as in setHSub. Otherwise a device that never gets a server
+    // response — restored hsub, or simply offline — is covered by a trial that never began and so
+    // can never end. The moment we grant trial coverage is the moment it starts counting.
+    if(myTrialHouse()){ startTrialOnce(); return !trialSpent(); }
     return false; }
-  function houseOnTrial(){ var m=load("hsub",null)||{}, hs=houses||[];
-    for(var k in m){ if(m[k]!=="trial")continue;
-      for(var i=0;i<hs.length;i++){ if(hs[i]&&hs[i].id===k)return true; } }
-    return false; }
+  function houseOnTrial(){ return !!myTrialHouse(); }
   function unlocked(){ if(unlockSt&&(unlockSt.k==="gf"||unlockSt.k==="paid"))return true; return houseCovered(); }   // no free trial — pay up front, or ride your house's subscription
   function licenseIdP(){ return rcode?hex256("sqrtcal-id-v1:"+rcode):Promise.resolve(null); }   // the RAW code never leaves the device
   function payMsg(t,warn){ var el=document.getElementById("payMsg"); if(el){el.textContent=t||""; el.className="paymsg"+(warn?" warn":"");} }
   function openPay(){ var st=document.getElementById("payTrial");
-    st.textContent = houseOnTrial() ? "\uD83C\uDFE0 Your house is on its free trial. Once any member subscribes ($20/mo) the app unlocks for the whole crew \u2014 until then it\u2019s $9.99 each."
+    st.textContent = (houseOnTrial()&&trialSpent()) ? "\uD83C\uDFE0 Your 30-day trial is used up \u2014 one per person, not per house. Any member can subscribe the house at $20/mo and cover the whole crew."
+      : houseOnTrial() ? ("\uD83C\uDFE0 You\u2019re on your free trial \u2014 " + Math.ceil(trialLeftMs()/864e5) + " days left. Any member can subscribe the house at $20/mo and cover the whole crew.")
       : (houses&&houses.length&&!houseCovered()) ? "\u23F8 Your house\u2019s subscription has lapsed \u2014 any member can reactivate it in the \uD83C\uDFE0 House tab, or unlock the app just for you."
       : "In a firehouse with the House Calendar? Once it\u2019s subscribed, the $20/mo covers the whole crew.";
     var lic=document.getElementById("payLic");
@@ -3707,7 +3736,8 @@
     var pendingHouse=(HS&&hLoad==="pending"), trialHouse=(!pendingHouse&&houseOnTrial());
     var lapsedHouse=(houses&&houses.length&&!houseCovered()&&!pendingHouse&&!trialHouse);
     if(st)st.textContent = pendingHouse ? "⏳ Your join request is in — the app opens the moment your house admin approves you."
-      : trialHouse ? "🏠 Your house is on its free trial. The trial covers the House Calendar itself — the app unlock comes with the subscription. Any member can start it, and then the whole crew is covered."
+      : (trialHouse&&!trialSpent()) ? ("🏠 Riding your house's free trial — "+Math.ceil(trialLeftMs()/864e5)+" day"+(Math.ceil(trialLeftMs()/864e5)===1?"":"s")+" left. After that it's $9.99 once, or any member subscribes the house at $20/mo and the whole crew is covered.")
+      : trialHouse ? "🏠 Your free trial is used up. It's one 30-day trial per person, not per house. Unlock for $9.99, or any member can subscribe the house at $20/mo and cover everyone."
       : lapsedHouse ? "⏸ Your house's subscription has lapsed — any member can reactivate it, or unlock the app just for you."
       : "Your calendar is set up and saved on this phone — unlock it to open.";
     var sub=document.getElementById("gateResub");
@@ -3827,6 +3857,12 @@
   // lists (adds from both sides survive, a deletion by either side sticks), and the device that
   // edited most recently wins the rare both-changed-the-exact-same-thing conflict.
   var MERGE_MAPS={ov:1,ot:1,mx:1,pass:1,ar:1,add:1,note:1,sb:1,fh:1,hqapplied:1,hseen:1,hsub:1};
+  // htrial is the one scalar where "the device that edited later wins" would be exactly wrong: a
+  // fresh phone would reset a spent trial by merging. Earliest start always wins.
+  function mergeTrial(L,R){ var a=parseJ(L),b=parseJ(R);
+    var as=(a&&isFinite(+a.s))?+a.s:Infinity, bs=(b&&isFinite(+b.s))?+b.s:Infinity;
+    if(!isFinite(as)&&!isFinite(bs))return undefined;
+    return JSON.stringify({s:Math.min(as,bs)}); }
   var MERGE_ARRS={ev:1,mxnames:1,cev:1,pev:1,abcd:1,periods:1,groups:1};
   var MERGE_UNION={houses:1};   // union-only: a merge must never DELETE a house entry — it holds the membership key, and losing it locks you out (a stale entry self-heals via the 403 → hDrop path instead)
   var MERGE_LOCAL={rempush:1,rcode:1,cloud:1,seen:1,cshrink:1,curhouse:1,hgack:1,hpush:1,housedoc:1,instdone:1,instsnooze:1,cbase:1,cloudts:1,cdirty:1,cconf:1,editat:1,bakts:1,baksnooze:1,cfrsnooze:1};
@@ -3924,6 +3960,7 @@
     for(k in loc)ks[k]=1; for(k in rem)ks[k]=1;
     for(k in ks){ var L=loc[k],R=rem[k],B=base?base[k]:undefined;
       if(MERGE_LOCAL[k]){ if(L!==undefined)out[k]=L; continue; }   // device-local (push sub, install flags, sync meta) never crosses phones
+      if(k==="htrial"){ var t=mergeTrial(L,R); if(t!==undefined)out[k]=t; continue; }   // earliest start wins — never let a fresh phone hand back a spent trial
       if(k==="unlock"){ var u=mergeVal(k,B,L,R,remWins); if(u!==undefined)out[k]=u; continue; }   // rank rule ALWAYS — a fresh phone's "none" must never displace paid/gf via the generic three-way path
       if(MERGE_UNION[k]&&L!==R){ var la=parseJ(L),ra=parseJ(R);                                    // memberships only ever ADD across devices — never let an older copy's absence strand this device outside its house
         if(Array.isArray(la)&&Array.isArray(ra)){ out[k]=mergeVal(k,B,L,R,remWins); continue; }
@@ -4982,7 +5019,9 @@ var TEN_CODES=[
   }
   var hSub=null;   // {mode:"trial"|"active"|"grace"|"lapsed",daysLeft} from the server (set on every GET)
   // persistent per-house sub cache — houseCovered() reads it so an active membership unlocks the app (and a lapse re-locks it on the next sync)
-  function setHSub(id,mode){ var m=load("hsub",null)||{}; if(m[id]===mode)return; m[id]=mode; save("hsub",m); }
+  function setHSub(id,mode){ var m=load("hsub",null)||{};
+    if(mode==="trial")startTrialOnce();   // the 30 days begin the first time ANY house puts this person on a trial
+    if(m[id]===mode)return; m[id]=mode; save("hsub",m); }
   function dropHSub(id){ var m=load("hsub",null)||{}; if(!(id in m))return; delete m[id]; save("hsub",m); }
   var hLoad="";   // what we KNOW about the active house when HD isn't cached: "loading" | "pending" | "err:<code>" — never guess "waiting for approval" from a missing doc
   function hGet(tried){ if(!HS)return Promise.resolve({none:true}); var reqId=HS.id; if(!HD)hLoad="loading";
