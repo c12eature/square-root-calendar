@@ -155,8 +155,9 @@
   .seg button[data-st="ot"].on{background:#0f7a41;color:#fff;border-color:#0f7a41;}
   .seg button[data-st="smxout"],.seg button[data-st="smxin"]{color:var(--cyan);}
   .seg button[data-st="smxout"].on,.seg button[data-st="smxin"].on{background:#0e7490;color:#fff;border-color:var(--cyan);}
-  .seg button[data-st="comp"]{color:#db2777;}
-  .seg button[data-st="comp"].on{background:#db2777;color:#fff;border-color:#db2777;}
+  .seg button[data-st="comp"],.seg button[data-st="vcomp"]{color:#db2777;}
+  .seg button[data-st="comp"].on,.seg button[data-st="vcomp"].on{background:#db2777;color:#fff;border-color:#db2777;}
+  .dot.cmp.vcmp{box-shadow:inset 0 0 0 1px var(--panel);}
   .seg button[data-st="oot"]{color:var(--orange);}
   .seg button[data-st="oot"].on{background:#c2410c;color:#fff;border-color:var(--orange);}
   /* density: OT-pickup + standby are the RARE actions — visually secondary so the work-state row leads */
@@ -457,6 +458,7 @@
   .setgrps2 label{font-size:11px;}   /* labels must be free to wrap — nowrap made long ones overlap the neighbor column */
   .setgrps2 .stepper{width:100%;}
   .setgrps2 .stepper button{width:40px;}
+  .stepper button:disabled,.ptclear:disabled{opacity:.4;cursor:default;}
   .setgrps2 .stepper .v{flex:1; width:auto;}
   .gc{font-weight:900;}
   .gred{color:var(--red);}
@@ -1144,6 +1146,7 @@
       </div>
     </div>
     <div class="field" style="margin:9px 0 0"><label>Your ABCD letter <span class="opt">(only for house ABCD pushes)</span></label><select class="cevin" id="setLetter" style="margin-bottom:0"><option value="">— none</option><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select></div>
+    <p class="baknote" id="grpLockNote" hidden style="margin:2px 3px 8px">🔒 Locked after setup. Changing these here would re-read <b>every tour you have already logged</b> against a different rotation. Reassigned? Use <b>Group change</b> below — it takes effect from a date and leaves your history alone.</p>
     <button class="setrow gcrow" id="openGroups"><span class="setico">🔄</span><span class="settx"><span class="settl">Group change</span><span class="setsub">Reassigned? Set the start date &amp; your new groups</span></span><span class="setchev">›</span></button>
     <button class="setrow gcrow" id="openAbcd"><span class="setico">🔤</span><span class="settx"><span class="settl">ABCD Chart</span><span class="setsub">Switch to letter tours — set the dates &amp; your letter</span></span><span class="setchev">›</span></button>
     </div>
@@ -1407,7 +1410,7 @@
 <div class="sheet set" id="compSheet">
   <div class="grip"></div>
   <h3>Comp Time</h3>
-  <p class="rsub">Veterans bank comp time on <b>Memorial Day</b> and <b>Veterans Day</b> — the hours of your tour that actually fall on the holiday itself. Spend it by setting a tour to <b>Comp time</b> in that day&rsquo;s sheet.</p>
+  <p class="rsub">Veterans bank comp time on <b>Memorial Day</b> and <b>Veterans Day</b> — the hours of your tour that actually fall on the holiday itself. Spend it by setting a tour to <b>Veteran comp</b> in that day&rsquo;s sheet — that selector only appears once this box is ticked. Ordinary <b>Comp time</b> is a separate pot and never touches these hours.</p>
   <div class="chkrow" style="margin-bottom:10px">
     <label class="chk" id="vetChk"><input type="checkbox" id="vetBox">I&rsquo;m a veteran — track my comp time</label>
   </div>
@@ -1644,6 +1647,7 @@
     <div class="gcerr" id="gcErr"></div>
   </div>
   <div class="setlbl gclbl">Your group history</div>
+  <p class="baknote" style="margin:0 3px 6px">Set the steppers above, then <b>✎</b> on the first row to correct the group you <b>started</b> on. That one reaches backwards — for a reassignment, add a change with a date instead.</p>
   <div class="gclist" id="gcList"></div>
   <button class="done" id="gcDone">Done</button>
 </div>
@@ -2027,20 +2031,23 @@
   //   smxin/smxout (self mutual — no partner, chief-approved) | comp (comp time off) |
   //   ot (MSOT) | rsot (scheduled OT) | oot (other OT)
   // ot[k]: "m" = MSOT · "r" = RSOT · "o" = other OT
-  // ov[k]: "in"/"out" = partner mutual · "sin"/"sout" = self mutual · "comp" = comp time
+  // ov[k]: "in"/"out" = partner mutual · "sin"/"sout" = self mutual · "comp" = comp time · "vc" = veteran comp
+  // Comp time is NOT a veterans-only thing — anyone can bank ordinary comp — so veteran holiday
+  // comp gets its own state rather than sharing one. Only the veteran option draws down the
+  // Memorial Day / Veterans Day balance, and it is the only one hidden behind the veteran box.
   function curState(y,m,d,tour){var k=K(y,m,d,tour);
     if(ot[k]==="r")return "rsot"; if(ot[k]==="o")return "oot"; if(ot[k])return "ot";
     var o=ov[k];
     if(o==="in")return "mxin"; if(o==="out")return "mxout";
     if(o==="pin")return "pmxin"; if(o==="pout")return "pmxout";   // even swap with your regular partner — ledger-neutral
     if(o==="sin")return "smxin"; if(o==="sout")return "smxout";
-    if(o==="comp")return "comp";
+    if(o==="comp")return "comp"; if(o==="vc")return "vcomp";
     return "base";}
   function setState(y,m,d,tour,st,quiet){var k=K(y,m,d,tour);delete ov[k];delete ot[k];
     if(st==="mxin")ov[k]="in";else if(st==="mxout")ov[k]="out";
     else if(st==="pmxin")ov[k]="pin";else if(st==="pmxout")ov[k]="pout";
     else if(st==="smxin")ov[k]="sin";else if(st==="smxout")ov[k]="sout";
-    else if(st==="comp")ov[k]="comp";
+    else if(st==="comp")ov[k]="comp";else if(st==="vcomp")ov[k]="vc";
     else if(st==="ot")ot[k]="m";else if(st==="rsot")ot[k]="r";else if(st==="oot")ot[k]="o";
     if(st!=="mxin"&&st!=="mxout")delete mx[k];         // partner name only relevant for regular (counting) mutuals
     if(!PASSABLE[st])delete pass[k];                   // a hand-off only exists on a tour you took on — don't leave a dead leg behind
@@ -2065,7 +2072,7 @@
   function setMxName(y,m,d,tour,name){var k=K(y,m,d,tour);name=(name||"").trim();if(name)mx[k]=name;else delete mx[k];save("mx",mx);}
   // ABCD whole-day work-state: set the same state on BOTH the 9× and 6× at once (a mutual/OT/comp covers the whole day).
   function setBothState(y,m,d,st){[9,6].forEach(function(tour){var k=K(y,m,d,tour);delete ov[k];delete ot[k];
-    if(st==="mxin")ov[k]="in";else if(st==="mxout")ov[k]="out";else if(st==="comp")ov[k]="comp";
+    if(st==="mxin")ov[k]="in";else if(st==="mxout")ov[k]="out";else if(st==="comp")ov[k]="comp";else if(st==="vcomp")ov[k]="vc";
     else if(st==="ot")ot[k]="m";
     if(st!=="mxin"&&st!=="mxout")delete mx[k];
     if(!PASSABLE[st])delete pass[k];});
@@ -2078,7 +2085,7 @@
     var st=curState(y,m,d,tour);
     if(PASSABLE[st]&&(pass[K(y,m,d,tour)]||"").trim())return false;   // you took it on, then someone else worked it — no body reported, and no hours are yours
     if(st==="ot"||st==="rsot"||st==="oot"||st==="mxin"||st==="pmxin"||st==="smxin")return true;
-    if(st==="mxout"||st==="pmxout"||st==="smxout"||st==="comp")return false;
+    if(st==="mxout"||st==="pmxout"||st==="smxout"||st==="comp"||st==="vcomp")return false;
     return baseOf(y,m,d,tour)==="mine";}
   // ---- partner "set": the 4 consecutive tours you & G<pt> interlock on = [Day1 6x, Day2 9x, Day2 6x, Day3 9x] ----
   function stepTour(y,m,d,tour,dir){                                   // walk the global tour timeline (9x before 6x each day)
@@ -2115,7 +2122,7 @@
   function setLosses(set){var out=[],i;for(i=0;i<4;i++){var t=set[i],k=K(t[0],t[1],t[2],t[3]),cs=curState(t[0],t[1],t[2],t[3]);   // OT / RSOT / named mutuals a split would overwrite
     if(cs==="ot")out.push("an MSOT");else if(cs==="rsot")out.push("an RSOT");else if(cs==="oot")out.push("an Other-OT");
     else if(cs==="mxin"||cs==="mxout")out.push(mx[k]?("a mutual with "+mx[k]):"a mutual (in your ledger)");   // warn even when unnamed — the ledger still counts it
-    else if(cs==="comp")out.push("a Comp-time day");else if(cs==="smxin"||cs==="smxout")out.push("a self-mutual");}   // these get destroyed by the split too — never silently
+    else if(cs==="comp")out.push("a Comp-time day");else if(cs==="vcomp")out.push("a Veteran comp day");else if(cs==="smxin"||cs==="smxout")out.push("a self-mutual");}   // these get destroyed by the split too — never silently
     return out;}
   function curSplit(set){var w=set.map(function(t){return worked(t[0],t[1],t[2],t[3])?1:0;}).join("");return {"1100":"1h","0011":"2h","0110":"in","1001":"out"}[w]||"";}
   function buildSplitter(set){
@@ -2176,7 +2183,7 @@
     return out.sort(function(a,b){return Date.UTC(b.y,b.m,b.d)-Date.UTC(a.y,a.m,a.d);}); }
   // Spending: the existing per-tour "Comp time" state, priced at the tour's own length.
   function compSpent(){ var out=[];
-    for(var k in ov){ if(ov[k]!=="comp")continue;
+    for(var k in ov){ if(ov[k]!=="vc")continue;                                  // ordinary comp days are a different pot and must not drain the holiday balance
       var kp=k.split("|"), kd=kp[0].split("-"), y=+kd[0], m=+kd[1], d=+kd[2], tr=+kp[1];
       out.push({y:y,m:m,d:d,t:tr,hrs:otHours(tr)}); }
     return out.sort(function(a,b){return Date.UTC(b.y,b.m,b.d)-Date.UTC(a.y,a.m,a.d);}); }
@@ -2638,7 +2645,7 @@
     var st=curState(y,m,d,tour);
     if(st==="ot")return "ot"; if(st==="rsot")return "rsot"; if(st==="oot")return "oot";
     if(worked(y,m,d,tour))return "mine"+((st==="mxin"||st==="pmxin"||st==="smxin")?" mx":"");
-    if(st==="comp")return "comp";
+    if(st==="comp"||st==="vcomp")return "comp";
     var b=baseOf(y,m,d,tour);return b==="mine"?"dropped":b;           // gave-away vs partner/off
   }
   function chipHTML(y,m,d,tour){var lsd=ldSched(y,m,d); if(lsd)return ldChip(y,m,d,tour,lsd);   // light-duty schedule overrides the normal tour pill
@@ -2658,6 +2665,7 @@
     else if(st==="pmxin"||st==="pmxout")tag='<i class="dot px" title="Partner swap"></i>';
     else if(st==="smxin"||st==="smxout")tag='<i class="dot sx" title="Self MX"></i>';
     else if(st==="comp")tag='<i class="dot cmp" title="Comp time"></i>';
+    else if(st==="vcomp")tag='<i class="dot cmp vcmp" title="Veteran comp time"></i>';
     var pss=passOn(y,m,d,tour); if(pss)tag+='<i class="dot psd" title="Passed on to '+escA(pss)+'"></i>';   // the pill itself already reads as off — this says something is still logged here
     var wk=worked(y,m,d,tour), ao=wk?addOf(y,m,d,tour):{};
     var xm=wk?(endExtra(y,m,d,tour)+p2pMin(y,m,d,tour)+othMin(y,m,d,tour)):0, arT=xm?'<i class="dot pay" title="Extra pay (AR/P2P/washup/other)"></i>':'';
@@ -2959,6 +2967,7 @@
     else if(st==="pmxout"){statusTxt="Partner swap — your Mutual Partner covers this for you (even trade, no debt)"; tag='<span class="mxtag pmx">PARTNER OUT</span>';}
     else if(st==="smxout"){statusTxt="Self MX out — you’re off (no partner, chief-approved)"; tag='<span class="mxtag smx">SELF MX OUT</span>';}
     else if(st==="comp"){statusTxt="Comp time — you’re off, using banked comp"; tag='<span class="mxtag comp">COMP</span>';}
+    else if(st==="vcomp"){statusTxt="Veteran comp time — you’re off, spending "+otHours(tour)+"h of your holiday comp"; tag='<span class="mxtag comp">VET COMP</span>';}
     else if(b==="partner"){statusTxt="Your Mutual Partner works this";}
     else {statusTxt="You’re off this tour";}
     // the hand-off is stated as a SECOND fact on the same tour — the IN leg above still stands
@@ -2968,7 +2977,7 @@
       tag='<span class="mxtag '+lv+'">'+dutyTag(lv)+'</span>'+tag; }   // the mutual keeps counting in the Ledger; change it below if it no longer stands
     var pl="↔ Mutual Partner";   // one-tap even swap with your regular partner (ledger-neutral) — only on sets you two share
     var opts;
-    if(b==="mine"){opts=[["base","Working"]];if((eg.pt&&inSharedSet(y,m,d,tour))||st==="pmxout")opts.push(["pmxout",pl]);opts.push(["mxout","Mutual out"],["smxout","Self MX out"],["comp","Comp time"],["ot","MSOT"],["rsot","RSOT"],["oot","Other OT"]);}   // even swap only on a shared set (or if this tour already is one)
+    if(b==="mine"){opts=[["base","Working"]];if((eg.pt&&inSharedSet(y,m,d,tour))||st==="pmxout")opts.push(["pmxout",pl]);opts.push(["mxout","Mutual out"],["smxout","Self MX out"],["comp","Comp time"]);if(vet)opts.push(["vcomp","Veteran comp"]);opts.push(["ot","MSOT"],["rsot","RSOT"],["oot","Other OT"]);}   // even swap only on a shared set (or if this tour already is one)
     else if(b==="partner"){opts=[["base","Off"]];if((eg.pt&&inSharedSet(y,m,d,tour))||st==="pmxin")opts.push(["pmxin",pl]);opts.push(["mxin","Mutual in"],["smxin","Self MX in"],["ot","MSOT"],["rsot","RSOT"],["oot","Other OT"]);}
     else opts=[["base","Off"],["mxin","Mutual in"],["smxin","Self MX in"],["ot","MSOT"],["rsot","RSOT"],["oot","Other OT"]];   // off tour → not your partner's set, no ↔ partner option
     var seg=opts.map(function(o){var cap=(o[0]==="ot")?'<div class="segcap">Pick up as overtime</div>':'';return cap+'<button data-st="'+o[0]+'"'+(st===o[0]?' class="on"':'')+'>'+o[1]+'</button>';}).join("");
@@ -3040,9 +3049,10 @@
     else if(st==="mxin"){statusTxt="You picked up this day (mutual)"+(nm?" for "+esc(nm):"")+" — they owe you a day back"; tag='<span class="mxtag">MX IN</span>';}
     else if(st==="mxout"){statusTxt="You mutual’d out the whole day"+(nm?" to "+esc(nm):"")+" — you owe a day back"; tag='<span class="mxtag">MX OUT</span>';}
     else if(st==="comp"){statusTxt="Comp time — you’re off the whole day"; tag='<span class="mxtag comp">COMP</span>';}
+    else if(st==="vcomp"){statusTxt="Veteran comp time — you’re off the whole day"; tag='<span class="mxtag comp">VET COMP</span>';}
     else if(mine){statusTxt="You’re working — Letter "+w.ltr+", forced up-down (both the 9× day and 6× night).";}
     else {statusTxt="Off — today is Letter "+ltr+" and you’re Letter "+w.ltr+". Pick up the whole day as overtime or a mutual.";}
-    var opts=mine?[["base","Working"],["mxout","Mutual out"],["comp","Comp time"]]:[["base","Off"],["mxin","Mutual in"],["ot","Overtime"]];
+    var opts=mine?([["base","Working"],["mxout","Mutual out"],["comp","Comp time"]].concat(vet?[["vcomp","Veteran comp"]]:[])):[["base","Off"],["mxin","Mutual in"],["ot","Overtime"]];
     var seg=opts.map(function(o){var cap=(o[0]==="ot")?'<div class="segcap">Pick up the whole day</div>':'';return cap+'<button data-abst="'+o[0]+'"'+(st===o[0]?' class="on"':'')+'>'+o[1]+'</button>';}).join("");
     var isMx=(st==="mxin"||st==="mxout");
     var nmRow=isMx?('<div class="mxnamerow"><span class="lab">🤝 With</span><input class="abmxname" type="text" list="mxNames" autocomplete="off" placeholder="Name — who you swapped the day with" value="'+escA(nm)+'"></div>'):'';
@@ -3343,8 +3353,20 @@
     if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.5){if(dx<0){view.m++;if(view.m>11){view.m=0;view.y++;}}else{view.m--;if(view.m<0){view.m=11;view.y--;}}render();}},{passive:true});
 
   // ---- settings ----
+  // The Settings steppers edit TODAY'S EPOCH IN PLACE. With a single epoch — which is everyone until
+  // their first reassignment — that rewrites the rotation from 1970, so every tour ever logged is
+  // re-read against a different group: mutuals invert, OT lands on the wrong tours, the ledger and
+  // comp time move. Nudging a stepper by accident must not be able to do that. After setup they go
+  // read-only; reassignments go through Group Change, which adds an epoch FROM A DATE and leaves
+  // history alone, and the ✎ on the first row is the one deliberate way to fix the original.
+  function groupsLocked(){ return !!load("seen",false); }
   function syncMy(){var v=document.getElementById("vMy");if(v)v.textContent=my?my:"None";
-    var b=document.getElementById("myClear");if(b)b.textContent=my?"✕ No group":"＋ Add a group";}
+    var b=document.getElementById("myClear");if(b)b.textContent=my?"✕ No group":"＋ Add a group";
+    var lk=groupsLocked();
+    Array.prototype.forEach.call(document.querySelectorAll('.stepper[data-k="my"] button,.stepper[data-k="pt"] button'),function(x){x.disabled=lk;});
+    if(b)b.disabled=lk;
+    var pc=document.getElementById("ptClear"); if(pc)pc.disabled=lk;
+    var note=document.getElementById("grpLockNote"); if(note)note.hidden=!lk; }
   function syncPt(){document.getElementById("vPt").textContent=pt?pt:"None";var b=document.getElementById("ptClear");if(b)b.textContent=pt?"✕ No partner":"＋ Add partner";}
   document.getElementById("gear").onclick=function(){syncCurGroups();syncMy();syncPt();syncDefSw();document.getElementById("setName").value=uname;document.getElementById("setCo").value=uco;document.getElementById("setPhone").value=uphone;document.getElementById("setSpouse").value=uspouse;document.getElementById("setSphone").value=usphone;document.getElementById("setLetter").value=hletter;document.getElementById("setAppt").value=isRealDate(apptDate)?apptDate:"";document.getElementById("apptSub").textContent=apptSubText();
     document.getElementById("youSum").textContent=uname?(uname+(uco?" · "+uco:"")):"add your name";                       // the collapsed header still tells you what's set
@@ -3424,10 +3446,17 @@
     list.innerHTML=groups.map(function(g,i){
       if(g.det)return "";   // detail epochs are managed from the Status & Time Off "Detail" entry, not here
       var base=(i===0), when=base?'From the start <span class="gcbase">(original)</span>':esc(fmtEpochWhen(g.s));
-      var grp='<span class="gcmy">Group '+g.my+'</span>'+(g.pt?(' · <span class="gcpt">partner '+g.pt+'</span>'):' · no partner');
-      return '<div class="gcitem"><div><div class="gcwhen">'+when+'</div><div class="gcgrp">'+grp+'</div></div>'+(base?'':'<button class="gcrm" data-i="'+i+'" type="button" aria-label="Remove change">&#10005;</button>')+'</div>';
+      var grp='<span class="gcmy">Group '+(g.my||"none")+'</span>'+(g.pt?(' · <span class="gcpt">partner '+g.pt+'</span>'):' · no partner');
+      return '<div class="gcitem"><div><div class="gcwhen">'+when+'</div><div class="gcgrp">'+grp+'</div></div>'+(base?'<button class="gcrm" data-fix="1" type="button" aria-label="Correct the original">✎</button>':'<button class="gcrm" data-i="'+i+'" type="button" aria-label="Remove change">&#10005;</button>')+'</div>';
     }).join("");
-    Array.prototype.forEach.call(list.querySelectorAll(".gcrm"),function(b){b.onclick=function(){
+    var fixBtn=list.querySelector('[data-fix]');
+    if(fixBtn)fixBtn.onclick=function(){
+      appConfirm("Set the group you STARTED on to "+(gcMyVal?("group "+gcMyVal):"no group")+(gcHasPt?(", partner "+gcPtVal):", no partner")+"?\n\nThis is the only change that reaches BACKWARDS. Every tour you have already logged gets re-read against that rotation \u2014 mutuals, overtime, the ledger and comp time all move with it.\n\nIf you were REASSIGNED, cancel and add a group change with a start date instead: that leaves your history exactly as it is.","Correct the original",function(){
+        groups[0].my=gcMyVal; groups[0].pt=gcHasPt?gcPtVal:0; save("groups",groups);
+        syncCurGroups(); syncMy(); syncPt(); renderGroups(); render();
+        document.getElementById("gcErr").textContent=""; });
+    };
+    Array.prototype.forEach.call(list.querySelectorAll(".gcrm:not([data-fix])"),function(b){b.onclick=function(){
       var i=+b.getAttribute("data-i"); if(i<=0)return;
       appConfirm("Remove this group change? Dates after it fall back to your previous groups. Nothing you logged is deleted.","Remove",function(){
         groups.splice(i,1); groups.sort(function(a,b){return isoToNum(a.s)-isoToNum(b.s);}); save("groups",groups);
@@ -3443,9 +3472,11 @@
     hideSheet(setSheet);
     var t=new Date();
     document.getElementById("gcDate").value=t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0");
-    gcMyVal=my; gcPtVal=(pt||19); gcHasPt=false; updGcMy(); updGcPt();
-    document.getElementById("gcPtWrap").hidden=true;
-    Array.prototype.forEach.call(document.querySelectorAll("#gcPtSeg button"),function(x){x.classList.toggle("on",x.getAttribute("data-p")==="no");});
+    // Open showing what you HAVE. It used to default to "no partner", which meant correcting your
+    // original group quietly dropped your partner along with it.
+    gcMyVal=my; gcPtVal=(pt||19); gcHasPt=!!pt; updGcMy(); updGcPt();
+    document.getElementById("gcPtWrap").hidden=!gcHasPt;
+    Array.prototype.forEach.call(document.querySelectorAll("#gcPtSeg button"),function(x){x.classList.toggle("on",x.getAttribute("data-p")===(gcHasPt?"yes":"no"));});
     document.getElementById("gcErr").textContent="";
     renderGroups(); openSheet(groupSheet);
   };
@@ -4429,7 +4460,7 @@
       return '<div class="ritem"><span class="rd">'+esc(r.n)+' '+r.y+'<span class="mxbreak">not claimed before the next holiday</span></span><span class="rt neg">'+r.hrs+'h lost</span></div>'; }).join("");
     if(t.rowsS.length)rows+='<div class="setlbl" style="margin:12px 2px 6px">Spent</div>'+t.rowsS.map(function(r){
       return '<div class="ritem"><span class="rd">'+MON[r.m].slice(0,3)+' '+r.d+', '+r.y+' '+(r.t===9?'9×':'6×')+
-        '<span class="mxbreak">Comp day</span></span><span class="rt neg">−'+r.hrs+'h</span></div>'; }).join("");
+        '<span class="mxbreak">Veteran comp day</span></span><span class="rt neg">−'+r.hrs+'h</span></div>'; }).join("");
     if(vet){ var up=compEarned(true).filter(function(r){return r.future;});
       if(up.length)rows+='<div class="setlbl" style="margin:12px 2px 6px">Coming up (not banked yet)</div>'+up.map(function(r){
         return '<div class="ritem"><span class="rd">'+esc(r.hol)+' '+r.y+' — '+MON[r.m].slice(0,3)+' '+r.d+' '+(r.t===9?'9×':'6×')+
@@ -5829,9 +5860,9 @@ var TEN_CODES=[
       var hits=[],lim=vacMs(s)+366*864e5,endMs=e?Math.min(vacMs(e),lim):lim;
       for(var t0=vacMs(s);t0<=endMs;t0+=864e5){ var dd=new Date(t0+43200000),hy=dd.getUTCFullYear(),hm=dd.getUTCMonth(),hd=dd.getUTCDate();
         [9,6].forEach(function(tt){ var cs=curState(hy,hm,hd,tt);
-          if(cs==="mxin"||cs==="mxout"||cs==="pmxin"||cs==="pmxout"||cs==="smxin"||cs==="smxout"||cs==="comp"){
+          if(cs==="mxin"||cs==="mxout"||cs==="pmxin"||cs==="pmxout"||cs==="smxin"||cs==="smxout"||cs==="comp"||cs==="vcomp"){
             var nm=mxName(hy,hm,hd,tt), keep=(cs==="mxin"||cs==="smxin"||cs==="pmxin");
-            var who=cs==="comp"?"comp day":cs==="pmxin"?"partner swap \u2014 you cover":cs==="pmxout"?"partner swap \u2014 they cover":cs==="smxin"?"self-mutual \u2014 you took it":cs==="smxout"?"self-mutual \u2014 you\u2019re off"
+            var who=cs==="vcomp"?"veteran comp day":cs==="comp"?"comp day":cs==="pmxin"?"partner swap \u2014 you cover":cs==="pmxout"?"partner swap \u2014 they cover":cs==="smxin"?"self-mutual \u2014 you took it":cs==="smxout"?"self-mutual \u2014 you\u2019re off"
                     :cs==="mxin"?("you covered"+(nm?" for "+nm:"")+" \u2014 they owe you"):((nm||"someone")+" covered for you");
             hits.push({y:hy,m:hm,d:hd,t:tt,keep:keep,lbl:MON[hm].slice(0,3)+" "+hd+" "+(tt===9?"9\u00d7":"6\u00d7")+" \u2014 "+who}); }
           // The hand-off leg is listed but KEPT. It looks like a "\u2026OUT" (they covered you), which
