@@ -1411,7 +1411,6 @@
   <div class="chkrow" style="margin-bottom:10px">
     <label class="chk" id="vetChk"><input type="checkbox" id="vetBox">I&rsquo;m a veteran — track my comp time</label>
   </div>
-  <div class="vfield" id="vetSinceWrap" hidden><label>Count from <span class="opt">(leave blank for everything)</span></label><input type="date" id="vetSince"></div>
   <div class="mxnet" id="compNet"></div>
   <div class="rlist" id="compList"></div>
   <button class="done" id="compDone">Done</button>
@@ -2140,7 +2139,7 @@
   // the no-double-dip rule: mutual out of your group's tour and pick the same tour up as MSOT and
   // you still bank it once. And "group is in" does not care whether you personally worked it.
   var VET_HOLIDAYS={"Memorial Day":1,"Veterans Day":1};
-  var vet=load("vet",false), vetSince=load("vetsince","");
+  var vet=load("vet",false);
   function compHoliday(y,m,d){ var h=holiday(y,m,d); return (h&&VET_HOLIDAYS[h])?h:null; }
   function tourSpan(y,m,d,tour){ var s=new Date(y,m,d,tour===9?9:18,0,0,0).getTime();
     return {s:s, e:(tour===9?new Date(y,m,d,18,0,0,0):new Date(y,m,d+1,9,0,0,0)).getTime()}; }
@@ -2158,18 +2157,19 @@
       out.push({y:t[0],m:t[1],d:t[2],t:t[3],hrs:hrs,why:groupIn?(msot?"group in (MSOT same tour — banked once)":"group in"):"MSOT"});
     });
     return out; }
-  function vetSinceMs(){ var v=vacMs(vetSince); return isFinite(v)?v:-Infinity; }
   // Only two holidays a year, so a wide scan is cheap. Bounded either way.
   // Only two holidays a year, so a wide scan is cheap and bounded either way. Future holidays are
   // NOT counted: you have not worked Memorial Day 2027 yet, and quietly banking it would inflate
   // the balance by a full day every year. They are listed separately as "coming up".
+  // No "since" date: on this job you are a veteran from day one, so there was never a real answer to
+  // put in that field. Two years back is ample — comp expires at the very next holiday, so nothing
+  // older can still be spendable and only the last period's forfeiture is worth showing.
   function compEarned(includeFuture){ var out=[], t=new Date(), y0=t.getFullYear();
     var today=Date.UTC(t.getFullYear(),t.getMonth(),t.getDate());
-    for(var y=y0-5;y<=y0+1;y++){
+    for(var y=y0-2;y<=y0+1;y++){
       for(var m=0;m<12;m++){ var dim=new Date(y,m+1,0).getDate();
         for(var d=1;d<=dim;d++){ var h=compHoliday(y,m,d); if(!h)continue;
           var hu=Date.UTC(y,m,d);
-          if(hu<vetSinceMs())continue;
           var future=hu>today;
           if(future&&!includeFuture)continue;
           compRowsFor(y,m,d).forEach(function(r){ r.hol=h; r.future=future; r.hms=hu; out.push(r); }); } } }
@@ -2178,7 +2178,6 @@
   function compSpent(){ var out=[];
     for(var k in ov){ if(ov[k]!=="comp")continue;
       var kp=k.split("|"), kd=kp[0].split("-"), y=+kd[0], m=+kd[1], d=+kd[2], tr=+kp[1];
-      if(Date.UTC(y,m,d)<vetSinceMs())continue;
       out.push({y:y,m:m,d:d,t:tr,hrs:otHours(tr)}); }
     return out.sort(function(a,b){return Date.UTC(b.y,b.m,b.d)-Date.UTC(a.y,a.m,a.d);}); }
   // Comp does not accumulate: it is USE IT OR LOSE IT, one holiday to the next. Hours banked on
@@ -2205,7 +2204,8 @@
     e.forEach(function(r){ if(r.hms>=ps||r.future)return; byPer[r.hms]=byPer[r.hms]||{n:r.hol,y:r.y,e:0,s:0}; byPer[r.hms].e+=r.hrs; });
     sp.forEach(function(r){ var ms=Date.UTC(r.y,r.m,r.d), p=compPeriod(ms); if(!p.start||p.start.ms>=ps)return;
       if(byPer[p.start.ms])byPer[p.start.ms].s+=r.hrs; });
-    var lostRows=[]; for(var k in byPer){ var b=byPer[k], left=Math.round((b.e-b.s)*100)/100;
+    var lostRows=[], prevMs=-Infinity; for(var pk in byPer){ if(+pk>prevMs)prevMs=+pk; }   // the period just before this one
+    for(var k in byPer){ if(+k!==prevMs)continue; var b=byPer[k], left=Math.round((b.e-b.s)*100)/100;
       if(left>0){ lost+=left; lostRows.push({n:b.n,y:b.y,hrs:left}); } }
     return {earned:Math.round(eh*100)/100, spent:sh, bal:Math.round(Math.max(0,eh-sh)*100)/100,
       rowsE:rowsE, rowsS:rowsS, useBy:per.end, since:per.start, lost:Math.round(lost*100)/100, lostRows:lostRows}; }
@@ -4414,8 +4414,6 @@
   function renderComp(){
     var box=document.getElementById("vetBox"); if(box)box.checked=!!vet;
     var chk=document.getElementById("vetChk"); if(chk)chk.classList.toggle("on",!!vet);
-    var w=document.getElementById("vetSinceWrap"); if(w)w.hidden=!vet;
-    var si=document.getElementById("vetSince"); if(si&&si.value!==vetSince)si.value=vetSince||"";
     var t=compTotals(), net=document.getElementById("compNet"), list=document.getElementById("compList");
     if(net){ var by=t.useBy?(MON[new Date(t.useBy.ms).getUTCMonth()].slice(0,3)+" "+new Date(t.useBy.ms).getUTCDate()+", "+new Date(t.useBy.ms).getUTCFullYear()):"";
       net.innerHTML='<div class="mxnetbig">⏳ '+t.bal+' hour'+(t.bal===1?'':'s')+(t.bal?' to use':' left')+'</div>'+
@@ -4427,7 +4425,7 @@
     if(t.rowsE.length)rows+='<div class="setlbl" style="margin:10px 2px 6px">Earned</div>'+t.rowsE.map(function(r){
       return '<div class="ritem"><span class="rd">'+esc(r.hol)+' '+r.y+' — '+MON[r.m].slice(0,3)+' '+r.d+' '+(r.t===9?'9×':'6×')+
         '<span class="mxbreak">'+esc(r.why)+'</span></span><span class="rt pos">+'+r.hrs+'h</span></div>'; }).join("");
-    if(t.lostRows.length)rows+='<div class="setlbl" style="margin:12px 2px 6px">Expired unused</div>'+t.lostRows.map(function(r){
+    if(t.lostRows.length)rows+='<div class="setlbl" style="margin:12px 2px 6px">Expired last period</div>'+t.lostRows.map(function(r){
       return '<div class="ritem"><span class="rd">'+esc(r.n)+' '+r.y+'<span class="mxbreak">not claimed before the next holiday</span></span><span class="rt neg">'+r.hrs+'h lost</span></div>'; }).join("");
     if(t.rowsS.length)rows+='<div class="setlbl" style="margin:12px 2px 6px">Spent</div>'+t.rowsS.map(function(r){
       return '<div class="ritem"><span class="rd">'+MON[r.m].slice(0,3)+' '+r.d+', '+r.y+' '+(r.t===9?'9×':'6×')+
@@ -4450,11 +4448,7 @@
   }
   document.getElementById("openComp").onclick=function(){ if(!requireUnlock())return; hideSheet(setSheet); renderComp(); openSheet(document.getElementById("compSheet")); };
   document.getElementById("compDone").onclick=closeSheets;
-  document.getElementById("vetBox").onchange=function(){ vet=this.checked; save("vet",vet);
-    if(vet&&!vetSince){ vetSince=isoLocal(now.getFullYear(),0,1); save("vetsince",vetSince); }   // default to Jan 1 of this year rather than silently backdating forever
-    renderComp(); render(); };
-  document.getElementById("vetSince").onchange=function(){ var v=this.value;
-    vetSince=(v&&isRealDate(v))?v:""; save("vetsince",vetSince); renderComp(); };
+  document.getElementById("vetBox").onchange=function(){ vet=this.checked; save("vet",vet); renderComp(); render(); };
   document.getElementById("openMx").onclick=function(){if(!requireUnlock())return;hideSheet(setSheet);renderLedger();openSheet(mxSheet);};
   document.getElementById("mxDone").onclick=closeSheets;
 
