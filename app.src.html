@@ -1114,6 +1114,7 @@
       <div class="field">
         <label>My group <span class="gc gred">(red)</span></label>
         <div class="stepper" data-k="my"><button data-d="-1">−</button><div class="v"><span id="vMy">7</span></div><button data-d="1">+</button></div>
+        <button class="ptclear" id="myClear" type="button">✕ No group</button>
       </div>
       <div class="field">
         <label>Partner group <span class="gc gamber">(amber)</span></label>
@@ -1148,6 +1149,7 @@
     <div class="setlist">
       <button class="setrow" id="openStats"><span class="setico">📊</span><span class="settx"><span class="settl">Overtime Statistics</span><span class="setsub">By year · month · pay period</span></span><span class="setchev">›</span></button>
       <button class="setrow" id="openMx"><span class="setico">🤝</span><span class="settx"><span class="settl">Mutuals Ledger</span><span class="setsub">Who owes who</span></span><span class="setchev">›</span></button>
+      <button class="setrow" id="openComp"><span class="setico">⏳</span><span class="settx"><span class="settl">Comp Time</span><span class="setsub" id="compSub">Veterans — Memorial Day &amp; Veterans Day</span></span><span class="setchev">›</span></button>
     </div>
   </div>
   <div class="setsec setcol collapsed" id="secNotif">
@@ -1379,6 +1381,19 @@
   </div>
   <div class="bakmsg" id="icsMsg"></div>
   <button class="done" id="icsDone">Done</button>
+</div>
+
+<div class="sheet set" id="compSheet">
+  <div class="grip"></div>
+  <h3>Comp Time</h3>
+  <p class="rsub">Veterans bank comp time on <b>Memorial Day</b> and <b>Veterans Day</b> — the hours of your tour that actually fall on the holiday itself. Spend it by setting a tour to <b>Comp time</b> in that day&rsquo;s sheet.</p>
+  <div class="chkrow" style="margin-bottom:10px">
+    <label class="chk" id="vetChk"><input type="checkbox" id="vetBox">I&rsquo;m a veteran — track my comp time</label>
+  </div>
+  <div class="vfield" id="vetSinceWrap" hidden><label>Count from <span class="opt">(leave blank for everything)</span></label><input type="date" id="vetSince"></div>
+  <div class="mxnet" id="compNet"></div>
+  <div class="rlist" id="compList"></div>
+  <button class="done" id="compDone">Done</button>
 </div>
 
 <div class="sheet set" id="pdaySheet">
@@ -1885,7 +1900,7 @@
   var _rawG=load("groups",null);
   var groups=(function(){var g=(Array.isArray(_rawG)&&_rawG.length)?_rawG:[{s:"1970-01-01",my:my,pt:pt}];   // migrate a single my/pt into a base epoch
     g=g.filter(function(e){return e&&typeof e==="object"&&typeof e.my==="number";})
-       .map(function(e){var o={s:(typeof e.s==="string"&&/^\d{4}-\d\d?-\d\d?$/.test(e.s))?e.s:"1970-01-01",my:mod(e.my-1,G)+1,pt:(typeof e.pt==="number"&&e.pt>=1&&e.pt<=G)?e.pt:0};
+       .map(function(e){var o={s:(typeof e.s==="string"&&/^\d{4}-\d\d?-\d\d?$/.test(e.s))?e.s:"1970-01-01",my:(e.my===0?0:mod(e.my-1,G)+1),pt:(typeof e.pt==="number"&&e.pt>=1&&e.pt<=G)?e.pt:0};
          if(typeof e.det==="string"&&/^\d{4}-\d\d?-\d\d?$/.test(e.det))o.det=e.det; return o;});   // preserve the detail-epoch tag so add/remove/hide stay reliable across reloads
     if(!g.length)g=[{s:"1970-01-01",my:7,pt:19}];
     g.sort(function(a,b){return isoToNum(a.s)-isoToNum(b.s);}); return g;})();
@@ -1894,7 +1909,7 @@
   function curEpoch(){var t=new Date();return effGroups(t.getFullYear(),t.getMonth(),t.getDate());}
   function syncCurGroups(){var c=curEpoch();my=c.my;pt=c.pt;}
   syncCurGroups();
-  function setCurGroups(nMy,nPt){var c=curEpoch();c.my=nMy;c.pt=nPt||0;my=c.my;pt=c.pt;save("groups",groups);save("my",my);save("pt",pt);}   // edit today's epoch (Settings steppers / partner toggle)
+  function setCurGroups(nMy,nPt){var c=curEpoch();c.my=nMy||0;c.pt=nPt||0;my=c.my;pt=c.pt;save("groups",groups);save("my",my);save("pt",pt);}   // my=0 is legal: groupless   // edit today's epoch (Settings steppers / partner toggle)
 
   // ---- ABCD chart (letter-based rotation the department switches to, e.g. during COVID) ----
   // During an ABCD window you're assigned ONE letter and work BOTH tours (9× + 6×) on your letter's days.
@@ -1976,7 +1991,10 @@
   var MON=["January","February","March","April","May","June","July","August","September","October","November","December"];
   var DOWF=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 
-  function status(y,m,d,s){var g=effGroups(y,m,d);return has(s,g.my)?"mine":(g.pt&&has(s,g.pt))?"partner":"off";}   // uses the groups effective on THAT date
+  // g.my === 0 means GROUPLESS — full duty, but on a fixed job (chief's aide and the like) that
+  // rides no group rotation. Guard it the same way the partner slot already is, or group 0 would
+  // silently match nothing and merely look like a bug.
+  function status(y,m,d,s){var g=effGroups(y,m,d);return (g.my&&has(s,g.my))?"mine":(g.pt&&has(s,g.pt))?"partner":"off";}   // uses the groups effective on THAT date
 
   // ---- per-tour state: base rotation + mutual swaps (MX) + overtime (MSOT) ----
   function startOf(y,m,d,tour){return tour===9?dayStart(y,m,d):nightStart(y,m,d);}
@@ -2088,6 +2106,64 @@
     return '<div class="setsplit"><div class="sslab">⇆ Work this set with your Mutual Partner <span class="sssub">'+span+' · even swap, no debt</span></div>'+
       '<div class="ssbtns">'+btns+'</div><button class="ssclear" data-sp="clear">Back to normal (alternating)</button></div>';
   }
+  // ============================================================================
+  //  VETERAN COMP TIME — earned only on Memorial Day and Veterans Day
+  // ============================================================================
+  // The entitlement is measured against the HOLIDAY'S CALENDAR DAY, not the tour: you bank the
+  // hours of your tour that actually fall inside that date. Three tours touch a holiday and they
+  // split it exactly 24 ways, which is the check that the rule is right:
+  //     6× the eve   18:00 → 09:00   →  00:00–09:00 on the day  =  9h
+  //     9× on the day 09:00 → 18:00  →  all of it               =  9h
+  //     6× on the day 18:00 → 09:00  →  18:00–24:00             =  6h
+  // Eligibility per tour is (your group is in) OR (you worked MSOT) — an OR, never a sum, which is
+  // the no-double-dip rule: mutual out of your group's tour and pick the same tour up as MSOT and
+  // you still bank it once. And "group is in" does not care whether you personally worked it.
+  var VET_HOLIDAYS={"Memorial Day":1,"Veterans Day":1};
+  var vet=load("vet",false), vetSince=load("vetsince","");
+  function compHoliday(y,m,d){ var h=holiday(y,m,d); return (h&&VET_HOLIDAYS[h])?h:null; }
+  function tourSpan(y,m,d,tour){ var s=new Date(y,m,d,tour===9?9:18,0,0,0).getTime();
+    return {s:s, e:(tour===9?new Date(y,m,d,18,0,0,0):new Date(y,m,d+1,9,0,0,0)).getTime()}; }
+  function hoursOnDate(y,m,d,tour,hy,hm,hd){ var t=tourSpan(y,m,d,tour);
+    var ds=new Date(hy,hm,hd,0,0,0,0).getTime(), de=new Date(hy,hm,hd+1,0,0,0,0).getTime();
+    var lo=Math.max(t.s,ds), hi=Math.min(t.e,de);
+    return hi>lo?Math.round((hi-lo)/36e5*100)/100:0; }
+  // Which tours can bank hours against holiday (hy,hm,hd): the eve's 6×, and that day's 9× and 6×.
+  function compRowsFor(hy,hm,hd){ var ev=new Date(hy,hm,hd-1), out=[];
+    [[ev.getFullYear(),ev.getMonth(),ev.getDate(),6],[hy,hm,hd,9],[hy,hm,hd,6]].forEach(function(t){
+      var hrs=hoursOnDate(t[0],t[1],t[2],t[3],hy,hm,hd); if(!hrs)return;
+      var groupIn=(baseOf(t[0],t[1],t[2],t[3])==="mine");
+      var msot=(curState(t[0],t[1],t[2],t[3])==="ot");
+      if(!groupIn&&!msot)return;                                   // no entitlement on this tour
+      out.push({y:t[0],m:t[1],d:t[2],t:t[3],hrs:hrs,why:groupIn?(msot?"group in (MSOT same tour — banked once)":"group in"):"MSOT"});
+    });
+    return out; }
+  function vetSinceMs(){ var v=vacMs(vetSince); return isFinite(v)?v:-Infinity; }
+  // Only two holidays a year, so a wide scan is cheap. Bounded either way.
+  // Only two holidays a year, so a wide scan is cheap and bounded either way. Future holidays are
+  // NOT counted: you have not worked Memorial Day 2027 yet, and quietly banking it would inflate
+  // the balance by a full day every year. They are listed separately as "coming up".
+  function compEarned(includeFuture){ var out=[], t=new Date(), y0=t.getFullYear();
+    var today=Date.UTC(t.getFullYear(),t.getMonth(),t.getDate());
+    for(var y=y0-5;y<=y0+1;y++){
+      for(var m=0;m<12;m++){ var dim=new Date(y,m+1,0).getDate();
+        for(var d=1;d<=dim;d++){ var h=compHoliday(y,m,d); if(!h)continue;
+          var hu=Date.UTC(y,m,d);
+          if(hu<vetSinceMs())continue;
+          var future=hu>today;
+          if(future&&!includeFuture)continue;
+          compRowsFor(y,m,d).forEach(function(r){ r.hol=h; r.future=future; out.push(r); }); } } }
+    return out.sort(function(a,b){return Date.UTC(b.y,b.m,b.d)-Date.UTC(a.y,a.m,a.d);}); }
+  // Spending: the existing per-tour "Comp time" state, priced at the tour's own length.
+  function compSpent(){ var out=[];
+    for(var k in ov){ if(ov[k]!=="comp")continue;
+      var kp=k.split("|"), kd=kp[0].split("-"), y=+kd[0], m=+kd[1], d=+kd[2], tr=+kp[1];
+      if(Date.UTC(y,m,d)<vetSinceMs())continue;
+      out.push({y:y,m:m,d:d,t:tr,hrs:otHours(tr)}); }
+    return out.sort(function(a,b){return Date.UTC(b.y,b.m,b.d)-Date.UTC(a.y,a.m,a.d);}); }
+  function compTotals(){ var e=vet?compEarned():[], sp=compSpent();
+    var eh=0,sh=0; e.forEach(function(r){eh+=r.hrs;}); sp.forEach(function(r){sh+=r.hrs;});
+    return {earned:Math.round(eh*100)/100, spent:sh, bal:Math.round((eh-sh)*100)/100, rowsE:e, rowsS:sp}; }
+
   function otHours(tour){return tour===9?9:15;}                        // day tour 9h OT, night tour 15h OT
   // AR = awaiting relief — extra paid minutes at the END of a tour you work (any tour)
   function arMin(y,m,d,tour){return ar[K(y,m,d,tour)]||0;}
@@ -3205,8 +3281,10 @@
     if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.5){if(dx<0){view.m++;if(view.m>11){view.m=0;view.y++;}}else{view.m--;if(view.m<0){view.m=11;view.y--;}}render();}},{passive:true});
 
   // ---- settings ----
+  function syncMy(){var v=document.getElementById("vMy");if(v)v.textContent=my?my:"None";
+    var b=document.getElementById("myClear");if(b)b.textContent=my?"✕ No group":"＋ Add a group";}
   function syncPt(){document.getElementById("vPt").textContent=pt?pt:"None";var b=document.getElementById("ptClear");if(b)b.textContent=pt?"✕ No partner":"＋ Add partner";}
-  document.getElementById("gear").onclick=function(){syncCurGroups();document.getElementById("vMy").textContent=my;syncPt();syncDefSw();document.getElementById("setName").value=uname;document.getElementById("setCo").value=uco;document.getElementById("setPhone").value=uphone;document.getElementById("setSpouse").value=uspouse;document.getElementById("setSphone").value=usphone;document.getElementById("setLetter").value=hletter;document.getElementById("setAppt").value=isRealDate(apptDate)?apptDate:"";document.getElementById("apptSub").textContent=apptSubText();
+  document.getElementById("gear").onclick=function(){syncCurGroups();syncMy();syncPt();syncDefSw();document.getElementById("setName").value=uname;document.getElementById("setCo").value=uco;document.getElementById("setPhone").value=uphone;document.getElementById("setSpouse").value=uspouse;document.getElementById("setSphone").value=usphone;document.getElementById("setLetter").value=hletter;document.getElementById("setAppt").value=isRealDate(apptDate)?apptDate:"";document.getElementById("apptSub").textContent=apptSubText();
     document.getElementById("youSum").textContent=uname?(uname+(uco?" · "+uco:"")):"add your name";                       // the collapsed header still tells you what's set
     document.getElementById("grpSum").textContent="Group "+my+(pt?" · partner "+pt:" · no partner")+(hletter?" · "+hletter:"");
     document.getElementById("secYou").classList.toggle("collapsed",!!uname);                                             // fresh users see the fields; everyone else gets the tight sheet
@@ -3267,6 +3345,8 @@
   document.getElementById("legendX").onclick=closeSheets;
   document.getElementById("openContact").onclick=function(){openSheet(contactPop);};
   document.getElementById("contactX").onclick=closeSheets;
+  document.getElementById("myClear").onclick=function(){   // groupless = full duty on a fixed job (chief's aide); the rotation simply doesn't apply
+    setCurGroups(my?0:7,pt); syncMy(); renderGroups&&renderGroups(); render(); };
   document.getElementById("ptClear").onclick=function(){   // toggle: clear the mutual partner / restore a default
     syncCurGroups();   // fresh values first (guard against a midnight epoch rollover while open)
     setCurGroups(my, pt?0:19);   // toggle today's partner; past even-swaps stay recorded (data preserved)
@@ -3290,7 +3370,7 @@
       appConfirm("Remove this group change? Dates after it fall back to your previous groups. Nothing you logged is deleted.","Remove",function(){
         groups.splice(i,1); groups.sort(function(a,b){return isoToNum(a.s)-isoToNum(b.s);}); save("groups",groups);
         rebuildDetailReverts();   // a detail's hidden revert epoch may have been tracking this change — repoint it
-        syncCurGroups(); document.getElementById("vMy").textContent=my; syncPt(); renderGroups(); render();
+        syncCurGroups(); syncMy(); syncPt(); renderGroups(); render();
       });
     };});
   }
@@ -3321,7 +3401,7 @@
     groups.push({s:dv,my:gcMyVal,pt:gcHasPt?gcPtVal:0});
     groups.sort(function(a,b){return isoToNum(a.s)-isoToNum(b.s);}); save("groups",groups);
     rebuildDetailReverts();
-    syncCurGroups(); document.getElementById("vMy").textContent=my; syncPt();
+    syncCurGroups(); syncMy(); syncPt();
     renderGroups(); render(); err.textContent="";
   };
   document.getElementById("gcDone").onclick=closeSheets;
@@ -4269,6 +4349,39 @@
       return '<div class="ritem"><span class="rd">'+esc(n)+'<span class="mxbreak">'+e.credit+' in · '+e.debit+' out</span></span>'+badge+'</div>';
     }).join("");
   }
+  function renderComp(){
+    var box=document.getElementById("vetBox"); if(box)box.checked=!!vet;
+    var chk=document.getElementById("vetChk"); if(chk)chk.classList.toggle("on",!!vet);
+    var w=document.getElementById("vetSinceWrap"); if(w)w.hidden=!vet;
+    var si=document.getElementById("vetSince"); if(si&&si.value!==vetSince)si.value=vetSince||"";
+    var t=compTotals(), net=document.getElementById("compNet"), list=document.getElementById("compList");
+    if(net)net.innerHTML='<div class="mxnetbig">⏳ '+t.bal+' hour'+(t.bal===1?'':'s')+' banked</div>'+
+      '<div class="mxnetsub">'+t.earned+'h earned · '+t.spent+'h spent</div>';
+    if(!list)return;
+    if(!vet){ list.innerHTML='<div class="rempty">Tick the box above if you\u2019re a veteran and the app will bank your holiday hours automatically. Comp days you already took still show below.</div>'; }
+    var rows="";
+    if(t.rowsE.length)rows+='<div class="setlbl" style="margin:10px 2px 6px">Earned</div>'+t.rowsE.map(function(r){
+      return '<div class="ritem"><span class="rd">'+esc(r.hol)+' '+r.y+' — '+MON[r.m].slice(0,3)+' '+r.d+' '+(r.t===9?'9×':'6×')+
+        '<span class="mxbreak">'+esc(r.why)+'</span></span><span class="rt pos">+'+r.hrs+'h</span></div>'; }).join("");
+    if(t.rowsS.length)rows+='<div class="setlbl" style="margin:12px 2px 6px">Spent</div>'+t.rowsS.map(function(r){
+      return '<div class="ritem"><span class="rd">'+MON[r.m].slice(0,3)+' '+r.d+', '+r.y+' '+(r.t===9?'9×':'6×')+
+        '<span class="mxbreak">Comp day</span></span><span class="rt neg">−'+r.hrs+'h</span></div>'; }).join("");
+    if(vet){ var up=compEarned(true).filter(function(r){return r.future;});
+      if(up.length)rows+='<div class="setlbl" style="margin:12px 2px 6px">Coming up (not banked yet)</div>'+up.map(function(r){
+        return '<div class="ritem"><span class="rd">'+esc(r.hol)+' '+r.y+' — '+MON[r.m].slice(0,3)+' '+r.d+' '+(r.t===9?'9×':'6×')+
+          '<span class="mxbreak">'+esc(r.why)+'</span></span><span class="rt">'+r.hrs+'h</span></div>'; }).join(""); }
+    if(rows)list.innerHTML=rows;
+    else if(vet)list.innerHTML='<div class="rempty">Nothing banked yet. The next Memorial Day or Veterans Day your group is in — or that you pick up as MSOT — lands here automatically.</div>';
+    var sub=document.getElementById("compSub");
+    if(sub)sub.textContent=vet?(t.bal+"h banked · "+t.earned+"h earned, "+t.spent+"h spent"):"Veterans — Memorial Day & Veterans Day";
+  }
+  document.getElementById("openComp").onclick=function(){ if(!requireUnlock())return; hideSheet(setSheet); renderComp(); openSheet(document.getElementById("compSheet")); };
+  document.getElementById("compDone").onclick=closeSheets;
+  document.getElementById("vetBox").onchange=function(){ vet=this.checked; save("vet",vet);
+    if(vet&&!vetSince){ vetSince=isoLocal(now.getFullYear(),0,1); save("vetsince",vetSince); }   // default to Jan 1 of this year rather than silently backdating forever
+    renderComp(); render(); };
+  document.getElementById("vetSince").onchange=function(){ var v=this.value;
+    vetSince=(v&&isRealDate(v))?v:""; save("vetsince",vetSince); renderComp(); };
   document.getElementById("openMx").onclick=function(){if(!requireUnlock())return;hideSheet(setSheet);renderLedger();openSheet(mxSheet);};
   document.getElementById("mxDone").onclick=closeSheets;
 
@@ -5897,7 +6010,7 @@ var TEN_CODES=[
       b.onclick=function(){
         var delta=parseInt(b.getAttribute("data-d"),10);
         syncCurGroups();   // edit today's epoch off FRESH values (in case the app crossed midnight into a new epoch)
-        if(k==="my"){setCurGroups(mod(my-1+delta,G)+1,pt);document.getElementById("vMy").textContent=my;}
+        if(k==="my"){setCurGroups((my===0)?(delta>0?1:G):mod(my-1+delta,G)+1,pt);syncMy();}   // from "None", +/- re-enables a group
         else{setCurGroups(my,(pt===0)?(delta>0?1:G):mod(pt-1+delta,G)+1);syncPt();}   // from "None", +/- re-enables a partner
         render();
       };
