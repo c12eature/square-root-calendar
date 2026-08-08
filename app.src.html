@@ -2151,7 +2151,7 @@
           if(hu<vetSinceMs())continue;
           var future=hu>today;
           if(future&&!includeFuture)continue;
-          compRowsFor(y,m,d).forEach(function(r){ r.hol=h; r.future=future; out.push(r); }); } } }
+          compRowsFor(y,m,d).forEach(function(r){ r.hol=h; r.future=future; r.hms=hu; out.push(r); }); } } }
     return out.sort(function(a,b){return Date.UTC(b.y,b.m,b.d)-Date.UTC(a.y,a.m,a.d);}); }
   // Spending: the existing per-tour "Comp time" state, priced at the tour's own length.
   function compSpent(){ var out=[];
@@ -2160,9 +2160,34 @@
       if(Date.UTC(y,m,d)<vetSinceMs())continue;
       out.push({y:y,m:m,d:d,t:tr,hrs:otHours(tr)}); }
     return out.sort(function(a,b){return Date.UTC(b.y,b.m,b.d)-Date.UTC(a.y,a.m,a.d);}); }
-  function compTotals(){ var e=vet?compEarned():[], sp=compSpent();
-    var eh=0,sh=0; e.forEach(function(r){eh+=r.hrs;}); sp.forEach(function(r){sh+=r.hrs;});
-    return {earned:Math.round(eh*100)/100, spent:sh, bal:Math.round((eh-sh)*100)/100, rowsE:e, rowsS:sp}; }
+  // Comp does not accumulate: it is USE IT OR LOSE IT, one holiday to the next. Hours banked on
+  // Veterans Day must be spent before Memorial Day; hours banked on Memorial Day before Veterans
+  // Day. So the number that matters is never a lifetime total — it is this period's balance and the
+  // date it dies on. Anything left in a closed period is forfeited, and shown as such rather than
+  // quietly vanishing.
+  function compHolidaysOf(y){ return [{ms:Date.UTC(y,4,lastDow(y,4,1)),n:"Memorial Day"},{ms:Date.UTC(y,10,11),n:"Veterans Day"}]; }
+  function compPeriod(atMs){ var y=new Date(atMs).getUTCFullYear(), all=[];
+    for(var k=y-1;k<=y+1;k++)all=all.concat(compHolidaysOf(k));
+    all.sort(function(a,b){return a.ms-b.ms;});
+    var start=null,end=null;
+    for(var i=0;i<all.length;i++){ if(all[i].ms<=atMs)start=all[i]; else { end=all[i]; break; } }
+    return {start:start,end:end}; }
+  function compTotals(){
+    var e=vet?compEarned():[], sp=compSpent(), now=Date.UTC(new Date().getFullYear(),new Date().getMonth(),new Date().getDate());
+    var per=compPeriod(now), ps=per.start?per.start.ms:-Infinity, pe=per.end?per.end.ms:Infinity;
+    var inNow=function(ms){ return ms>=ps&&ms<pe; };
+    var rowsE=e.filter(function(r){ return r.hms===ps; });                       // banked in the period we are living in
+    var rowsS=sp.filter(function(r){ return inNow(Date.UTC(r.y,r.m,r.d)); });    // spent inside it
+    var eh=0,sh=0; rowsE.forEach(function(r){eh+=r.hrs;}); rowsS.forEach(function(r){sh+=r.hrs;});
+    // everything older: whatever was not spent in its own window is gone
+    var lost=0, byPer={};
+    e.forEach(function(r){ if(r.hms>=ps||r.future)return; byPer[r.hms]=byPer[r.hms]||{n:r.hol,y:r.y,e:0,s:0}; byPer[r.hms].e+=r.hrs; });
+    sp.forEach(function(r){ var ms=Date.UTC(r.y,r.m,r.d), p=compPeriod(ms); if(!p.start||p.start.ms>=ps)return;
+      if(byPer[p.start.ms])byPer[p.start.ms].s+=r.hrs; });
+    var lostRows=[]; for(var k in byPer){ var b=byPer[k], left=Math.round((b.e-b.s)*100)/100;
+      if(left>0){ lost+=left; lostRows.push({n:b.n,y:b.y,hrs:left}); } }
+    return {earned:Math.round(eh*100)/100, spent:sh, bal:Math.round(Math.max(0,eh-sh)*100)/100,
+      rowsE:rowsE, rowsS:rowsS, useBy:per.end, since:per.start, lost:Math.round(lost*100)/100, lostRows:lostRows}; }
 
   function otHours(tour){return tour===9?9:15;}                        // day tour 9h OT, night tour 15h OT
   // AR = awaiting relief — extra paid minutes at the END of a tour you work (any tour)
@@ -2281,7 +2306,7 @@
   // for everyone, House or no House. (The House cron still exists for crew requests; it just isn't
   // the only way to be reminded about your own tours any more.)
   var npref=(function(){ var d={tour:true,lead:60,pers:true,cev:true,ev:true,sched:true,off:true,pay:false,cfr:true,
-      qh:false,qhFrom:"22:00",qhTo:"07:00"}, v=load("npref",null);
+      comp:true,qh:false,qhFrom:"22:00",qhTo:"07:00"}, v=load("npref",null);
     if(v&&typeof v==="object")for(var k in v)if(v[k]!==undefined)d[k]=v[k];   // an older {tour,lead,pers} keeps its answers and inherits the new defaults
     return d; })();
   var LEADS=[["0","At start"],["60","1 hr"],["120","2 hr"],["720","12 hr"],["1440","1 day"]];
@@ -2336,6 +2361,22 @@
       if(at<now+30000)return;
       out.push({rid:"v"+ix+"-"+y2+pad2(m2+1)+pad2(d2), at:at, st:st,
         t:dutyEmoji(pd.t)+" "+dutyLabel(pd.t)+" starts tomorrow", b:"From "+fmtVD(pd.s)+(pd.e?" to "+fmtVD(pd.e):" · ongoing")}); });
+    // Use it or lose it, so a reminder arriving after the deadline is worthless — and the day-scan
+    // above only reaches 70 days, which a twice-a-year nudge falls straight through. Drive it off
+    // the period: the one end-of-April or end-of-October that sits between now and the deadline.
+    // Only fires with hours actually at risk, and the queue rebuilds on every change, so spending
+    // them takes the nudge away by itself.
+    if(npref.comp&&vet){ var ct=compTotals();
+      if(ct.bal>0&&ct.useBy){ var t1=new Date(), lim=ct.useBy.ms;
+        outer: for(var yy=t1.getFullYear();yy<=t1.getFullYear()+1;yy++){
+          for(var mo=0;mo<12;mo++){ if(mo!==3&&mo!==9)continue;
+            var last=new Date(yy,mo+1,0).getDate(), at=remAt(yy,mo,last,10,0);
+            if(at<now+30000)continue;
+            if(Date.UTC(yy,mo,last)>=lim)continue;                       // past the deadline is no warning at all
+            out.push({rid:"x"+yy+pad2(mo+1)+pad2(last), at:at, st:at,
+              t:"⏳ Use your comp time",
+              b:ct.bal+"h expires "+MON[new Date(lim).getUTCMonth()].slice(0,3)+" "+new Date(lim).getUTCDate()+" ("+ct.useBy.n+") — book it before you lose it."});
+            break outer; } } } }
     // CFR: the in-app nag only shows when you open the app. Two pushes, so it can reach you.
     if(npref.cfr){ var ci=cfrExpInfo();
       if(ci&&ci.state!=="none"&&isFinite(ci.days)&&ci.days>0){
@@ -3292,7 +3333,7 @@
     document.getElementById("secData").classList.add("collapsed");
     document.getElementById("secAppear").classList.add("collapsed");
     document.getElementById("secNotif").classList.add("collapsed");
-    syncThmSeg();syncDataSum();renderSetNotif();syncUnlockRow();openSheet(setSheet);};
+    syncThmSeg();syncDataSum();syncCompSub();renderSetNotif();syncUnlockRow();openSheet(setSheet);};
   function syncUnlockRow(){ var u=document.getElementById("openUnlock");
     // A trial that nobody can see is a trial nobody converts on: while it runs the user IS unlocked,
     // so every "unlock" prompt was hidden and there was no sign a clock was ticking. Keep the row up
@@ -4355,14 +4396,18 @@
     var w=document.getElementById("vetSinceWrap"); if(w)w.hidden=!vet;
     var si=document.getElementById("vetSince"); if(si&&si.value!==vetSince)si.value=vetSince||"";
     var t=compTotals(), net=document.getElementById("compNet"), list=document.getElementById("compList");
-    if(net)net.innerHTML='<div class="mxnetbig">⏳ '+t.bal+' hour'+(t.bal===1?'':'s')+' banked</div>'+
-      '<div class="mxnetsub">'+t.earned+'h earned · '+t.spent+'h spent</div>';
+    if(net){ var by=t.useBy?(MON[new Date(t.useBy.ms).getUTCMonth()].slice(0,3)+" "+new Date(t.useBy.ms).getUTCDate()+", "+new Date(t.useBy.ms).getUTCFullYear()):"";
+      net.innerHTML='<div class="mxnetbig">⏳ '+t.bal+' hour'+(t.bal===1?'':'s')+(t.bal?' to use':' left')+'</div>'+
+        '<div class="mxnetsub">'+(t.bal&&by?('Use it by <b>'+esc(by)+'</b> ('+esc(t.useBy.n)+') or you lose it · '):'')+
+        t.earned+'h banked this period · '+t.spent+'h spent</div>'; }
     if(!list)return;
     if(!vet){ list.innerHTML='<div class="rempty">Tick the box above if you\u2019re a veteran and the app will bank your holiday hours automatically. Comp days you already took still show below.</div>'; }
     var rows="";
     if(t.rowsE.length)rows+='<div class="setlbl" style="margin:10px 2px 6px">Earned</div>'+t.rowsE.map(function(r){
       return '<div class="ritem"><span class="rd">'+esc(r.hol)+' '+r.y+' — '+MON[r.m].slice(0,3)+' '+r.d+' '+(r.t===9?'9×':'6×')+
         '<span class="mxbreak">'+esc(r.why)+'</span></span><span class="rt pos">+'+r.hrs+'h</span></div>'; }).join("");
+    if(t.lostRows.length)rows+='<div class="setlbl" style="margin:12px 2px 6px">Expired unused</div>'+t.lostRows.map(function(r){
+      return '<div class="ritem"><span class="rd">'+esc(r.n)+' '+r.y+'<span class="mxbreak">not claimed before the next holiday</span></span><span class="rt neg">'+r.hrs+'h lost</span></div>'; }).join("");
     if(t.rowsS.length)rows+='<div class="setlbl" style="margin:12px 2px 6px">Spent</div>'+t.rowsS.map(function(r){
       return '<div class="ritem"><span class="rd">'+MON[r.m].slice(0,3)+' '+r.d+', '+r.y+' '+(r.t===9?'9×':'6×')+
         '<span class="mxbreak">Comp day</span></span><span class="rt neg">−'+r.hrs+'h</span></div>'; }).join("");
@@ -4372,8 +4417,15 @@
           '<span class="mxbreak">'+esc(r.why)+'</span></span><span class="rt">'+r.hrs+'h</span></div>'; }).join(""); }
     if(rows)list.innerHTML=rows;
     else if(vet)list.innerHTML='<div class="rempty">Nothing banked yet. The next Memorial Day or Veterans Day your group is in — or that you pick up as MSOT — lands here automatically.</div>';
-    var sub=document.getElementById("compSub");
-    if(sub)sub.textContent=vet?(t.bal+"h banked · "+t.earned+"h earned, "+t.spent+"h spent"):"Veterans — Memorial Day & Veterans Day";
+    syncCompSub();
+  }
+  // The row has to answer "how much, by when" from the Settings list itself — it was only being
+  // written inside renderComp(), so it stayed at its placeholder until you opened the sheet once.
+  function syncCompSub(){ var sub=document.getElementById("compSub"); if(!sub)return;
+    if(!vet){ sub.textContent="Veterans — Memorial Day & Veterans Day"; return; }
+    var t=compTotals();
+    sub.textContent=t.bal?(t.bal+"h to use by "+MON[new Date(t.useBy.ms).getUTCMonth()].slice(0,3)+" "+new Date(t.useBy.ms).getUTCDate())
+      :(t.lost?"Nothing banked this period · "+t.lost+"h expired unused":"Nothing banked this period");
   }
   document.getElementById("openComp").onclick=function(){ if(!requireUnlock())return; hideSheet(setSheet); renderComp(); openSheet(document.getElementById("compSheet")); };
   document.getElementById("compDone").onclick=closeSheets;
@@ -5249,6 +5301,7 @@ var TEN_CODES=[
         nprefTog("sched","📋 Light duty &amp; training","an hour before the shift or class")+
         nprefTog("off","🌴 Time off starting","the evening before it begins")+
         nprefTog("cfr","📘 CFR expiring","30 days and 7 days out")+
+        (vet?nprefTog("comp","⏳ Comp time expiring","end of April and October, before you lose it"):"")+
         nprefTog("pay","💵 Payday","the evening before")+
       '</div>'+
       '<p class="ldsub" style="margin:10px 0 6px">Quiet hours:</p>'+
