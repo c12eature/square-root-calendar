@@ -7,3 +7,24 @@ node_modules/
 vapid-private.local.txt
 android.keystore
 apk-signing.local.txt
+
+# Bubblewrap's generated Android project. Regenerate it any time with `bubblewrap update`
+# (it is derived entirely from twa-manifest.json) — only the manifest and the shipped
+# square-root-calendar.apk are worth versioning. This repo also deploys to Vercel, so
+# keeping the Gradle tree out of git keeps it out of the deployment too.
+app/
+build/
+.gradle/
+gradle/
+gradlew
+gradlew.bat
+gradle.properties
+build.gradle
+settings.gradle
+store_icon.png
+manifest-checksum.txt
+app-release-signed.apk
+app-release-signed.apk.idsig
+app-release-unsigned-aligned.apk
+app-release-bundle.aab
+square-root-calendar.aab
