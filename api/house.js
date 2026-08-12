@@ -113,21 +113,37 @@ function tourCommitted(doc, mid, tour, exceptId) {
   }
   return !!latest && gaveAway(latest, mid, tour);
 }
-// The mirror of tourCommitted, for the TAKER — and only for a deal in flight. `taken` means both men
-// have agreed but nobody has pressed Done, so NOTHING is on either calendar yet: applyDoneRequests
-// waits for "done" before it writes the tour to the taker as a mutual. Meanwhile tourCommitted has
-// already stopped reminding the GIVER from the moment it was taken. So for that window the board is
-// the only record that anyone is working this tour, and without this nobody is told to report.
+// Has this member's client written a given board deal into its own calendar yet?
+// No list at all = a build too old to tell us. Assume applied, so mxon stays the only authority and
+// an old client can never be given a reminder that contradicts a calendar we cannot see.
+function dealApplied(mem, id) {
+  var a = mem && mem.hqa;
+  if (!Array.isArray(a)) return true;
+  return a.indexOf(id) >= 0;
+}
+// The mirror of tourCommitted, for the TAKER: is he holding this tour because of the board, at a
+// moment when his own calendar does not say so yet? Two such moments, and tourCommitted has ALREADY
+// stopped reminding the giver in both, so without this nobody is told to report on a covered tour:
 //
-// Deliberately does NOT look at "done" deals. Once one settles, the taker's own calendar holds the
-// tour and is the better authority — it also tracks what happens NEXT (handing it on with `pass`,
-// re-posting it, marking it off), none of which a board record can see. Reading done deals here
-// would resurrect exactly the false "you're working today" this whole change exists to stop.
-// Even swaps never sit in `taken` (they settle on approval), so they are unaffected either way.
+//   · `taken`  — agreed, nobody has pressed Done, so applyDoneRequests hasn't run for anyone.
+//   · `done` but not in his hqa — settled, but his phone hasn't opened to write it. The deal is
+//     retained here for 60 days precisely so his client gets that chance; until it does, the board
+//     is the only record.
+//
+// Once he HAS applied it, this goes quiet and his calendar is the authority again — which matters,
+// because only his calendar knows what he did NEXT (handed it on with `pass`, marked it off,
+// re-posted it). Reading every done deal unconditionally would resurrect exactly the false
+// "you're working today" that this pair of fixes exists to stop.
+// Even swaps never sit in `taken` (they settle on approval), so only the second clause covers them.
 function tourGained(doc, mid, tour) {
   if (!tour) return false;
-  var reqs = doc.requests || [];
-  for (var i = 0; i < reqs.length; i++) if (reqs[i].status === "taken" && reGained(reqs[i], mid, tour)) return true;
+  var mem = (doc.members || {})[mid], reqs = doc.requests || [];
+  for (var i = 0; i < reqs.length; i++) {
+    var r = reqs[i];
+    if (!reGained(r, mid, tour)) continue;
+    if (r.status === "taken") return true;
+    if (r.status === "done" && !dealApplied(mem, r.id)) return true;
+  }
   return false;
 }
 function tourFuture(t) { if (!t) return false; var et = etParts(); return Date.UTC(t.y, t.m, t.d) >= Date.UTC(et.y, et.m, et.d); }
@@ -143,6 +159,7 @@ var RL_WINDOW = 60, RL_MAX = 150;        // requests / IP / minute (clients poll
 var MAX_MEMBERS = 400, MAX_PENDING = 30, MAX_CO = 24, MAX_EVENTS = 300, MAX_REQ = 500, TERMINAL_KEEP = 100, MAX_BANNED = 500;
 var MAX_CRON_HOUSES = 5000, MAX_CREATE_PER_DAY = 20;   // bound cron per-run cost; cap house creation per IP/day (anti-abuse)
 var NAME_MAX = 60, CO_MAX = 24, PHONE_MAX = 40, DUTY_MAX = 24, NOTE_MAX = 240, EV_DATES_MAX = 60;
+var IDS_MAX = 200;                       // applied-deal ids per member; the client prunes to live requests, so this only bounds a hostile payload
 
 function redis(cmd) {
   return fetch(REST_URL, {
@@ -296,17 +313,30 @@ function sanOt(arr) {   // member's upcoming scheduled-OT (RSOT) tours, so the c
   }
   return out;
 }
+// Request ids this member's client has ALREADY written into its own calendar (its hqapplied set for
+// this house). Tri-state on purpose: an array — even an empty one — means "this client tells us what
+// it has applied"; `null` means it is too old to say. Those are not the same, and treating an old
+// client as "has applied nothing" would let the board override a calendar it can't see.
+function sanIds(arr) {
+  if (!Array.isArray(arr)) return null;
+  var out = [];
+  for (var i = 0; i < arr.length && out.length < IDS_MAX; i++) {
+    var s = clip(arr[i], 12);
+    if (/^[0-9a-f]{12}$/.test(s) && out.indexOf(s) < 0) out.push(s);
+  }
+  return out;
+}
 function sanProfile(op) {
   return { name: clip(op.name, NAME_MAX), company: co(op.company), group: grpOK(op.group),
            letter: /^[ABCD]$/.test(op.letter) ? op.letter : "",
            phone: clip(op.phone, PHONE_MAX), spouse: clip(op.spouse, NAME_MAX),
            spousePhone: clip(op.spousePhone, PHONE_MAX), duty: sanDuty(op.duty), ot: sanOt(op.ot),
-           mxoff: sanOt(op.mxoff), mxon: sanOt(op.mxon) };   // mxoff/mxon = tours the member is OFF / WORKING due to an out-of-house mutual (so the day-view is accurate); same {d,t} shape as ot
+           mxoff: sanOt(op.mxoff), mxon: sanOt(op.mxon), hqa: sanIds(op.hqa) };   // mxoff/mxon = tours the member is OFF / WORKING due to an out-of-house mutual (so the day-view is accurate); same {d,t} shape as ot. hqa = board deals already written to their calendar
 }
 function newMember(op, role, status) {
   var p = sanProfile(op);
   return { name: p.name, company: p.company, group: p.group, letter: p.letter, phone: p.phone, spouse: p.spouse,
-           spousePhone: p.spousePhone, duty: p.duty, ot: p.ot, mxoff: p.mxoff, mxon: p.mxon, role: role, status: status, at: Date.now() };
+           spousePhone: p.spousePhone, duty: p.duty, ot: p.ot, mxoff: p.mxoff, mxon: p.mxon, hqa: p.hqa, role: role, status: status, at: Date.now() };
 }
 // A departed member (status "left" / "removed") collapses to a name-only tombstone — enough for their past
 // swaps to still show who it was, but with NO group/duty/PII, so they drop out of the roster + day-view and
@@ -357,6 +387,7 @@ function applyOp(doc, op, m) {
   if (t === "updateProfile") {
     var p = sanProfile(op);   // NOTE: company + group are admin-owned (set at join/approve) — not overwritten here
     me.name = p.name; me.letter = p.letter; me.phone = p.phone; me.spouse = p.spouse; me.spousePhone = p.spousePhone; me.duty = p.duty; me.ot = p.ot; me.mxoff = p.mxoff; me.mxon = p.mxon;
+    if (p.hqa) me.hqa = p.hqa;   // only when the client actually sent a list — a push from an older build must not erase a newer one's answer
   } else if (t === "setPartner") {   // declare your mutual partner (a specific active member); "confirmed" once they name you back. Omit `who` to clear.
     var oldP = me.partner;
     if (op.who != null) { if (op.who === m || !doc.members[op.who] || doc.members[op.who].status !== "active") throw { code: 400, error: "bad-partner" }; me.partner = op.who; }

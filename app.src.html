@@ -3609,6 +3609,7 @@
     if(_mirrorT)clearTimeout(_mirrorT); _mirrorT=setTimeout(function(){_mirrorT=null;idbMirror();},600);
     scheduleIcsSync();   // the published feed follows the schedule — a swap logged now shows up at Google's next refresh
     scheduleRemSync();   // …and so does anything the reminder queue needs to ring for
+    if(HPROF&&HPROF[k])scheduleProfileSync();   // …and the house, which reminds me from its own copy of my schedule (same null-safety as NOSYNC above — HPROF is declared further down)
     if(cloudOn&&rcode){ if(!cloudDirty){cloudDirty=true;save("cdirty",true);} schedulePush(); } }
   function flushMirror(){ if(_mirrorT){clearTimeout(_mirrorT);_mirrorT=null;idbMirror();} }
 
@@ -5165,7 +5166,12 @@ var TEN_CODES=[
         if(passOn(yy,mm,dd,tt))return;                             // …same for a tour you took on and then handed off: the ledger keeps both legs, but you are NOT reporting
         var cs=curState(yy,mm,dd,tt); if(cs==="mxin"||cs==="smxin"||cs==="pmxin")out.push({d:isoLocal(yy,mm,dd),t:tt}); }); }
     return out; }
-  function myProfile(forId){ return {name:uname,company:uco,group:my,letter:hletter,phone:uphone,spouse:uspouse,spousePhone:usphone,duty:dutyForHouse(forId),ot:myRsotList(),mxoff:myMutualOff(),mxon:myMutualOn()}; }   // forId = the house this profile is bound for (scopes the detail flag)
+  // Which of THIS house's board deals this device has already written to my calendar. The house needs
+  // it to tell "his phone hasn't caught up yet" apart from "he's seen it and he isn't working it" —
+  // without that the tour cron can't cover a settled swap without also nagging about tours I've since
+  // handed on. Scoped to forId, so a house I'm founding or joining correctly starts with none.
+  function hqAppliedList(forId){ var hq=(forId&&hqapplied[forId])||{}; return Object.keys(hq).slice(0,200); }
+  function myProfile(forId){ return {name:uname,company:uco,group:my,letter:hletter,phone:uphone,spouse:uspouse,spousePhone:usphone,duty:dutyForHouse(forId),ot:myRsotList(),mxoff:myMutualOff(),mxon:myMutualOn(),hqa:hqAppliedList(forId)}; }   // forId = the house this profile is bound for (scopes the detail flag)
   // --- sync layer ---
   function hFetch(method,qs,body,hdrs){ var h=body?{"Content-Type":"application/json"}:{}; if(hdrs){for(var k in hdrs)h[k]=hdrs[k];} return fetch("/api/house"+(qs||""),{method:method,headers:h,body:body?JSON.stringify(body):undefined})
     .then(function(r){ return r.json().catch(function(){return {};}).then(function(j){ return {status:r.status,j:j}; }); })
@@ -5236,14 +5242,19 @@ var TEN_CODES=[
     function gain(r){return (r.by===id&&sameT(r.want,tour))||(r.takenBy===id&&sameT(r.tour,tour));}
     for(var i=0;i<reqs.length;i++){ var r=reqs[i]; if(r.status==="taken"&&away(r))return true; if(r.status==="done"&&(away(r)||gain(r))&&(!latest||(r.doneAt||r.at)>(latest.doneAt||latest.at)))latest=r; }   // order by COMPLETION time (mirrors the server) — an old request taken late must not outrank an earlier re-gain
     return !!latest&&away(latest); }
-  // Mirrors the server's tourGained: has this man been handed this tour by a deal that's agreed but
-  // NOT yet marked done? In that window nothing is on anyone's calendar (applyDoneRequests waits for
-  // "done"), while houseTourCommitted has already taken the tour off the poster — so without this the
-  // day view shows nobody reporting for a tour that is in fact covered. Only "taken": once a deal
-  // settles, the taker's own calendar holds it and mxon reports it.
-  function houseTourGained(id,y,m,d,t){ if(!HD||!HD.requests)return false; var tour={y:y,m:m,d:d,t:t},reqs=HD.requests;
-    for(var i=0;i<reqs.length;i++){ var r=reqs[i]; if(r.status!=="taken")continue;
-      if((r.by===id&&sameT(r.want,tour))||(r.takenBy===id&&sameT(r.tour,tour)))return true; }
+  function hqaApplied(mem,id){ var a=mem&&mem.hqa; if(!Array.isArray(a))return true; return a.indexOf(id)>=0; }   // no list = a build too old to tell us; assume applied so mxon stays the authority
+  // Mirrors the server's tourGained: is this man holding this tour off the board at a moment when his
+  // own calendar doesn't say so yet? Either the deal is `taken` (agreed, nobody pressed Done, so
+  // applyDoneRequests hasn't run for anyone) or it's `done` but not yet in his applied set (his phone
+  // hasn't opened to write it). houseTourCommitted has already taken the tour off the poster in both
+  // cases, so without this the day view shows NOBODY reporting for a tour that is in fact covered.
+  // Once he's applied it, this goes quiet and mxon reports it — his calendar knows what he did next.
+  function houseTourGained(id,y,m,d,t){ if(!HD||!HD.requests)return false;
+    var tour={y:y,m:m,d:d,t:t},reqs=HD.requests,mem=HD.members&&HD.members[id];
+    for(var i=0;i<reqs.length;i++){ var r=reqs[i];
+      if(!((r.by===id&&sameT(r.want,tour))||(r.takenBy===id&&sameT(r.tour,tour))))continue;
+      if(r.status==="taken")return true;
+      if(r.status==="done"&&!hqaApplied(mem,r.id))return true; }
     return false; }
   function tourFar(t){ if(!t)return false; var td=new Date(); return Date.UTC(t.y,t.m,t.d)-Date.UTC(td.getFullYear(),td.getMonth(),td.getDate())>130*864e5; }   // beyond the ~130d myRsotList sync horizon — a crewmate's synced RSOT list is blind here
   function memList(status){ if(!HD)return []; return Object.keys(HD.members).map(function(k){return [k,HD.members[k]];}).filter(function(x){return !status||x[1].status===status;}); }
@@ -5280,6 +5291,15 @@ var TEN_CODES=[
   function memberCard(mem){ var call=mem.phone?'<a class="hmcall" href="'+escA("tel:"+mem.phone.replace(/[^0-9+]/g,""))+'">📞</a>':'';
     return '<span class="hmem"><span class="hmname">'+esc(mem.name||"—")+'</span>'+(mem.group?'<span class="hmg">g'+mem.group+'</span>':'')+(mem.letter&&houseAbcdActive(hVY,hVM,hVD)?'<span class="hmg">'+mem.letter+'</span>':'')+call+'</span>'; }
   function pushMyProfile(){ return hOp(Object.assign({type:"updateProfile"},myProfile(HS?HS.id:""))); }   // scope duty/detail flag to the ACTIVE house
+  // The profile used to go up only when you OPENED the House tab, switched house, or acted on the
+  // board. Everything the house knows about your schedule — duty, RSOT, mxoff/mxon — was therefore as
+  // stale as the last time you happened to look at it. Take a tour off with comp time and never open
+  // that tab, and the tour cron still had you working it: the same false reminder, one layer up.
+  // Debounced because a single edit writes several keys, and it converges — hOp's applyDoneRequests
+  // is idempotent, so the push it may trigger writes nothing the second time round.
+  var HPROF={ov:1,ot:1,periods:1,pass:1,hqapplied:1}, _hprofT=null;   // the keys myProfile()'s schedule is derived from
+  function scheduleProfileSync(){ if(!HS)return; if(_hprofT)clearTimeout(_hprofT);
+    _hprofT=setTimeout(function(){ _hprofT=null; pushMyProfile()["catch"](function(){}); },2500); }   // offline just fails quietly; the next edit or House-tab open retries
   function urlB64ToU8(b64){ var pad="=".repeat((4-b64.length%4)%4); var s=(b64+pad).replace(/-/g,"+").replace(/_/g,"/"); var raw=atob(s); var out=new Uint8Array(raw.length); for(var i=0;i<raw.length;i++)out[i]=raw.charCodeAt(i); return out; }
   // Notifications are APP-WIDE. They used to be gated behind House membership, which meant a guy
   // running the app solo could not be reminded about his own tours — backwards, since the tour
