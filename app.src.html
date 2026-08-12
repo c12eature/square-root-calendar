@@ -5236,6 +5236,15 @@ var TEN_CODES=[
     function gain(r){return (r.by===id&&sameT(r.want,tour))||(r.takenBy===id&&sameT(r.tour,tour));}
     for(var i=0;i<reqs.length;i++){ var r=reqs[i]; if(r.status==="taken"&&away(r))return true; if(r.status==="done"&&(away(r)||gain(r))&&(!latest||(r.doneAt||r.at)>(latest.doneAt||latest.at)))latest=r; }   // order by COMPLETION time (mirrors the server) — an old request taken late must not outrank an earlier re-gain
     return !!latest&&away(latest); }
+  // Mirrors the server's tourGained: has this man been handed this tour by a deal that's agreed but
+  // NOT yet marked done? In that window nothing is on anyone's calendar (applyDoneRequests waits for
+  // "done"), while houseTourCommitted has already taken the tour off the poster — so without this the
+  // day view shows nobody reporting for a tour that is in fact covered. Only "taken": once a deal
+  // settles, the taker's own calendar holds it and mxon reports it.
+  function houseTourGained(id,y,m,d,t){ if(!HD||!HD.requests)return false; var tour={y:y,m:m,d:d,t:t},reqs=HD.requests;
+    for(var i=0;i<reqs.length;i++){ var r=reqs[i]; if(r.status!=="taken")continue;
+      if((r.by===id&&sameT(r.want,tour))||(r.takenBy===id&&sameT(r.tour,tour)))return true; }
+    return false; }
   function tourFar(t){ if(!t)return false; var td=new Date(); return Date.UTC(t.y,t.m,t.d)-Date.UTC(td.getFullYear(),td.getMonth(),td.getDate())>130*864e5; }   // beyond the ~130d myRsotList sync horizon — a crewmate's synced RSOT list is blind here
   function memList(status){ if(!HD)return []; return Object.keys(HD.members).map(function(k){return [k,HD.members[k]];}).filter(function(x){return !status||x[1].status===status;}); }
   function amAdmin(){ return HD&&HS&&HD.admins.indexOf(HS.m)>=0; }
@@ -5400,7 +5409,7 @@ var TEN_CODES=[
       cos.forEach(function(co){ var inco=mems.filter(function(x){return (x[1].company||"")===co;}); if(!inco.length&&co)return;
         var reg=inco.filter(function(x){return !memberOff(x[1],y,m,d)&&memberWorks(x[1],y,m,d,t)&&!houseTourCommitted(x[0],y,m,d,t)&&!memberMx(x[1],y,m,d,t,"mxoff");});   // hide anyone who swapped/covered this tour away (in-house) OR mutual-out with another house
         var rs=inco.filter(function(x){return !memberOff(x[1],y,m,d)&&!memberWorks(x[1],y,m,d,t)&&memberRSOT(x[1],y,m,d,t)&&!houseTourCommitted(x[0],y,m,d,t);});
-        var mut=inco.filter(function(x){return !memberOff(x[1],y,m,d)&&!memberWorks(x[1],y,m,d,t)&&!memberRSOT(x[1],y,m,d,t)&&memberMx(x[1],y,m,d,t,"mxon")&&!houseTourCommitted(x[0],y,m,d,t);});   // working this tour because they picked up an out-of-house mutual
+        var mut=inco.filter(function(x){return !memberOff(x[1],y,m,d)&&!memberWorks(x[1],y,m,d,t)&&!memberRSOT(x[1],y,m,d,t)&&(memberMx(x[1],y,m,d,t,"mxon")||houseTourGained(x[0],y,m,d,t))&&!houseTourCommitted(x[0],y,m,d,t);});   // working this tour because they picked up an out-of-house mutual, or took it on the board and the deal isn't marked done yet
         var chips=reg.map(function(x){return chip(x[0],x[1],t,false);}).join("")+rs.map(function(x){return chip(x[0],x[1],t,true);}).join("")+mut.map(function(x){return chip(x[0],x[1],t,false,true);}).join("");
         out+='<div class="htco"><span class="htconame">'+(co?esc(co):"Unassigned")+'</span><div class="htchips">'+(chips||'<span class="hnone">—</span>')+'</div></div>'; });
       out+='</div>'; });

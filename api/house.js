@@ -74,9 +74,11 @@ function memberWorksTour(doc, mem, y, m, d, tour, mid) {
     : !!(mem.group && hasGrp(tour === 9 ? dayStart(y, m, d) : nightStart(y, m, d), mem.group));
   if (base) return !hasTour(mem, "mxoff", iso, tour);   // on the chart — unless a mutual out or comp time took it off you
   if (hasTour(mem, "ot", iso, tour)) return true;       // RSOT pickup counts on ANY chart, incl. during an ABCD window
-  return hasTour(mem, "mxon", iso, tour);               // off the chart, but picked up an out-of-house mutual
+  if (hasTour(mem, "mxon", iso, tour)) return true;     // off the chart, but picked up an out-of-house mutual
+  return !!mid && tourGained(doc, mid, { y: y, m: m, d: d, t: tour });   // …or took it on the house board and the deal hasn't been marked done yet
 }
 function isoOf(t) { return t.y + "-" + (t.m + 1 < 10 ? "0" : "") + (t.m + 1) + "-" + (t.d < 10 ? "0" : "") + t.d; }
+function tourName(t) { return t === 9 ? "☀️ 9× day tour" : "🌙 6× night tour"; }
 function hasRSOT(mem, tour) {   // does this member hold an RSOT (scheduled OT) on this exact tour? tour = {y,m,d,t}
   if (!mem || !tour) return false;
   var iso = isoOf(tour), ot = mem.ot || [];
@@ -110,6 +112,23 @@ function tourCommitted(doc, mid, tour, exceptId) {
     if (r.status === "done" && (gaveAway(r, mid, tour) || reGained(r, mid, tour)) && (!latest || (r.doneAt || r.at) > (latest.doneAt || latest.at))) latest = r;   // order by COMPLETION time — an old open request taken late must not outrank an earlier re-gain
   }
   return !!latest && gaveAway(latest, mid, tour);
+}
+// The mirror of tourCommitted, for the TAKER — and only for a deal in flight. `taken` means both men
+// have agreed but nobody has pressed Done, so NOTHING is on either calendar yet: applyDoneRequests
+// waits for "done" before it writes the tour to the taker as a mutual. Meanwhile tourCommitted has
+// already stopped reminding the GIVER from the moment it was taken. So for that window the board is
+// the only record that anyone is working this tour, and without this nobody is told to report.
+//
+// Deliberately does NOT look at "done" deals. Once one settles, the taker's own calendar holds the
+// tour and is the better authority — it also tracks what happens NEXT (handing it on with `pass`,
+// re-posting it, marking it off), none of which a board record can see. Reading done deals here
+// would resurrect exactly the false "you're working today" this whole change exists to stop.
+// Even swaps never sit in `taken` (they settle on approval), so they are unaffected either way.
+function tourGained(doc, mid, tour) {
+  if (!tour) return false;
+  var reqs = doc.requests || [];
+  for (var i = 0; i < reqs.length; i++) if (reqs[i].status === "taken" && reGained(reqs[i], mid, tour)) return true;
+  return false;
 }
 function tourFuture(t) { if (!t) return false; var et = etParts(); return Date.UTC(t.y, t.m, t.d) >= Date.UTC(et.y, et.m, et.d); }
 function tourFarFuture(t) { if (!t) return false; var et = etParts(); return Date.UTC(t.y, t.m, t.d) - Date.UTC(et.y, et.m, et.d) > 130 * 864e5; }   // beyond the ~130-day myRsotList sync horizon — a member's synced .ot list is BLIND here, not authoritative
@@ -485,11 +504,23 @@ async function handler(req, res) {
           checked++; var mem = hdoc.members[mids[cj]]; if (mem.status !== "active") continue;
           if (memberWorksTour(hdoc, mem, et.y, et.m, et.d, tour, mids[cj])) {
             reminded++;
-            sends.push(sendPush(mids[cj], { title: "🚒 Tour reminder", body: "You're working the " + (tour === 9 ? "☀️ 9× day tour" : "🌙 6× night tour") + " today.", url: "/?house=1", tag: "tour" }, "tours"));
+            // A tour taken on the board but not marked done is NOT on this man's calendar yet, so
+            // "you're working today" would contradict what he sees when he opens the app. Say where
+            // it came from instead, and tell him the one thing that fixes it.
+            var pend = tourGained(hdoc, mids[cj], { y: et.y, m: et.m, d: et.d, t: tour });
+            sends.push(sendPush(mids[cj], { title: "🚒 Tour reminder",
+              body: pend ? "You took the " + tourName(tour) + " on the board today — mark the swap done so it lands on your calendar."
+                         : "You're working the " + tourName(tour) + " today.",
+              url: "/?house=1", tag: "tour" }, "tours"));
           }
           if (memberWorksTour(hdoc, mem, nx.y, nx.m, nx.d, nx.t, mids[cj])) {   // one tour ahead — "this Saturday 9×? you hear about it Friday at 1800"
             ahead++;
-            sends.push(sendPush(mids[cj], { title: "⏰ Next tour is yours", body: nx.t === 9 ? "You're working tomorrow's ☀️ 9× day tour — starts 0900." : "You're working tonight's 🌙 6× night tour — starts 1800.", url: "/?house=1", tag: "tour-ahead" }, "tours"));
+            var pendN = tourGained(hdoc, mids[cj], nx);
+            var whenN = nx.t === 9 ? "tomorrow's " : "tonight's ";
+            sends.push(sendPush(mids[cj], { title: "⏰ Next tour is yours",
+              body: pendN ? "You took " + whenN + tourName(nx.t) + " on the board — mark the swap done so it lands on your calendar."
+                          : "You're working " + whenN + tourName(nx.t) + " — starts " + (nx.t === 9 ? "0900." : "1800."),
+              url: "/?house=1", tag: "tour-ahead" }, "tours"));
           }
         }
       }
