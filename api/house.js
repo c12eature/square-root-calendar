@@ -48,14 +48,33 @@ function abcdLetter(y, m, d) { return LTRS.charAt(emod(Math.round((Date.UTC(y, m
 function dms(iso) { var p = String(iso || "").split("-"); return Date.UTC(+p[0], (+p[1] || 1) - 1, +p[2] || 1); }
 function houseAbcdOn(doc, t) { if (!doc.abcd || !/^\d{4}-\d\d?-\d\d?$/.test(doc.abcd.s)) return false; var s = dms(doc.abcd.s), e = doc.abcd.e ? dms(doc.abcd.e) : Infinity; return t >= s && t <= e; }
 function memberOffOn(mem, t) { var ds = mem.duty || []; for (var i = 0; i < ds.length; i++) { var s = dms(ds[i].s), e = ds[i].e ? dms(ds[i].e) : Infinity; if (t >= s && t <= e) return true; } return false; }
-function memberWorksTour(doc, mem, y, m, d, tour) {   // mirrors the client memberWorks + memberRSOT − memberOff
-  var t = Date.UTC(y, m, d);
-  if (memberOffOn(mem, t)) return false;
-  var iso = y + "-" + (m + 1 < 10 ? "0" : "") + (m + 1) + "-" + (d < 10 ? "0" : "") + d, ot = mem.ot || [];
-  for (var i = 0; i < ot.length; i++) if (ot[i].t === tour && ot[i].d === iso) return true;   // RSOT pickup counts on ANY chart (mirrors the client's independent memberRSOT, incl. during an ABCD window)
-  if (houseAbcdOn(doc, t)) return !!(mem.letter && abcdLetter(y, m, d) === mem.letter);
-  if (mem.group && hasGrp(tour === 9 ? dayStart(y, m, d) : nightStart(y, m, d), mem.group)) return true;
+function hasTour(mem, which, iso, tour) {   // mem.ot / mem.mxoff / mem.mxon all carry the same {d,t} shape
+  var arr = (mem && mem[which]) || [];
+  for (var i = 0; i < arr.length; i++) if (arr[i].t === tour && arr[i].d === iso) return true;
   return false;
+}
+// Does this member actually REPORT for this tour? Mirrors the client day-view's reporting buckets
+// (reg / rs / mut) exactly, and it has to: the day view saying you're off while the cron pushes
+// "you're working today" is worse than either alone.
+//
+// This used to consult only duty periods, RSOT and the base chart — so every PER-TOUR reason you
+// weren't coming in was invisible to it. A comp day, a veteran comp day, a mutual out, a tour
+// swapped away on the house board: the cron rang you for all of them. mxoff/mxon were already
+// synced and sanitized here, just never read by anything but the client.
+//
+// `mid` is optional and last: without it the in-house swap check is skipped, so any older caller
+// keeps its current behaviour rather than crashing.
+function memberWorksTour(doc, mem, y, m, d, tour, mid) {
+  var t = Date.UTC(y, m, d);
+  if (memberOffOn(mem, t)) return false;                                             // vacation / medical / light duty / detail
+  if (mid && tourCommitted(doc, mid, { y: y, m: m, d: d, t: tour })) return false;   // swapped or covered away on the board — someone else holds it now
+  var iso = isoOf({ y: y, m: m, d: d });
+  var base = houseAbcdOn(doc, t)
+    ? !!(mem.letter && abcdLetter(y, m, d) === mem.letter)
+    : !!(mem.group && hasGrp(tour === 9 ? dayStart(y, m, d) : nightStart(y, m, d), mem.group));
+  if (base) return !hasTour(mem, "mxoff", iso, tour);   // on the chart — unless a mutual out or comp time took it off you
+  if (hasTour(mem, "ot", iso, tour)) return true;       // RSOT pickup counts on ANY chart, incl. during an ABCD window
+  return hasTour(mem, "mxon", iso, tour);               // off the chart, but picked up an out-of-house mutual
 }
 function isoOf(t) { return t.y + "-" + (t.m + 1 < 10 ? "0" : "") + (t.m + 1) + "-" + (t.d < 10 ? "0" : "") + t.d; }
 function hasRSOT(mem, tour) {   // does this member hold an RSOT (scheduled OT) on this exact tour? tour = {y,m,d,t}
@@ -464,11 +483,11 @@ async function handler(req, res) {
         var mids = Object.keys(hdoc.members);
         for (var cj = 0; cj < mids.length && checked < 20000; cj++) {
           checked++; var mem = hdoc.members[mids[cj]]; if (mem.status !== "active") continue;
-          if (memberWorksTour(hdoc, mem, et.y, et.m, et.d, tour)) {
+          if (memberWorksTour(hdoc, mem, et.y, et.m, et.d, tour, mids[cj])) {
             reminded++;
             sends.push(sendPush(mids[cj], { title: "🚒 Tour reminder", body: "You're working the " + (tour === 9 ? "☀️ 9× day tour" : "🌙 6× night tour") + " today.", url: "/?house=1", tag: "tour" }, "tours"));
           }
-          if (memberWorksTour(hdoc, mem, nx.y, nx.m, nx.d, nx.t)) {   // one tour ahead — "this Saturday 9×? you hear about it Friday at 1800"
+          if (memberWorksTour(hdoc, mem, nx.y, nx.m, nx.d, nx.t, mids[cj])) {   // one tour ahead — "this Saturday 9×? you hear about it Friday at 1800"
             ahead++;
             sends.push(sendPush(mids[cj], { title: "⏰ Next tour is yours", body: nx.t === 9 ? "You're working tomorrow's ☀️ 9× day tour — starts 0900." : "You're working tonight's 🌙 6× night tour — starts 1800.", url: "/?house=1", tag: "tour-ahead" }, "tours"));
           }

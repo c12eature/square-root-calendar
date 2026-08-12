@@ -5170,9 +5170,15 @@ var TEN_CODES=[
     for(var i=0;i<95&&out.length<50;i++){ var dt=new Date(y0,m0,d0+i),yy=dt.getFullYear(),mm=dt.getMonth(),dd=dt.getDate();
       [9,6].forEach(function(tt){ if(worked(yy,mm,dd,tt) && !(HS&&houseTourCommitted(HS.m,yy,mm,dd,tt))) out.push({y:yy,m:mm,d:dd,t:tt}); }); }   // worked() nets out swaps/off/comp; skip tours already given away
     return out; }
-  function myMutualOff(){ var out=[],t0=new Date(),y0=t0.getFullYear(),m0=t0.getMonth(),d0=t0.getDate();   // tours I'm OFF via an out-of-house mutual (any mutual-out: named, self, or partner even-swap) — so my house shows me not reporting
+  // Every per-tour reason I am NOT reporting for a tour my chart says I'd work: a mutual out (named,
+  // self, or partner even-swap) AND comp time (ordinary or veteran). Comp belongs here even though the
+  // key is named mxoff — the house only needs to know "he isn't coming in", not why. Leaving comp out
+  // meant a comp day still showed me on the house day-view AND the tour cron rang me at 0800 to say I
+  // was working a tour I had taken off. (Wire name kept for compatibility: older clients still send
+  // mxoff, and a rename would silently drop this on every phone that hasn't updated.)
+  function myMutualOff(){ var out=[],t0=new Date(),y0=t0.getFullYear(),m0=t0.getMonth(),d0=t0.getDate();
     for(var i=0;i<95&&out.length<80;i++){ var dt=new Date(y0,m0,d0+i),yy=dt.getFullYear(),mm=dt.getMonth(),dd=dt.getDate();
-      [9,6].forEach(function(tt){ var cs=curState(yy,mm,dd,tt); if(cs==="mxout"||cs==="smxout"||cs==="pmxout")out.push({d:isoLocal(yy,mm,dd),t:tt}); }); }
+      [9,6].forEach(function(tt){ var cs=curState(yy,mm,dd,tt); if(cs==="mxout"||cs==="smxout"||cs==="pmxout"||cs==="comp"||cs==="vcomp")out.push({d:isoLocal(yy,mm,dd),t:tt}); }); }
     return out; }
   function myMutualOn(){ var out=[],t0=new Date(),y0=t0.getFullYear(),m0=t0.getMonth(),d0=t0.getDate();   // tours I'm WORKING via an out-of-house mutual (any mutual-in: named, self, or partner even-swap) — so my house shows me reporting
     for(var i=0;i<95&&out.length<80;i++){ var dt=new Date(y0,m0,d0+i),yy=dt.getFullYear(),mm=dt.getMonth(),dd=dt.getDate();
