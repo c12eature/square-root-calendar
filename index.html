@@ -54,8 +54,14 @@
     --pay:#3ecf8e; --wknd:#191510; --shadow:0 1px 2px rgba(0,0,0,.35); --sheet:rgba(0,0,0,.55); color-scheme:dark;
   }
   *{box-sizing:border-box;}
-  html{height:100%; overflow:hidden; overscroll-behavior:none;}   /* kill pull-to-refresh + overscroll bounce */
-  body{margin:0; color:var(--ink); height:100%; overflow:hidden; overscroll-behavior:none;}   /* sheets live outside #app — without this their untinted text (h3 titles) falls back to black */
+  /* html + body MUST carry the background, not just #app. The viewport is viewport-fit=cover, so the
+     page draws edge-to-edge UNDER the Android system navigation bar, and the browser picks the colour
+     to tint that bar from the DOCUMENT background (html, then body) — never from #app and never from
+     the manifest theme_color. Leave them transparent and Android can't find an opaque colour, so it
+     enforces nav-bar contrast with its own translucent black gradient: the "fade to black" at the
+     bottom. It is painted by the OS, which is why no gradient exists anywhere in this stylesheet. */
+  html{height:100%; overflow:hidden; overscroll-behavior:none; background:var(--bg);}   /* kill pull-to-refresh + overscroll bounce */
+  body{margin:0; color:var(--ink); height:100%; overflow:hidden; overscroll-behavior:none; background:var(--bg);}   /* sheets live outside #app — without this their untinted text (h3 titles) falls back to black */
   :root{color-scheme:light dark;}
   #app{
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
