@@ -5714,12 +5714,45 @@ var TEN_CODES=[
     var pre=document.createElement("div");
     pre.style.cssText="white-space:pre-wrap;word-break:break-word";
     pre.textContent=L.join("\n");
+    // Live edge-to-edge switch. The navigation bar's colour is provably ignored by this phone (three
+    // different APK values, identical result), so the only remaining lever is whether the PAGE owns
+    // those pixels. viewport-fit is re-evaluated when the meta changes, so we can try it here and look,
+    // instead of shipping a guess and waiting for a screenshot.
+    var vp=document.querySelector('meta[name="viewport"]');
+    var tryBtn=document.createElement("button");
+    tryBtn.setAttribute("style","margin-top:16px;width:100%;padding:14px;border:0;border-radius:12px;"+
+      "background:#0e7490;color:#fff;font:800 15px -apple-system,system-ui,sans-serif");
+    tryBtn.textContent=/viewport-fit/.test(vp.content) ? "Turn edge-to-edge OFF" : "Try edge-to-edge ON";
+    tryBtn.onclick=function(){
+      var on=!/viewport-fit/.test(vp.content);
+      vp.setAttribute("content", on ? "width=device-width, initial-scale=1, viewport-fit=cover"
+                                    : "width=device-width, initial-scale=1");
+      if(box.parentNode) box.parentNode.removeChild(box);
+      var pill=document.createElement("div");
+      pill.setAttribute("style","position:fixed;left:8px;right:8px;top:8px;z-index:9999;background:#0e7490;"+
+        "color:#fff;padding:11px 13px;border-radius:12px;font:700 12.5px/1.45 -apple-system,system-ui,sans-serif;"+
+        "box-shadow:0 8px 26px rgba(0,0,0,.35)");
+      // Deliberately transient and never saved — this is a probe, not a setting. Reopening the app
+      // returns to whatever the deployed build says.
+      setTimeout(function(){
+        pill.textContent="Edge-to-edge "+(on?"ON":"OFF")+" — page height now "+window.innerHeight+
+          " of "+screen.height+", safe-area bottom "+safeArea().split(" / ")[2]+
+          ". Look at the very bottom of the screen: is the black gone? Tap to undo.";
+      },60);
+      pill.textContent="Applying…";
+      pill.onclick=function(){
+        vp.setAttribute("content", on ? "width=device-width, initial-scale=1"
+                                      : "width=device-width, initial-scale=1, viewport-fit=cover");
+        if(pill.parentNode) pill.parentNode.removeChild(pill);
+      };
+      document.body.appendChild(pill);
+    };
     var close=document.createElement("button");
-    close.setAttribute("style","margin-top:16px;width:100%;padding:14px;border:0;border-radius:12px;"+
+    close.setAttribute("style","margin-top:10px;width:100%;padding:14px;border:0;border-radius:12px;"+
       "background:#1b1712;color:#f4f1ea;font:800 15px -apple-system,system-ui,sans-serif");
     close.textContent="Close";
     close.onclick=function(){ if(box.parentNode) box.parentNode.removeChild(box); };
-    box.appendChild(h); box.appendChild(sub); box.appendChild(pre); box.appendChild(close);
+    box.appendChild(h); box.appendChild(sub); box.appendChild(pre); box.appendChild(tryBtn); box.appendChild(close);
     document.body.appendChild(box);
   };
   document.getElementById("icsDone").onclick=closeSheets;
