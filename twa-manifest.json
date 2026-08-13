@@ -3,7 +3,7 @@
   "host": "squarerootcalendar.com",
   "name": "Square Root Calendar",
   "launcherName": "Sq Root Cal",
-  "display": "fullscreen",
+  "display": "standalone",
   "themeColor": "#F4F1EA",
   "themeColorDark": "#F4F1EA",
   "navigationColor": "#F4F1EA",
@@ -20,8 +20,8 @@
     "path": "/home/c12eature/Documents/square-root-calendar/android.keystore",
     "alias": "android"
   },
-  "appVersionName": "1.0.3",
-  "appVersionCode": 5,
+  "appVersionName": "1.0.4",
+  "appVersionCode": 6,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://squarerootcalendar.com/manifest.webmanifest",
@@ -40,5 +40,5 @@
   "additionalTrustedOrigins": [],
   "retainedBundles": [],
   "displayOverride": [],
-  "appVersion": "1.0.3"
+  "appVersion": "1.0.4"
 }
