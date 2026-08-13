@@ -8,12 +8,14 @@ assert '</style>' in src, "app.src.html: no </style> found"
 head_app, body_app = src.split('</style>', 1)   # head_app = <title>…<style>… ; body_app = markup + script
 
 PWA_HEAD = '''<meta charset="utf-8">
-<!-- NO viewport-fit=cover. It pushes the page edge-to-edge UNDER the Android system bars, and
-     Android 15/16 answers that by drawing its own gradient "bar protection" behind the navigation
-     bar — a fade to black, painted OVER the page, which no CSS of ours can cover. Staying inside
-     the safe area means there is no protection to draw: the bar regions get theme-color instead.
-     Do not re-add cover without a phone to test on. -->
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- viewport-fit=cover is REQUIRED, tested on the phone. The Android app runs immersive
+     (display:fullscreen in twa-manifest.json), so there are no system bars for the page to get
+     stuck behind — but the window is still letterboxed BLACK around the camera cutout until the
+     page opts into drawing there, and cover is that opt-in. Removing it produced a black band
+     across the top where the status bar used to be.
+     #app pairs this with env(safe-area-inset-top/bottom) padding so content clears the cutout.
+     Do not remove cover without re-testing on a phone with a punch-hole camera. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="The firehouse tour-tracking calendar — tours, mutual swaps, overtime, RSOT, time off, and company events. Works fully offline.">
 <!-- ids matter: applyTheme() rewrites BOTH of these in place. The spec uses the FIRST theme-color
      whose media matches, so an override appended at the end of <head> can never win. -->

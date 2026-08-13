@@ -47,7 +47,10 @@
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     background:var(--bg); color:var(--ink); height:100vh; height:100dvh; overflow:hidden;   /* pinned to the viewport — the calendar fits, never scrolls */
     display:flex; flex-direction:column;
-    max-width:520px; margin:0 auto; padding:16px 9px calc(14px + env(safe-area-inset-bottom,0px)); box-sizing:border-box;
+    max-width:520px; margin:0 auto; box-sizing:border-box;
+    /* top inset matters now: the app runs immersive with viewport-fit=cover, so the page paints
+       into the camera cutout. Without this the header would sit under the camera. */
+    padding:calc(16px + env(safe-area-inset-top,0px)) 9px calc(14px + env(safe-area-inset-bottom,0px));
     -webkit-font-smoothing:antialiased; font-variant-numeric:tabular-nums;
   }
   /* header */
@@ -5700,7 +5703,11 @@ var TEN_CODES=[
     add("html bg", getComputedStyle(document.documentElement).backgroundColor);
     add("body bg", getComputedStyle(document.body).backgroundColor);
     add("#app bg", getComputedStyle(document.getElementById("app")).backgroundColor);
-    add("build", (document.querySelector('meta[name=\"viewport\"]')||{}).content&&/viewport-fit/.test((document.querySelector('meta[name=\"viewport\"]')||{}).content||"") ? "OLD (has viewport-fit)" : "new (no viewport-fit)");
+    // A TWA is rendered by whatever the phone's DEFAULT BROWSER is — the UA string always claims
+    // "Chrome" regardless. Brave is the one that self-identifies via navigator.brave, and which
+    // engine hosts the TWA decides how immersive mode and the gesture-bar scrim behave. This line
+    // is the difference between "the app is broken" and "the default browser is the variable".
+    add("TWA HOST BROWSER", (typeof navigator.brave!=="undefined") ? "BRAVE" : "not Brave — Vanadium/Chrome/other Chromium");
     add("UA", navigator.userAgent);
     var box=document.createElement("div");
     box.setAttribute("style","position:fixed;inset:0;z-index:9999;background:#fffdf8;color:#1b1712;"+

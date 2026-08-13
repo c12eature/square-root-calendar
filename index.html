@@ -2,12 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<!-- NO viewport-fit=cover. It pushes the page edge-to-edge UNDER the Android system bars, and
-     Android 15/16 answers that by drawing its own gradient "bar protection" behind the navigation
-     bar — a fade to black, painted OVER the page, which no CSS of ours can cover. Staying inside
-     the safe area means there is no protection to draw: the bar regions get theme-color instead.
-     Do not re-add cover without a phone to test on. -->
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- viewport-fit=cover is REQUIRED, tested on the phone. The Android app runs immersive
+     (display:fullscreen in twa-manifest.json), so there are no system bars for the page to get
+     stuck behind — but the window is still letterboxed BLACK around the camera cutout until the
+     page opts into drawing there, and cover is that opt-in. Removing it produced a black band
+     across the top where the status bar used to be.
+     #app pairs this with env(safe-area-inset-top/bottom) padding so content clears the cutout.
+     Do not remove cover without re-testing on a phone with a punch-hole camera. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="The firehouse tour-tracking calendar — tours, mutual swaps, overtime, RSOT, time off, and company events. Works fully offline.">
 <!-- ids matter: applyTheme() rewrites BOTH of these in place. The spec uses the FIRST theme-color
      whose media matches, so an override appended at the end of <head> can never win. -->
@@ -74,7 +76,10 @@
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     background:var(--bg); color:var(--ink); height:100vh; height:100dvh; overflow:hidden;   /* pinned to the viewport — the calendar fits, never scrolls */
     display:flex; flex-direction:column;
-    max-width:520px; margin:0 auto; padding:16px 9px calc(14px + env(safe-area-inset-bottom,0px)); box-sizing:border-box;
+    max-width:520px; margin:0 auto; box-sizing:border-box;
+    /* top inset matters now: the app runs immersive with viewport-fit=cover, so the page paints
+       into the camera cutout. Without this the header would sit under the camera. */
+    padding:calc(16px + env(safe-area-inset-top,0px)) 9px calc(14px + env(safe-area-inset-bottom,0px));
     -webkit-font-smoothing:antialiased; font-variant-numeric:tabular-nums;
   }
   /* header */
@@ -5728,7 +5733,11 @@ var TEN_CODES=[
     add("html bg", getComputedStyle(document.documentElement).backgroundColor);
     add("body bg", getComputedStyle(document.body).backgroundColor);
     add("#app bg", getComputedStyle(document.getElementById("app")).backgroundColor);
-    add("build", (document.querySelector('meta[name=\"viewport\"]')||{}).content&&/viewport-fit/.test((document.querySelector('meta[name=\"viewport\"]')||{}).content||"") ? "OLD (has viewport-fit)" : "new (no viewport-fit)");
+    // A TWA is rendered by whatever the phone's DEFAULT BROWSER is — the UA string always claims
+    // "Chrome" regardless. Brave is the one that self-identifies via navigator.brave, and which
+    // engine hosts the TWA decides how immersive mode and the gesture-bar scrim behave. This line
+    // is the difference between "the app is broken" and "the default browser is the variable".
+    add("TWA HOST BROWSER", (typeof navigator.brave!=="undefined") ? "BRAVE" : "not Brave — Vanadium/Chrome/other Chromium");
     add("UA", navigator.userAgent);
     var box=document.createElement("div");
     box.setAttribute("style","position:fixed;inset:0;z-index:9999;background:#fffdf8;color:#1b1712;"+
