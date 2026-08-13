@@ -388,6 +388,13 @@
   .sheet{position:fixed; left:0; right:0; bottom:0; z-index:50; transform:translateY(105%); transition:transform .26s cubic-bezier(.2,.8,.2,1);
     background:var(--panel); border-radius:20px 22px 0 0; padding:8px 18px calc(26px + env(safe-area-inset-bottom,0px)); max-width:480px; margin:0 auto; box-shadow:0 -10px 40px rgba(0,0,0,.28); max-height:92dvh; overflow-y:auto; -webkit-overflow-scrolling:touch;}
   .sheet.show{transform:translateY(0);}
+  /* THE fade-to-black at the bottom, finally. Closed sheets are not hidden — they are parked at
+     translateY(105%), a few px BELOW the viewport, still painted. Each one throws its 40px-blur
+     shadow UPWARD into the visible page, and ~24 of them park in the same spot: compounded
+     opacity at the bottom edge ≈ 0.999. Solid black, fading up — on every platform, worst on the
+     cream theme. A closed drawer must not cast a shadow into the room. */
+  .sheet:not(.show){box-shadow:none;}
+  .reqbar:not(.show){box-shadow:none;}
   .grip{width:38px;height:4px;border-radius:999px;background:var(--line);margin:6px auto 12px;}
   .sh-date{font-size:12px; color:var(--mut); font-weight:700; text-transform:uppercase; letter-spacing:.05em;}
   .sh-day{font-size:24px; font-weight:800; letter-spacing:-.02em; margin:2px 0 14px;}
