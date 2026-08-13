@@ -2,17 +2,24 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- NO viewport-fit=cover. It pushes the page edge-to-edge UNDER the Android system bars, and
+     Android 15/16 answers that by drawing its own gradient "bar protection" behind the navigation
+     bar — a fade to black, painted OVER the page, which no CSS of ours can cover. Staying inside
+     the safe area means there is no protection to draw: the bar regions get theme-color instead.
+     Do not re-add cover without a phone to test on. -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="The firehouse tour-tracking calendar — tours, mutual swaps, overtime, RSOT, time off, and company events. Works fully offline.">
-<meta name="theme-color" content="#f4f1ea" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#131110" media="(prefers-color-scheme: dark)">
+<!-- ids matter: applyTheme() rewrites BOTH of these in place. The spec uses the FIRST theme-color
+     whose media matches, so an override appended at the end of <head> can never win. -->
+<meta name="theme-color" id="tcLight" content="#f4f1ea" media="(prefers-color-scheme: light)">
+<meta name="theme-color" id="tcDark" content="#131110" media="(prefers-color-scheme: dark)">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/icons/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Sq Root Cal">
 <meta property="og:title" content="Square Root Calendar">
 <meta property="og:description" content="Free firehouse tour-tracking calendar — swaps, mutuals, overtime, time off. Works offline.">
@@ -1956,9 +1963,16 @@
   cev=(cev||[]).map(function(e){if(!e||typeof e!=="object")return null;if(e.dates)return e;var ds=e.rep?genSeries(e.s,e.rep,e.until||e.s):(e.s?[e.s]:[]);return {n:e.n,dates:ds,t1:e.t1||"",t2:e.t2||"",c:e.c||"#e0930f",note:e.note||""};}).filter(Boolean);  // migrate old single/recurring company events → an explicit list of dates
   var theme=load("theme","auto");   // auto = follow system (prefers-color-scheme); light/dark force it
   function applyTheme(t){var el=document.documentElement;if(t==="light"||t==="dark")el.setAttribute("data-theme",t);else el.removeAttribute("data-theme");
-    var ov=document.getElementById("tcOverride");   // keep the phone's status bar in step with the ACTUAL theme — a manual light/dark choice overrides the OS-scheme metas
-    if(t==="light"||t==="dark"){ if(!ov){ov=document.createElement("meta");ov.id="tcOverride";ov.setAttribute("name","theme-color");document.head.appendChild(ov);} ov.setAttribute("content",t==="dark"?"#131110":"#f4f1ea"); }
-    else if(ov&&ov.parentNode){ ov.parentNode.removeChild(ov); } }   // auto → let the prefers-color-scheme metas follow the OS
+    // The phone's system bars follow <meta name="theme-color">, and the spec picks the FIRST such meta
+    // in tree order whose media matches — so the old approach (append an override at the end of <head>)
+    // could never win: with the phone in dark mode and the app forced to Light you got a BLACK status
+    // bar over a cream page. Rewrite the two media metas in place instead. Forced theme → both carry
+    // the same colour, so whichever one the OS matches is the right one. Auto → restore the pair and
+    // let prefers-color-scheme decide.
+    var L=document.getElementById("tcLight"), D=document.getElementById("tcDark");
+    if(L) L.setAttribute("content", t==="dark" ? "#131110" : "#f4f1ea");
+    if(D) D.setAttribute("content", t==="light" ? "#f4f1ea" : "#131110");
+    var ov=document.getElementById("tcOverride"); if(ov&&ov.parentNode) ov.parentNode.removeChild(ov); }   // retire the old losing override if a cached page still has one
   function syncThmSeg(){Array.prototype.forEach.call(document.querySelectorAll("#thmSeg button"),function(b){b.classList.toggle("on",b.getAttribute("data-th")===theme);});
     var a=document.getElementById("appearSum"); if(a)a.textContent=(theme==="light")?"☀ Light":(theme==="dark")?"☾ Dark":"Auto";}
   // A collapsed section still has to say what state it is in — otherwise closing it hides whether

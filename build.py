@@ -8,17 +8,24 @@ assert '</style>' in src, "app.src.html: no </style> found"
 head_app, body_app = src.split('</style>', 1)   # head_app = <title>…<style>… ; body_app = markup + script
 
 PWA_HEAD = '''<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- NO viewport-fit=cover. It pushes the page edge-to-edge UNDER the Android system bars, and
+     Android 15/16 answers that by drawing its own gradient "bar protection" behind the navigation
+     bar — a fade to black, painted OVER the page, which no CSS of ours can cover. Staying inside
+     the safe area means there is no protection to draw: the bar regions get theme-color instead.
+     Do not re-add cover without a phone to test on. -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="The firehouse tour-tracking calendar — tours, mutual swaps, overtime, RSOT, time off, and company events. Works fully offline.">
-<meta name="theme-color" content="#f4f1ea" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#131110" media="(prefers-color-scheme: dark)">
+<!-- ids matter: applyTheme() rewrites BOTH of these in place. The spec uses the FIRST theme-color
+     whose media matches, so an override appended at the end of <head> can never win. -->
+<meta name="theme-color" id="tcLight" content="#f4f1ea" media="(prefers-color-scheme: light)">
+<meta name="theme-color" id="tcDark" content="#131110" media="(prefers-color-scheme: dark)">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/icons/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Sq Root Cal">
 <meta property="og:title" content="Square Root Calendar">
 <meta property="og:description" content="Free firehouse tour-tracking calendar — swaps, mutuals, overtime, time off. Works offline.">

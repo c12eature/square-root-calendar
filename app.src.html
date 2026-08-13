@@ -1935,9 +1935,16 @@
   cev=(cev||[]).map(function(e){if(!e||typeof e!=="object")return null;if(e.dates)return e;var ds=e.rep?genSeries(e.s,e.rep,e.until||e.s):(e.s?[e.s]:[]);return {n:e.n,dates:ds,t1:e.t1||"",t2:e.t2||"",c:e.c||"#e0930f",note:e.note||""};}).filter(Boolean);  // migrate old single/recurring company events → an explicit list of dates
   var theme=load("theme","auto");   // auto = follow system (prefers-color-scheme); light/dark force it
   function applyTheme(t){var el=document.documentElement;if(t==="light"||t==="dark")el.setAttribute("data-theme",t);else el.removeAttribute("data-theme");
-    var ov=document.getElementById("tcOverride");   // keep the phone's status bar in step with the ACTUAL theme — a manual light/dark choice overrides the OS-scheme metas
-    if(t==="light"||t==="dark"){ if(!ov){ov=document.createElement("meta");ov.id="tcOverride";ov.setAttribute("name","theme-color");document.head.appendChild(ov);} ov.setAttribute("content",t==="dark"?"#131110":"#f4f1ea"); }
-    else if(ov&&ov.parentNode){ ov.parentNode.removeChild(ov); } }   // auto → let the prefers-color-scheme metas follow the OS
+    // The phone's system bars follow <meta name="theme-color">, and the spec picks the FIRST such meta
+    // in tree order whose media matches — so the old approach (append an override at the end of <head>)
+    // could never win: with the phone in dark mode and the app forced to Light you got a BLACK status
+    // bar over a cream page. Rewrite the two media metas in place instead. Forced theme → both carry
+    // the same colour, so whichever one the OS matches is the right one. Auto → restore the pair and
+    // let prefers-color-scheme decide.
+    var L=document.getElementById("tcLight"), D=document.getElementById("tcDark");
+    if(L) L.setAttribute("content", t==="dark" ? "#131110" : "#f4f1ea");
+    if(D) D.setAttribute("content", t==="light" ? "#f4f1ea" : "#131110");
+    var ov=document.getElementById("tcOverride"); if(ov&&ov.parentNode) ov.parentNode.removeChild(ov); }   // retire the old losing override if a cached page still has one
   function syncThmSeg(){Array.prototype.forEach.call(document.querySelectorAll("#thmSeg button"),function(b){b.classList.toggle("on",b.getAttribute("data-th")===theme);});
     var a=document.getElementById("appearSum"); if(a)a.textContent=(theme==="light")?"☀ Light":(theme==="dark")?"☾ Dark":"Auto";}
   // A collapsed section still has to say what state it is in — otherwise closing it hides whether
