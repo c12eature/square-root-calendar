@@ -5,11 +5,11 @@
   "launcherName": "Sq Root Cal",
   "display": "standalone",
   "themeColor": "#F4F1EA",
-  "themeColorDark": "#F4F1EA",
+  "themeColorDark": "#131110",
   "navigationColor": "#F4F1EA",
-  "navigationColorDark": "#F4F1EA",
+  "navigationColorDark": "#131110",
   "navigationDividerColor": "#F4F1EA",
-  "navigationDividerColorDark": "#F4F1EA",
+  "navigationDividerColorDark": "#131110",
   "backgroundColor": "#F4F1EA",
   "enableNotifications": true,
   "startUrl": "/?src=pwa",
@@ -20,8 +20,8 @@
     "path": "/home/c12eature/Documents/square-root-calendar/android.keystore",
     "alias": "android"
   },
-  "appVersionName": "1.0.4",
-  "appVersionCode": 6,
+  "appVersionName": "1.0.5",
+  "appVersionCode": 7,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://squarerootcalendar.com/manifest.webmanifest",
@@ -40,5 +40,5 @@
   "additionalTrustedOrigins": [],
   "retainedBundles": [],
   "displayOverride": [],
-  "appVersion": "1.0.4"
+  "appVersion": "1.0.5"
 }
