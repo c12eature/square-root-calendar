@@ -2048,13 +2048,21 @@
     if(o==="sin")return "smxin"; if(o==="sout")return "smxout";
     if(o==="comp")return "comp"; if(o==="vc")return "vcomp";
     return "base";}
-  function setState(y,m,d,tour,st,quiet){var k=K(y,m,d,tour);delete ov[k];delete ot[k];
+  function setState(y,m,d,tour,st,quiet){var k=K(y,m,d,tour);
+    // OT over a gave-away tour: a man who mutuals out is free those hours and can pick up MSOT —
+    // the OT must not eat the mutual. ov[] and ot[] are separate maps and curState gives OT
+    // priority, so the out-leg simply stays put underneath: the Ledger (which reads ov directly)
+    // keeps the debt, pay reads the OT, and switching the OT off later surfaces the mutual again.
+    // IN-legs are NOT preserved — taking OT instead of a mutual-in means that mutual never happened.
+    var prevOv=ov[k], keepOut=(st==="ot"||st==="rsot"||st==="oot")&&(prevOv==="out"||prevOv==="pout"||prevOv==="sout");
+    delete ov[k];delete ot[k];
     if(st==="mxin")ov[k]="in";else if(st==="mxout")ov[k]="out";
     else if(st==="pmxin")ov[k]="pin";else if(st==="pmxout")ov[k]="pout";
     else if(st==="smxin")ov[k]="sin";else if(st==="smxout")ov[k]="sout";
     else if(st==="comp")ov[k]="comp";else if(st==="vcomp")ov[k]="vc";
     else if(st==="ot")ot[k]="m";else if(st==="rsot")ot[k]="r";else if(st==="oot")ot[k]="o";
-    if(st!=="mxin"&&st!=="mxout")delete mx[k];         // partner name only relevant for regular (counting) mutuals
+    if(keepOut)ov[k]=prevOv;                           // the dormant out-leg rides under the OT
+    if(st!=="mxin"&&st!=="mxout"&&!(keepOut&&prevOv==="out"))delete mx[k];   // partner name only for counting mutuals — kept alive with a preserved out
     if(!PASSABLE[st])delete pass[k];                   // a hand-off only exists on a tour you took on — don't leave a dead leg behind
     if(!WORKBACK[st])delete wfor[k];                   // …and a worked-anyway leg only on a tour you gave away
     save("ov",ov);save("ot",ot);save("mx",mx);save("pass",pass);save("wfor",wfor);if(quiet)return;render();openDay(y,m,d,dayOnly||undefined);}   // quiet: background sync mutates state without popping the day sheet
@@ -2085,15 +2093,19 @@
   function wforName(y,m,d,tour){return wfor[K(y,m,d,tour)]||"";}
   function wforOn(y,m,d,tour){var n=(wfor[K(y,m,d,tour)]||"").trim();return (n&&WORKBACK[curState(y,m,d,tour)])?n:"";}   // the ACTIVE worked-anyway leg, or ""
   function setWforNr(y,m,d,tour,name){var k=K(y,m,d,tour);name=(name||"").trim();if(name)wfor[k]=name;else delete wfor[k];save("wfor",wfor);}   // persist only — no rebuild, keeps the input's focus
+  function subOut(y,m,d,tour){var k=K(y,m,d,tour);if(!ot[k])return null;var v=ov[k];return (v==="out"||v==="pout"||v==="sout")?v:null;}   // the dormant mutual-out riding under an OT state, or null
   function mxName(y,m,d,tour){return mx[K(y,m,d,tour)]||"";}
   // persist only — the name shows in the day-sheet status text + ledger (both recomputed on next open),
   // never on a calendar chip, so we must NOT rebuild the sheet here (that would drop the user's next tap / focus).
   function setMxName(y,m,d,tour,name){var k=K(y,m,d,tour);name=(name||"").trim();if(name)mx[k]=name;else delete mx[k];save("mx",mx);}
   // ABCD whole-day work-state: set the same state on BOTH the 9× and 6× at once (a mutual/OT/comp covers the whole day).
-  function setBothState(y,m,d,st){[9,6].forEach(function(tour){var k=K(y,m,d,tour);delete ov[k];delete ot[k];
+  function setBothState(y,m,d,st){[9,6].forEach(function(tour){var k=K(y,m,d,tour);
+    var prevOv=ov[k], keepOut=(st==="ot")&&(prevOv==="out"||prevOv==="pout"||prevOv==="sout");   // whole-day OT over a whole-day give-away: same preservation as setState
+    delete ov[k];delete ot[k];
     if(st==="mxin")ov[k]="in";else if(st==="mxout")ov[k]="out";else if(st==="comp")ov[k]="comp";else if(st==="vcomp")ov[k]="vc";
     else if(st==="ot")ot[k]="m";
-    if(st!=="mxin"&&st!=="mxout")delete mx[k];
+    if(keepOut)ov[k]=prevOv;
+    if(st!=="mxin"&&st!=="mxout"&&!(keepOut&&prevOv==="out"))delete mx[k];
     if(!PASSABLE[st])delete pass[k];
     if(!WORKBACK[st])delete wfor[k];});
     save("ov",ov);save("ot",ot);save("mx",mx);save("pass",pass);save("wfor",wfor);render();openDay(y,m,d,dayOnly||undefined);}
@@ -2690,6 +2702,7 @@
     else if(st==="vcomp")tag='<i class="dot cmp vcmp" title="Veteran comp time"></i>';
     var pss=passOn(y,m,d,tour); if(pss)tag+='<i class="dot psd" title="Passed on to '+escA(pss)+'"></i>';   // the pill itself already reads as off — this says something is still logged here
     var wfb=wforOn(y,m,d,tour); if(wfb)tag+='<i class="dot wfb" title="Working it for '+escA(wfb)+' — your line is covered"></i>';   // the pill reads as working (it is) — this says your own line went to someone else
+    var mo2=subOut(y,m,d,tour); if(mo2)tag+='<i class="dot psd" title="Your line: mutual’d out'+(mxName(y,m,d,tour)?' to '+escA(mxName(y,m,d,tour)):'')+' — debt still counts"></i>';   // OT pill on top, the give-away still logged underneath
     var wk=worked(y,m,d,tour), ao=wk?addOf(y,m,d,tour):{};
     var xm=wk?(endExtra(y,m,d,tour)+p2pMin(y,m,d,tour)+othMin(y,m,d,tour)):0, arT=xm?'<i class="dot pay" title="Extra pay (AR/P2P/washup/other)"></i>':'';
     var badges=(flagOn(y,m,d,tour,"ecc")?'<i class="dot ecc" title="ECC/LCC"></i>':'')+(flagOn(y,m,d,tour,"cfr")?'<i class="dot cfr" title="CFR"></i>':'');
@@ -2982,7 +2995,7 @@
   function inSharedSet(y,m,d,tour){var s=findSet(y,m,d);if(!s)return false;for(var i=0;i<s.length;i++)if(s[i][0]===y&&s[i][1]===m&&s[i][2]===d&&s[i][3]===tour)return true;return false;}   // this tour is part of an interlocking set you share with your partner
   function tourCard(y,m,d,tour){
     var s=startOf(y,m,d,tour), name=tour===9?"9× Day tour":"6× Night tour", time=tour===9?"09:00":"18:00", eg=effGroups(y,m,d), aw=abcdOf(y,m,d);
-    var b=baseOf(y,m,d,tour), st=curState(y,m,d,tour), w=worked(y,m,d,tour), so=dutyStatus(y,m,d,tour), nm=mxName(y,m,d,tour), po=passOn(y,m,d,tour), wf=wforOn(y,m,d,tour), tag="", statusTxt;
+    var b=baseOf(y,m,d,tour), st=curState(y,m,d,tour), w=worked(y,m,d,tour), so=dutyStatus(y,m,d,tour), nm=mxName(y,m,d,tour), po=passOn(y,m,d,tour), wf=wforOn(y,m,d,tour), mo=subOut(y,m,d,tour), tag="", statusTxt;
     var lv=so?null:leaveOn(y,m,d,tour);   // a leave over a logged entry: state BOTH facts, never hide one behind the other
     if(so){statusTxt=dutyEmoji(so)+" "+dutyLabel(so)+(so==="ld"?" — light-duty assignment":" — you’re off your tours"); tag='<span class="mxtag '+so+'">'+dutyTag(so)+'</span>';}
     else if(st==="rsot"){statusTxt="Scheduled OT (RSOT) — report "+time+" · +"+otHours(tour)+"h · from your yearly list"; tag='<span class="mxtag rsot">RSOT +'+otHours(tour)+'h</span>';}
@@ -3006,6 +3019,10 @@
     // body reports — yours. Report time comes back, and the Ledger banks a tour you covered.
     if(wf){ statusTxt+=". You’re working these hours anyway for "+esc(wf)+" (payback) — report "+time+" · the Ledger counts it as a tour you covered";
       tag+='<span class="mxtag wfb">⤺ '+esc(wf)+'</span>'; }
+    // OT over a gave-away tour: the OT branch above told the pay story — this keeps the mutual
+    // visible. The debt to the man covering your line survives picking up the overtime.
+    if(mo){ statusTxt+=(mo==="out"?(". Your own line: mutual’d out"+(nm?" to "+esc(nm):"")+" — you still owe a tour back"):mo==="pout"?". Your own line: your Mutual Partner covers it (even trade, no debt)":". Your own line: self MX out (chief-approved)");
+      tag+=(mo==="out"?'<span class="mxtag">MX OUT</span>':mo==="pout"?'<span class="mxtag pmx">PARTNER OUT</span>':'<span class="mxtag smx">SELF MX OUT</span>'); }
     if(lv){ statusTxt=dutyEmoji(lv)+" "+dutyLabel(lv)+" — you were off"+(tag?". Still on the books: "+statusTxt.replace(/ · report \d\d:\d\d$/,""):"");
       tag='<span class="mxtag '+lv+'">'+dutyTag(lv)+'</span>'+tag; }   // the mutual keeps counting in the Ledger; change it below if it no longer stands
     var pl="↔ Mutual Partner";   // one-tap even swap with your regular partner (ledger-neutral) — only on sets you two share
@@ -3014,7 +3031,7 @@
     else if(b==="partner"){opts=[["base","Off"]];if((eg.pt&&inSharedSet(y,m,d,tour))||st==="pmxin")opts.push(["pmxin",pl]);opts.push(["mxin","Mutual in"],["smxin","Self MX in"],["ot","MSOT"],["rsot","RSOT"],["oot","Other OT"]);}
     else opts=[["base","Off"],["mxin","Mutual in"],["smxin","Self MX in"],["ot","MSOT"],["rsot","RSOT"],["oot","Other OT"]];   // off tour → not your partner's set, no ↔ partner option
     var seg=opts.map(function(o){var cap=(o[0]==="ot")?'<div class="segcap">Pick up as overtime</div>':'';return cap+'<button data-st="'+o[0]+'"'+(st===o[0]?' class="on"':'')+'>'+o[1]+'</button>';}).join("");
-    var isNamedMx=(st==="mxin"||st==="mxout");   // only regular (counting) mutuals get a name — partner swaps don't
+    var isNamedMx=(st==="mxin"||st==="mxout"||mo==="out");   // only regular (counting) mutuals get a name — partner swaps don't; a preserved out under OT keeps its field
     var nmRow=isNamedMx?('<div class="mxnamerow"><span class="lab">🤝 With</span><input class="mxname" type="text" list="mxNames" autocomplete="off" data-tour="'+tour+'" placeholder="Name — pick a saved one or type new" value="'+escA(nm)+'"></div>'):'';
     // You took this tour on, then it went to someone else. A name here = you are OFF it and they
     // covered for you; clearing the name hands it straight back to you. One field, no extra toggle.
