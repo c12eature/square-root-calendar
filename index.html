@@ -587,6 +587,33 @@
   .fhedit:active{background:var(--line);}
   .fhbody{display:none; padding:2px 12px 13px; border-top:1px solid var(--line);}
   .fh.open .fhbody{display:block;}
+  /* ---- firehouse run stats (fhstats.js): latest-year strip on every card, past years on tap ---- */
+  .fhstat{display:flex; align-items:center; gap:9px; width:calc(100% - 24px); margin:0 12px 11px; padding:7px 10px; border:1px solid var(--line); border-radius:10px; background:var(--panel2); font:inherit; color:var(--ink); cursor:pointer; text-align:left;}
+  .fhstat .spark{width:86px; height:26px; flex:none;}
+  .spark polyline{fill:none; stroke:var(--red); stroke-width:1.8; stroke-linejoin:round; stroke-linecap:round;}
+  .spark circle{fill:var(--red);}
+  .fhstx{flex:1; font-size:12px; color:var(--ink2); font-weight:700; line-height:1.35;}
+  .fhstx b{color:var(--ink); font-size:13.5px;}
+  .fhrank{display:inline-block; margin-left:4px; padding:1px 6px; border-radius:8px; background:var(--off); color:var(--off-ink); font-size:10.5px; font-weight:900; white-space:nowrap;}
+  .fhrank.warm{background:var(--amber-soft); color:var(--amber-soft-ink);}
+  .fhrank.hot{background:var(--red-soft); color:var(--red-soft-ink);}
+  .fhyrschev{color:var(--mut); font-size:11px; flex:none; transition:transform .15s;}
+  .fhstat.open .fhyrschev{transform:rotate(180deg);}
+  .fhyrs{display:none;}
+  .fhyrs.open{display:block; padding:0 12px 12px;}
+  .fhco{margin-top:9px; font-size:12.5px; color:var(--ink);}
+  .fhco>b{font-size:13px;}
+  .fhcotype{display:inline-block; min-width:16px; text-align:center; padding:0 4px; border-radius:6px; font-size:10px; font-weight:900; margin-right:5px; vertical-align:1px; background:var(--off); color:var(--off-ink);}
+  .fhcotype.engine{background:var(--red-soft); color:var(--red-soft-ink);}
+  .fhcotype.ladder{background:var(--amber-soft); color:var(--amber-soft-ink);}
+  .fhcotype.squad,.fhcotype.rescue{background:color-mix(in srgb,var(--cyan) 16%,transparent); color:var(--cyan);}
+  .fhcosub{color:var(--mut); font-size:11.5px; font-weight:600; margin-top:1px;}
+  .fhyt{width:100%; border-collapse:collapse; margin:6px 0 2px; font-size:12px; font-variant-numeric:tabular-nums;}
+  .fhyt th{font-size:9.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--mut); text-align:right; padding:3px 6px; border-bottom:1px solid var(--line); font-weight:800;}
+  .fhyt th:first-child,.fhyt td:first-child{text-align:left;}
+  .fhyt td{text-align:right; padding:3.5px 6px; border-bottom:1px solid var(--line2); color:var(--ink2);}
+  .fhyt tr.latest td{color:var(--ink); font-weight:800;}
+  .fhcredit{margin-top:9px; font-size:10.5px; color:var(--mut);}
   .fhrow{display:flex; align-items:center; gap:9px; margin-top:11px;}
   .fhrow label{font-size:11px; font-weight:800; color:var(--ink2); width:82px; flex:none;}
   .fhrow input{flex:1; min-width:0; padding:9px 11px; border:1px solid var(--line); border-radius:10px; background:var(--panel); color:var(--ink); font-size:14px; font-family:inherit;}
@@ -1908,6 +1935,7 @@
 </div>
 
 <script src="boxdata.js"></script>
+<script src="fhstats.js"></script>
 <script>
 (function(){
   // ---- schedule engine (reverse-engineered from the current app) ----
@@ -4925,6 +4953,39 @@
     o.xp=o.xp||[];o.xp.push({l:(label||"").trim(),p:num});fh[k]=o;save("fh",fh);return true;}
   function fhRmXp(i,j){var k=FH[i][0],o=fh[k];if(!o||!o.xp)return;o.xp.splice(j,1);if(!o.xp.length)delete o.xp;
     if(fhAlive(o))fh[k]=o;else delete fh[k];save("fh",fh);}
+  // ---- firehouse run stats: FDNY Runs & Workers (fhstats.js), joined on UNIT NAME — the one
+  // stable key between the directory rows and the report. Latest year rides on every card;
+  // tapping the strip expands the ten-year history. Regenerate with build-firehouse-stats.py.
+  var FHS=(typeof FH_STATS!=="undefined"&&FH_STATS&&FH_STATS.houses)?FH_STATS:null, FHS_UNIT=null;
+  function fhsIndex(){ if(FHS_UNIT||!FHS)return; FHS_UNIT={}; FHS.houses.forEach(function(h){ (h.cos||[]).forEach(function(c){ FHS_UNIT[c.u.toLowerCase()]=h; }); }); }
+  function fhsOf(i){ if(!FHS)return null; fhsIndex(); var parts=FH[i][0].split("/"); for(var j=0;j<parts.length;j++){ var h=FHS_UNIT[parts[j].trim().toLowerCase()]; if(h)return h; } return null; }
+  function fmtN(n){ return (n===0||n)?String(n).replace(/\B(?=(\d{3})+(?!\d))/g,","):"—"; }
+  function fhsSpark(yrs){ var vals=yrs.map(function(r){return r[1]||0;}); if(vals.length<2)return "";
+    var mx=Math.max.apply(null,vals),mn=Math.min.apply(null,vals),span=(mx-mn)||1,W=86,H=26,P=3;
+    var pts=vals.map(function(v,j){ return (P+j*(W-2*P)/(vals.length-1)).toFixed(1)+","+(H-P-(v-mn)*(H-2*P)/span).toFixed(1); });
+    var last=pts[pts.length-1].split(",");
+    return '<svg class="spark" viewBox="0 0 '+W+' '+H+'" aria-hidden="true"><polyline points="'+pts.join(" ")+'"/><circle cx="'+last[0]+'" cy="'+last[1]+'" r="2.2"/></svg>'; }
+  function fhsStrip(i){ var hs=fhsOf(i); if(!hs)return "";
+    var top=hs.rank&&hs.rank<=10, warm=hs.rank&&hs.rank<=50;
+    return '<button class="fhstat" data-i="'+i+'" type="button" aria-expanded="false" title="Runs, fires and rank — tap for past years">'+
+      fhsSpark(hs.yrs)+
+      '<span class="fhstx"><b>'+fmtN(hs.tot.r)+'</b> runs · '+FHS.meta.latest+
+      (hs.rank?' <span class="fhrank'+(top?' hot':warm?' warm':'')+'">#'+hs.rank+' of '+hs.of+'</span>':'')+'</span>'+
+      '<span class="fhyrschev">▾</span></button>'+
+      '<div class="fhyrs" data-i="'+i+'"></div>'; }
+  function fhsYears(i){ var hs=fhsOf(i); if(!hs)return ""; var L=FHS.meta.latest, html="";
+    (hs.cos||[]).forEach(function(c){ var l=c.l||{};
+      html+='<div class="fhco"><span class="fhcotype '+escA(c.t)+'">'+esc((c.t||"?").charAt(0).toUpperCase())+'</span><b>'+esc(c.u)+'</b> — '+fmtN(l.r)+' runs'+
+        (l.rk?' · #'+l.rk+' of '+l.of+(l.rt?' <span class="fhcosub" style="display:inline">(#'+l.rt+' of '+l.tc+' '+esc(c.t)+'s)</span>':''):'')+
+        '<div class="fhcosub">'+(l.em!=null?('EMS '+fmtN(l.em)+' · '):'')+'Emergencies '+fmtN(l.eg)+' · Fires '+fmtN(l.f)+' · All-hands '+fmtN(l.ah)+'</div>';
+      if(c.yrs&&c.yrs.length>1){ html+='<table class="fhyt"><tr><th>Year</th><th>Runs</th><th>Fires</th><th>All-hands</th><th>Rank</th></tr>';
+        c.yrs.slice().reverse().forEach(function(r){ html+='<tr'+(r[0]===L?' class="latest"':'')+'><td>'+r[0]+'</td><td>'+fmtN(r[1])+'</td><td>'+fmtN(r[2])+'</td><td>'+fmtN(r[3])+'</td><td>'+(r[4]?('#'+r[4]):'—')+'</td></tr>'; });
+        html+='</table>'; }
+      html+='</div>'; });
+    if(hs.cos&&hs.cos.length>1&&hs.yrs&&hs.yrs.length>1){ html+='<div class="fhco"><b>🏠 Whole house</b><table class="fhyt"><tr><th>Year</th><th>Runs</th><th>Fires</th><th>All-hands</th></tr>';
+      hs.yrs.slice().reverse().forEach(function(r){ html+='<tr'+(r[0]===L?' class="latest"':'')+'><td>'+r[0]+'</td><td>'+fmtN(r[1])+'</td><td>'+fmtN(r[2])+'</td><td>'+fmtN(r[3])+'</td></tr>'; });
+      html+='</table></div>'; }
+    html+='<div class="fhcredit">'+esc(FHS.meta.credit)+'</div>'; return html; }
   function fhRow(i){
     var f=FH[i],d=fhData(i),url=mapsUrl(f[4],f[5]),official=f[6]||"",eff=(d.p||official),xp=d.xp||[];
     var chips="";
@@ -4944,6 +5005,7 @@
         '</a>'+
         '<button class="fhedit" data-i="'+i+'" aria-label="Add phone or door code">&#9998;</button>'+
       '</div>'+
+      fhsStrip(i)+
       chipsHTML+
       '<div class="fhbody">'+
         '<div class="fhrow"><label>&#128222; Phone</label><input class="fhp" data-i="'+i+'" type="tel" inputmode="tel" autocomplete="off" placeholder="'+(official?escA(official+" (Union) · tap to change"):"add phone number…")+'" value="'+escA(d.p||"")+'"></div>'+
@@ -4956,7 +5018,8 @@
   function fhMatch(i){
     if(dboro&&FH[i][2]!==dboro)return false;
     if(!dq)return true;
-    var f=FH[i],hay=(f[0]+" "+f[1]+" "+BORO[f[2]]+" "+f[2]+" "+f[3]+" "+(f[6]||"")).toLowerCase();
+    var hs=fhsOf(i);   // the stats join knows the neighborhood — "east new york" should find the house
+    var f=FH[i],hay=(f[0]+" "+f[1]+" "+BORO[f[2]]+" "+f[2]+" "+f[3]+" "+(f[6]||"")+" "+(hs?hs.hood:"")).toLowerCase();
     return dq.split(/\s+/).every(function(t){return !t||hay.indexOf(t)>=0;});
   }
   function renderDir(){
@@ -4997,6 +5060,12 @@
   document.getElementById("dList").addEventListener("click",function(e){   // delegated (survives re-renders): tap the "+N" chip to reveal the other numbers
     var xp=e.target.closest&&e.target.closest(".fhchip.xp"); if(!xp)return;
     var card=xp.closest(".fh"); if(card)card.classList.add("open");
+  });
+  document.getElementById("dList").addEventListener("click",function(e){   // delegated: the stats strip expands the ten-year history (built lazily, once per render)
+    var st=e.target.closest&&e.target.closest(".fhstat"); if(!st)return;
+    var i=+st.getAttribute("data-i"), body=document.querySelector('#dList .fhyrs[data-i="'+i+'"]'); if(!body)return;
+    var open=body.classList.toggle("open"); st.classList.toggle("open",open); st.setAttribute("aria-expanded",open?"true":"false");
+    if(open&&!body.innerHTML)body.innerHTML=fhsYears(i);
   });
   document.getElementById("dDone").onclick=closeSheets;
 

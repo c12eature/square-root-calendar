@@ -3,6 +3,7 @@
 app.src.html
 build.py
 sw.real.js
+build-firehouse-stats.py
 _preview.html
 app.src.html.bak
 README.md
