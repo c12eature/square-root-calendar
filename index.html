@@ -134,6 +134,7 @@
   .dot.px{background:transparent;box-shadow:inset 0 0 0 2px var(--amber);} /* partner swap — hollow amber ring: same partner-amber family, but distinct from the solid mutual-in dot (they were pixel-identical) */
   .dot.sx{background:#0e7490;}      /* self MX */
   .dot.psd{background:transparent;box-shadow:inset 0 0 0 2px var(--mut);} /* took it on, then handed it off — hollow neutral ring: you are OFF this tour but a leg is logged */
+  .dot.wfb{background:var(--violet);} /* mutualed off your own line but WORKING the hours anyway (payback elsewhere) — solid, because a body reports */
   .dot.cmp{background:#db2777;}     /* comp */
   .dot.pay{background:#6d4ae0;}     /* extra pay (AR/P2P/washup/other) */
   .dot.ecc{background:#475569;}     /* ECC/LCC */
@@ -199,6 +200,7 @@
   .mxtag.oot{background:#c2410c;color:#fff;}
   .mxtag.smx{background:#0e7490;color:#fff;}
   .mxtag.pass{background:transparent;color:var(--mut);box-shadow:inset 0 0 0 1px var(--mut);font-weight:800;}   /* handed off — outlined, because it says you are NOT working this tour */
+  .mxtag.wfb{background:var(--violet);color:#fff;font-weight:800;}   /* working-anyway leg — solid, because it says a body DOES report */
   .mxtag.comp{background:#db2777;color:#fff;}
   .tour.oot{border-color:var(--orange);background:color-mix(in srgb,#c2410c 8%, var(--panel2));}
   .tour.comp{border-color:#db2777;background:color-mix(in srgb,#db2777 8%, var(--panel2));}
@@ -1938,7 +1940,7 @@
   var _staleTab=false;   // another tab/window rewrote our state (merge, adoption, restore) — this tab's memory is stale and must never write over it
   window.addEventListener("storage",function(e){ if(e.key==="sqrt:editat"||e.key==="sqrtmergebase"){ _staleTab=true; try{ if(!anyOverlayOpen())location.reload(); }catch(_){location.reload();} } });
   function save(k,v){if(_staleTab){location.reload();return false;}try{LS.setItem("sqrt:"+k,JSON.stringify(v));afterWrite(k);return true;}catch(e){warnNoSave();return false;}}
-  var my=load("my",7), pt=load("pt",19), spot=load("spot",false), ov=load("ov",{}), ot=load("ot",{}), ar=load("ar",{}), mx=load("mx",{}), pass=load("pass",{}), add=load("add",{}), note=load("note",{}), events=load("ev",[]), cev=load("cev",[]);
+  var my=load("my",7), pt=load("pt",19), spot=load("spot",false), ov=load("ov",{}), ot=load("ot",{}), ar=load("ar",{}), mx=load("mx",{}), pass=load("pass",{}), wfor=load("wfor",{}), add=load("add",{}), note=load("note",{}), events=load("ev",[]), cev=load("cev",[]);
   var uname=load("name",""), uco=load("co","");   // your identity — full name + company/assignment (shown to your House Calendar crew)
   // ---- group assignments over time (reassignment = new groups + maybe a new partner) ----
   // Each epoch = {s:"YYYY-MM-DD", my:group, pt:partner|0}. Any date uses the epoch whose start is the
@@ -2083,7 +2085,8 @@
     else if(st==="ot")ot[k]="m";else if(st==="rsot")ot[k]="r";else if(st==="oot")ot[k]="o";
     if(st!=="mxin"&&st!=="mxout")delete mx[k];         // partner name only relevant for regular (counting) mutuals
     if(!PASSABLE[st])delete pass[k];                   // a hand-off only exists on a tour you took on — don't leave a dead leg behind
-    save("ov",ov);save("ot",ot);save("mx",mx);save("pass",pass);if(quiet)return;render();openDay(y,m,d,dayOnly||undefined);}   // quiet: background sync mutates state without popping the day sheet
+    if(!WORKBACK[st])delete wfor[k];                   // …and a worked-anyway leg only on a tour you gave away
+    save("ov",ov);save("ot",ot);save("mx",mx);save("pass",pass);save("wfor",wfor);if(quiet)return;render();openDay(y,m,d,dayOnly||undefined);}   // quiet: background sync mutates state without popping the day sheet
   // ---- a tour you TOOK ON and then handed off: pass[k] = who ended up working it ----
   // The real case this exists for: you pick up your partner's 6× (mutual IN — the partner now owes
   // you a tour), and then that tour goes to a THIRD person who was paying YOU back. Two different
@@ -2098,6 +2101,19 @@
   function passName(y,m,d,tour){return pass[K(y,m,d,tour)]||"";}
   function passOn(y,m,d,tour){var n=(pass[K(y,m,d,tour)]||"").trim();return (n&&PASSABLE[curState(y,m,d,tour)])?n:"";}   // the ACTIVE pass, or ""
   function setPassNr(y,m,d,tour,name){var k=K(y,m,d,tour);name=(name||"").trim();if(name)pass[k]=name;else delete pass[k];save("pass",pass);}   // persist only — no rebuild, keeps the input's focus (same contract as setMxName)
+  // ---- the MIRROR of pass: a tour you gave AWAY and then worked ANYWAY ----
+  // The real case: your group tour, someone from another house calls in a payback for those same
+  // hours. Pino covers your line (Mutual out — you owe Pino), and you spend the tour working the
+  // payback. Two counterparties on one tour, and this time you WORK it. `ov[k]` still holds the
+  // out-state and `mx[k]` Pino's name, so the worked-anyway leg gets its own map, like pass did.
+  //   OUT leg  → debit  (Pino covered your line)          — unchanged
+  //   wfor leg → credit (you worked a tour for them)      — same arithmetic as a Mutual in
+  // Only means anything on a tour you gave away; on a tour you took on, working it is the default,
+  // and on your own base tour it is just "Working". WORKBACK gates it the way PASSABLE gates pass.
+  var WORKBACK={mxout:1,pmxout:1,smxout:1};
+  function wforName(y,m,d,tour){return wfor[K(y,m,d,tour)]||"";}
+  function wforOn(y,m,d,tour){var n=(wfor[K(y,m,d,tour)]||"").trim();return (n&&WORKBACK[curState(y,m,d,tour)])?n:"";}   // the ACTIVE worked-anyway leg, or ""
+  function setWforNr(y,m,d,tour,name){var k=K(y,m,d,tour);name=(name||"").trim();if(name)wfor[k]=name;else delete wfor[k];save("wfor",wfor);}   // persist only — no rebuild, keeps the input's focus
   function mxName(y,m,d,tour){return mx[K(y,m,d,tour)]||"";}
   // persist only — the name shows in the day-sheet status text + ledger (both recomputed on next open),
   // never on a calendar chip, so we must NOT rebuild the sheet here (that would drop the user's next tap / focus).
@@ -2107,8 +2123,9 @@
     if(st==="mxin")ov[k]="in";else if(st==="mxout")ov[k]="out";else if(st==="comp")ov[k]="comp";else if(st==="vcomp")ov[k]="vc";
     else if(st==="ot")ot[k]="m";
     if(st!=="mxin"&&st!=="mxout")delete mx[k];
-    if(!PASSABLE[st])delete pass[k];});
-    save("ov",ov);save("ot",ot);save("mx",mx);save("pass",pass);render();openDay(y,m,d,dayOnly||undefined);}
+    if(!PASSABLE[st])delete pass[k];
+    if(!WORKBACK[st])delete wfor[k];});
+    save("ov",ov);save("ot",ot);save("mx",mx);save("pass",pass);save("wfor",wfor);render();openDay(y,m,d,dayOnly||undefined);}
   function setBothMxName(y,m,d,name){name=(name||"").trim();[9,6].forEach(function(tour){var k=K(y,m,d,tour);if(name)mx[k]=name;else delete mx[k];});save("mx",mx);}   // whole-day mutual name on both tours; no rebuild (keeps focus)
   function renderMxDatalist(){var dl=document.getElementById("mxNames");if(!dl)return;dl.innerHTML=mxnames.map(function(n){return '<option value="'+escA(n)+'"></option>';}).join("");}   // fill the autocomplete
   function rememberMxName(name){name=(name||"").trim();if(!name)return;var low=name.toLowerCase();if(mxnames.some(function(n){return n.toLowerCase()===low;}))return;mxnames.push(name);if(mxnames.length>80)mxnames=mxnames.slice(-80);save("mxnames",mxnames);renderMxDatalist();}
@@ -2116,6 +2133,7 @@
   function worked(y,m,d,tour){if(dutyStatus(y,m,d,tour)||leaveOn(y,m,d,tour))return false;   // out on leave = no body reported, even if a mutual is logged (the ledger keeps the debt; the hours are not yours)
     var st=curState(y,m,d,tour);
     if(PASSABLE[st]&&(pass[K(y,m,d,tour)]||"").trim())return false;   // you took it on, then someone else worked it — no body reported, and no hours are yours
+    if(WORKBACK[st]&&(wfor[K(y,m,d,tour)]||"").trim())return true;    // you gave it away, then worked those hours anyway (payback) — a body reports, the hours ARE yours
     if(st==="ot"||st==="rsot"||st==="oot"||st==="mxin"||st==="pmxin"||st==="smxin")return true;
     if(st==="mxout"||st==="pmxout"||st==="smxout"||st==="comp"||st==="vcomp")return false;
     return baseOf(y,m,d,tour)==="mine";}
@@ -2508,6 +2526,7 @@
     if(st==="mxin")return base+" · mutual (picked up)";
     if(st==="smxin")return base+" · self MX";
     if(st==="pmxin")return base+" · partner swap";
+    if(WORKBACK[st])return base+" · mutual (paying back)";   // only reachable when worked() said yes, i.e. the worked-anyway leg is active
     return base; }
   function buildIcsFeed(){ var out=[],t0=new Date(),tk=(icstok||"").slice(0,8);
     for(var i=-ICS_BACK;i<ICS_FWD;i++){ var dt=new Date(t0.getFullYear(),t0.getMonth(),t0.getDate()+i),
@@ -2676,7 +2695,7 @@
     var so=dutyStatus(y,m,d,tour)||leaveOn(y,m,d,tour); if(so)return so;
     var st=curState(y,m,d,tour);
     if(st==="ot")return "ot"; if(st==="rsot")return "rsot"; if(st==="oot")return "oot";
-    if(worked(y,m,d,tour))return "mine"+((st==="mxin"||st==="pmxin"||st==="smxin")?" mx":"");
+    if(worked(y,m,d,tour))return "mine"+((st==="mxin"||st==="pmxin"||st==="smxin"||WORKBACK[st])?" mx":"");   // WORKBACK: gave it away but working the hours anyway — reads as a mutual you work
     if(st==="comp"||st==="vcomp")return "comp";
     var b=baseOf(y,m,d,tour);return b==="mine"?"dropped":b;           // gave-away vs partner/off
   }
@@ -2699,6 +2718,7 @@
     else if(st==="comp")tag='<i class="dot cmp" title="Comp time"></i>';
     else if(st==="vcomp")tag='<i class="dot cmp vcmp" title="Veteran comp time"></i>';
     var pss=passOn(y,m,d,tour); if(pss)tag+='<i class="dot psd" title="Passed on to '+escA(pss)+'"></i>';   // the pill itself already reads as off — this says something is still logged here
+    var wfb=wforOn(y,m,d,tour); if(wfb)tag+='<i class="dot wfb" title="Working it for '+escA(wfb)+' — your line is covered"></i>';   // the pill reads as working (it is) — this says your own line went to someone else
     var wk=worked(y,m,d,tour), ao=wk?addOf(y,m,d,tour):{};
     var xm=wk?(endExtra(y,m,d,tour)+p2pMin(y,m,d,tour)+othMin(y,m,d,tour)):0, arT=xm?'<i class="dot pay" title="Extra pay (AR/P2P/washup/other)"></i>':'';
     var badges=(flagOn(y,m,d,tour,"ecc")?'<i class="dot ecc" title="ECC/LCC"></i>':'')+(flagOn(y,m,d,tour,"cfr")?'<i class="dot cfr" title="CFR"></i>':'');
@@ -2985,7 +3005,7 @@
   function inSharedSet(y,m,d,tour){var s=findSet(y,m,d);if(!s)return false;for(var i=0;i<s.length;i++)if(s[i][0]===y&&s[i][1]===m&&s[i][2]===d&&s[i][3]===tour)return true;return false;}   // this tour is part of an interlocking set you share with your partner
   function tourCard(y,m,d,tour){
     var s=startOf(y,m,d,tour), name=tour===9?"9× Day tour":"6× Night tour", time=tour===9?"09:00":"18:00", eg=effGroups(y,m,d), aw=abcdOf(y,m,d);
-    var b=baseOf(y,m,d,tour), st=curState(y,m,d,tour), w=worked(y,m,d,tour), so=dutyStatus(y,m,d,tour), nm=mxName(y,m,d,tour), po=passOn(y,m,d,tour), tag="", statusTxt;
+    var b=baseOf(y,m,d,tour), st=curState(y,m,d,tour), w=worked(y,m,d,tour), so=dutyStatus(y,m,d,tour), nm=mxName(y,m,d,tour), po=passOn(y,m,d,tour), wf=wforOn(y,m,d,tour), tag="", statusTxt;
     var lv=so?null:leaveOn(y,m,d,tour);   // a leave over a logged entry: state BOTH facts, never hide one behind the other
     if(so){statusTxt=dutyEmoji(so)+" "+dutyLabel(so)+(so==="ld"?" — light-duty assignment":" — you’re off your tours"); tag='<span class="mxtag '+so+'">'+dutyTag(so)+'</span>';}
     else if(st==="rsot"){statusTxt="Scheduled OT (RSOT) — report "+time+" · +"+otHours(tour)+"h · from your yearly list"; tag='<span class="mxtag rsot">RSOT +'+otHours(tour)+'h</span>';}
@@ -2994,7 +3014,7 @@
     else if(st==="mxin"){statusTxt="You picked this up (mutual)"+(nm?" for "+esc(nm):"")+" — they owe you a tour"+(po?"":" · report "+time); tag='<span class="mxtag">MX IN</span>';}
     else if(st==="smxin"){statusTxt="Self MX in — you took this on (no partner, chief-approved)"+(po?"":" · report "+time); tag='<span class="mxtag smx">SELF MX IN</span>';}
     else if(st==="pmxin"){statusTxt="Partner swap — you’re covering your Mutual Partner’s tour (even trade, no debt)"+(po?"":" · report "+time); tag='<span class="mxtag pmx">PARTNER IN</span>';}
-    else if(w){statusTxt="You’re working — report "+time;}
+    else if(w&&!WORKBACK[st]){statusTxt="You’re working — report "+time;}   // a gave-away tour with a worked-anyway leg is w too — let it fall through to its own branch so BOTH facts get stated
     else if(st==="mxout"){statusTxt="You mutual’d this out"+(nm?" to "+esc(nm):" — your Mutual Partner or someone takes it")+" — you owe a tour back"; tag='<span class="mxtag">MX OUT</span>';}
     else if(st==="pmxout"){statusTxt="Partner swap — your Mutual Partner covers this for you (even trade, no debt)"; tag='<span class="mxtag pmx">PARTNER OUT</span>';}
     else if(st==="smxout"){statusTxt="Self MX out — you’re off (no partner, chief-approved)"; tag='<span class="mxtag smx">SELF MX OUT</span>';}
@@ -3005,6 +3025,10 @@
     // the hand-off is stated as a SECOND fact on the same tour — the IN leg above still stands
     if(po){ statusTxt+=". "+esc(po)+" worked it for you — you’re off, and the Ledger counts it as a tour they covered for you";
       tag+='<span class="mxtag pass">↪ '+esc(po)+'</span>'; }
+    // …and so is the worked-anyway leg: the OUT above still stands (they cover your line), but a
+    // body reports — yours. Report time comes back, and the Ledger banks a tour you covered.
+    if(wf){ statusTxt+=". You’re working these hours anyway for "+esc(wf)+" (payback) — report "+time+" · the Ledger counts it as a tour you covered";
+      tag+='<span class="mxtag wfb">⤺ '+esc(wf)+'</span>'; }
     if(lv){ statusTxt=dutyEmoji(lv)+" "+dutyLabel(lv)+" — you were off"+(tag?". Still on the books: "+statusTxt.replace(/ · report \d\d:\d\d$/,""):"");
       tag='<span class="mxtag '+lv+'">'+dutyTag(lv)+'</span>'+tag; }   // the mutual keeps counting in the Ledger; change it below if it no longer stands
     var pl="↔ Mutual Partner";   // one-tap even swap with your regular partner (ledger-neutral) — only on sets you two share
@@ -3018,6 +3042,10 @@
     // You took this tour on, then it went to someone else. A name here = you are OFF it and they
     // covered for you; clearing the name hands it straight back to you. One field, no extra toggle.
     nmRow+=PASSABLE[st]?('<div class="mxnamerow passrow"><span class="lab">↪ Worked by</span><input class="mxname passname" type="text" list="mxNames" autocomplete="off" data-tour="'+tour+'" placeholder="Someone else took it — their name" value="'+escA(passName(y,m,d,tour))+'"></div>'):'';
+    // You gave this tour away, but worked the hours anyway (paying back a mutual — maybe at another
+    // house). A name here = a body reports and the Ledger banks a tour you covered; clearing the
+    // name makes it a plain give-away again. One field, no extra toggle — the mirror of ↪ above.
+    nmRow+=WORKBACK[st]?('<div class="mxnamerow wforrow"><span class="lab">⤺ You worked it for</span><input class="mxname wforname" type="text" list="mxNames" autocomplete="off" data-tour="'+tour+'" placeholder="Paying someone back — their name" value="'+escA(wforName(y,m,d,tour))+'"></div>'):'';
     var arm=arMin(y,m,d,tour), custom=(arm&&arm!==45&&arm!==90);
     var arRow=w?('<div class="arrow"><span class="lab">⏲ Awaiting relief'+(arm?' · <b>'+fmtMin(arm)+'</b>':'')+'</span><div class="arseg" data-tour="'+tour+'">'+
       '<button data-ar="0"'+(arm===0?' class="on"':'')+'>—</button>'+
@@ -3223,6 +3251,12 @@
       var tour=parseInt(inp.getAttribute("data-tour"),10);
       inp.oninput=function(){setPassNr(y,m,d,tour,inp.value);};   // persist-only while typing — keeps focus
       inp.onchange=function(){rememberMxName(inp.value);render();openDay(y,m,d,dayOnly||undefined);};   // on blur: this flips whether you WORK the tour, so the calendar + the sheet have to catch up
+      inp.onclick=function(e){e.stopPropagation();};
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("#shTours .wforname"),function(inp){
+      var tour=parseInt(inp.getAttribute("data-tour"),10);
+      inp.oninput=function(){setWforNr(y,m,d,tour,inp.value);};   // persist-only while typing — keeps focus
+      inp.onchange=function(){rememberMxName(inp.value);render();openDay(y,m,d,dayOnly||undefined);};   // on blur: this flips whether you WORK the tour — same contract as the pass row
       inp.onclick=function(e){e.stopPropagation();};
     });
     Array.prototype.forEach.call(document.querySelectorAll("#shTours .arseg:not(.p2pseg):not(.othseg)"),function(seg){
@@ -4041,7 +4075,7 @@
   // sqrt: prefix so it never rides a backup). Per-tour granularity for the maps, set-style for the
   // lists (adds from both sides survive, a deletion by either side sticks), and the device that
   // edited most recently wins the rare both-changed-the-exact-same-thing conflict.
-  var MERGE_MAPS={ov:1,ot:1,mx:1,pass:1,ar:1,add:1,note:1,sb:1,fh:1,hqapplied:1,hseen:1,hsub:1};
+  var MERGE_MAPS={ov:1,ot:1,mx:1,pass:1,wfor:1,ar:1,add:1,note:1,sb:1,fh:1,hqapplied:1,hseen:1,hsub:1};
   // htrial is the one scalar where "the device that edited later wins" would be exactly wrong: a
   // fresh phone would reset a spent trial by merging. Earliest start always wins.
   function mergeTrial(L,R){ var a=parseJ(L),b=parseJ(R);
@@ -4060,7 +4094,7 @@
   // ---- shrink guard: a copy that LOST a lot of data must never silently overwrite a good one ----
   // (learned the hard way: one device dropped its OT + profile, pushed the smaller state, and every
   //  other device then fast-forwarded onto the damaged copy. Both directions are now gated.)
-  var W_MAPS={ov:1,ot:1,mx:1,pass:1,ar:1,add:1,note:1,sb:1,fh:1,cfr:1};
+  var W_MAPS={ov:1,ot:1,mx:1,pass:1,wfor:1,ar:1,add:1,note:1,sb:1,fh:1,cfr:1};
   var W_ARRS={ev:1,cev:1,pev:1,periods:1,abcd:1,groups:1,mxnames:1,houses:1};
   var W_SCAL={name:1,co:1,phone:1,spouse:1,sphone:1,apptdate:1,hletter:1,pt:1};
   function dataWeight(d){ if(!d)return 0; var w=0,k,v;
@@ -4456,6 +4490,18 @@
       if(ptr===6&&abcdOf(py,pmo,pdy)&&(pass[pp[0]+"|9"]||"").trim())continue;            // ABCD stores a whole-day leg on both tours — count it once, via the 9×
       if(!by[pn])by[pn]={credit:0,debit:0};
       by[pn].debit++;
+    }
+    // the mirror leg: a tour you gave AWAY and then worked anyway (payback). Counts exactly like a
+    // Mutual in (you covered a tour for them) against a name that can differ from the OUT leg's —
+    // Pino takes your line (debit above, via ov/mx), you work the hours for the man calling in his
+    // payback (credit here). Same window rules as both loops above, for the same reasons.
+    for(var fk in wfor){ var fn=(wfor[fk]||"").trim(); if(!fn)continue;
+      var fp=fk.split("|"),fd=fp[0].split("-"),fy=+fd[0],fmo=+fd[1],fdy=+fd[2],ftr=+fp[1];
+      if(!WORKBACK[curState(fy,fmo,fdy,ftr)])continue;                                   // a stale leg under a non-OUT state moves nothing
+      if(schedPeriodOf(fy,fmo,fdy))continue;
+      if(ftr===6&&abcdOf(fy,fmo,fdy)&&(wfor[fp[0]+"|9"]||"").trim())continue;            // count a whole-day leg once, via the 9×
+      if(!by[fn])by[fn]={credit:0,debit:0};
+      by[fn].credit++;
     }
     return by;
   }
