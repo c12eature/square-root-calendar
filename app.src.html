@@ -965,6 +965,7 @@
   .tour.abmini{background:color-mix(in srgb, var(--panel) 92%, transparent);}   /* the per-tour marks/notes cards under an ABCD day */
   /* ---- light-duty schedules ---- */
   .dnum .dld{font-size:11px; margin-left:1px; vertical-align:1px;}   /* 📋 marker by the day number on a light-duty day */
+  .dnum .dpev{font-size:10px; margin-left:1px;}   /* 📌 by the day number in WORK view: you have personal plans this day — check before promising a mutual */
   .chip.ld.ldoff{background:transparent; border:1.4px dashed #64748b; color:#64748b; box-shadow:none; padding:2px 3px 2px 4px;}
   .chip.ld.oot{background:#475569; box-shadow:inset 0 0 0 1.7px #c2410c,0 1px 4px rgba(71,85,105,.3);}
   .chip.ld.gig{background:color-mix(in srgb,#475569 20%,var(--panel)); color:var(--ink2); box-shadow:none; font-weight:800; overflow:hidden; text-overflow:ellipsis;}
@@ -2801,14 +2802,20 @@
       var aw=abcdOf(y,m,d);   // ABCD → show the letter next to the day number; pills become 9×/6×
       var lsc=ldSched(y,m,d), trc=lsc?null:trSched(y,m,d);   // light-duty 📋 / training 🎓 marker (overrides the ABCD letter)
       var mkr=lsc?' <span class="dld" title="Light duty">📋</span>':trc?' <span class="dld" title="Training">🎓</span>':(aw?' <span class="dltr">'+abcdLetter(y,m,d)+'</span>':'');
+      // WORK view only: a 📌 by the day number when the PERSONAL calendar has plans — so a man
+      // talking up a mutual sees the warning without flipping views. Personal view shows the
+      // events themselves, so the flag would be noise there.
+      var pes=pmode?[]:pevOn(y,m,d);
+      var pmk=pes.length?' <span class="dpev" title="'+escA(pes.map(function(e){return e.n+(e.t1?" · "+pevWhen(e):"");}).join(" · "))+'">📌</span>':'';
+      if(pes.length)cell.title=(cell.title?cell.title+" · ":"")+pes.map(function(e){return "📌 "+e.n;}).join(" · ");
       cell.innerHTML=
-        '<div class="dnum">'+d+mkr+(pd?' <span class="pay">$</span>':'')+'</div>'+
+        '<div class="dnum">'+d+mkr+pmk+(pd?' <span class="pay">$</span>':'')+'</div>'+
         (pmode                                                   // personal view: your events, over a two-bar hint of the tours you work that day
           ? pcellHTML(y,m,d)
           : '<div class="chalf c9">'+chipHTML(y,m,d,9)+'</div>'+     // 9× day tour — top half (ABCD: your letter's day = mine)
             '<div class="chalf c6">'+chipHTML(y,m,d,6)+'</div>');    // 6× night tour — bottom half
       cell.setAttribute("role","button");cell.setAttribute("tabindex","0");   // keyboard/AT reachable — the day cell is the app's core control
-      cell.setAttribute("aria-label",DOWF[dow]+", "+MON[m]+" "+d+", "+y+(isTdy?" — today":"")+(pd?", payday":"")+(hol&&!ces.length?", "+hol:"")+(ces.length?", "+ces.map(function(e){return e.n;}).join(", "):""));
+      cell.setAttribute("aria-label",DOWF[dow]+", "+MON[m]+" "+d+", "+y+(isTdy?" — today":"")+(pd?", payday":"")+(hol&&!ces.length?", "+hol:"")+(ces.length?", "+ces.map(function(e){return e.n;}).join(", "):"")+(pes.length?", personal: "+pes.map(function(e){return e.n;}).join(", "):""));
       applyReqMark(cell,y,m,d);
       (function(y,m,d){function op(){if(Date.now()-swipeTs<350||Date.now()-lpTs<450||reqMode)return;if(pmode){openPDay(y,m,d);return;}openDay(y,m,d);}
         cell.addEventListener("click",op);
@@ -3166,7 +3173,11 @@
     var hol=holiday(y,m,d), holIcon=(hol&&hol.indexOf("9/11")>=0)?"🇺🇸":"🎉";   // 9/11 = remembrance, not celebration
     var evd=eventOf(y,m,d);
     var cevHead=cevOn(y,m,d).map(function(e){var cc=cevC(e.c);return '<button class="b24row cevgo" type="button" style="color:'+cc+';background:color-mix(in srgb,'+cc+' 13%,var(--panel));border:1px solid color-mix(in srgb,'+cc+' 34%,var(--line))">📌 '+esc(e.n)+(cevTime(e)?' <span class="evsub">· '+esc(cevTime(e))+'</span>':'')+'<span class="dgedit">Edit ›</span></button>'+(e.note?'<div class="cevnoterow">'+esc(e.note)+'</div>':'');}).join("");
-    var head=(HS?'<button class="b24row househint" type="button">🏠 Who&rsquo;s working in the house<span class="dgedit">Open ›</span></button>':'')+(hol?'<div class="holrow">'+holIcon+' '+esc(hol)+'</div>':'')+cevHead+(evd?'<button class="b24row evgo '+evd+'" type="button">'+evEmoji(evd)+' '+evLabel(evd)+' <span class="evsub">· 9× day</span><span class="dgedit">Edit ›</span></button>':'')+((pt2&&!lsDay&&!trDay)?'<button class="b24row dutygo '+pt2+'" type="button">'+dutyEmoji(pt2)+' '+dutyLabel(pt2)+'<span class="dgedit">Edit ›</span></button>':'');
+    // Personal plans, stated INSIDE the work day sheet — the 📌 by the day number warned you,
+    // this says what it is, and View › jumps straight to the event. No flipping to Personal.
+    var pesDay=pevOn(y,m,d);
+    var pevHead=pesDay.map(function(e,i){var pc=pevC(e.c);return '<button class="b24row pevgo" data-pgi="'+i+'" type="button" style="color:'+pc+';background:color-mix(in srgb,'+pc+' 13%,var(--panel));border:1px solid color-mix(in srgb,'+pc+' 34%,var(--line))">📌 '+esc(e.n||"(untitled)")+' <span class="evsub">· '+esc(pevWhen(e))+(e.loc?' · '+esc(e.loc):'')+'</span><span class="dgedit">View ›</span></button>';}).join("");
+    var head=(HS?'<button class="b24row househint" type="button">🏠 Who&rsquo;s working in the house<span class="dgedit">Open ›</span></button>':'')+(hol?'<div class="holrow">'+holIcon+' '+esc(hol)+'</div>':'')+cevHead+pevHead+(evd?'<button class="b24row evgo '+evd+'" type="button">'+evEmoji(evd)+' '+evLabel(evd)+' <span class="evsub">· 9× day</span><span class="dgedit">Edit ›</span></button>':'')+((pt2&&!lsDay&&!trDay)?'<button class="b24row dutygo '+pt2+'" type="button">'+dutyEmoji(pt2)+' '+dutyLabel(pt2)+'<span class="dgedit">Edit ›</span></button>':'');
     var set=findSet(y,m,d);
     var showSplit=set&&!set.some(function(t){return periodType(t[0],t[1],t[2]);});   // hide the splitter over any vacation / medical / light-duty window
     var splitHTML=showSplit?buildSplitter(set):"";   // one-press partner-set splits (only on sets you share with your Mutual Partner)
@@ -3193,6 +3204,7 @@
       Array.prototype.forEach.call(document.querySelectorAll("#evTypes .stype"),function(x){x.classList.toggle("on",x.getAttribute("data-ev")===evd);});
       evErr("");renderEvents();openSheet(evSheet);};
     Array.prototype.forEach.call(document.querySelectorAll("#shTours .cevgo"),function(cg){cg.onclick=function(){hideSheet(document.getElementById("sheet"));cevErr("");renderCev();openSheet(cevSheet);};});   // tap a Company Event banner → editor
+    Array.prototype.forEach.call(document.querySelectorAll("#shTours .pevgo"),function(pg){pg.onclick=function(){var e=pesDay[+pg.getAttribute("data-pgi")];if(!e)return;hideSheet(document.getElementById("sheet"));pdayCur={y:y,m:m,d:d};openPev(e);};});   // tap a personal-plan banner → that event's editor, straight from the work view
     if(showSplit)Array.prototype.forEach.call(document.querySelectorAll("#shTours .setsplit [data-sp]"),function(bn){
       bn.onclick=function(){var sp=bn.getAttribute("data-sp");
         function go(){if(sp==="clear")clearSet(set);else applySplit(set,SPLITS[sp]);render();openDay(y,m,d,dayOnly||undefined);}
