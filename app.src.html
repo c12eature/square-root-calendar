@@ -584,7 +584,6 @@
   .fhyt th:first-child,.fhyt td:first-child{text-align:left;}
   .fhyt td{text-align:right; padding:3.5px 6px; border-bottom:1px solid var(--line2); color:var(--ink2);}
   .fhyt tr.latest td{color:var(--ink); font-weight:800;}
-  .fhcredit{margin-top:9px; font-size:10.5px; color:var(--mut);}
   /* ---- 📊 Firehouse Stats sheet: citywide card, leaderboards, trends ---- */
   .fhsopen{flex:none; margin:2px 0 10px; border:0; cursor:pointer; font-family:inherit; text-align:left; width:100%;}
   .fhsopen .fhssub{font-weight:700; color:var(--ink2); font-size:11.5px;}
@@ -4991,7 +4990,7 @@
     if(hs.cos&&hs.cos.length>1&&hs.yrs&&hs.yrs.length>1){ html+='<div class="fhco"><b>🏠 Whole house</b><table class="fhyt"><tr><th>Year</th><th>Runs</th><th>Fires</th><th>All-hands</th></tr>';
       hs.yrs.slice().reverse().forEach(function(r){ html+='<tr'+(r[0]===L?' class="latest"':'')+'><td>'+r[0]+'</td><td>'+fmtN(r[1])+'</td><td>'+fmtN(r[2])+'</td><td>'+fmtN(r[3])+'</td></tr>'; });
       html+='</table></div>'; }
-    html+='<div class="fhcredit">'+esc(FHS.meta.credit)+'</div>'; return html; }
+    return html; }
   function fhRow(i){
     var f=FH[i],d=fhData(i),url=mapsUrl(f[4],f[5]),official=f[6]||"",eff=(d.p||official),xp=d.xp||[];
     var chips="";
@@ -5124,7 +5123,7 @@
       trends='<div class="fstrhd">📈 Biggest risers</div><div class="fstrsub">'+(L-1)+' → '+L+', by '+({r:"runs",f:"fires",ah:"all-hands",em:"EMS runs"})[FS.m]+'</div><div class="fslead" data-m="'+FS.m+'">'+
         up.map(function(it,i){return fsRow(it,i,mx);}).join("")+'</div>'+
         '<div class="fstrhd">📉 Biggest fallers</div><div class="fslead" data-m="'+FS.m+'">'+dn.map(function(it,i){return fsRow(it,i,mx);}).join("")+'</div>'; }
-    body.innerHTML=city+mseg+sseg+lead+trends+'<div class="fhcredit">'+esc(FHS.meta.credit)+' · ranks recomputed per metric; official Runs &amp; Workers rank shown on each firehouse card in the Directory.</div>';
+    body.innerHTML=city+mseg+sseg+lead+trends;
   }
   document.getElementById("fsBody").addEventListener("click",function(e){
     var b=e.target.closest&&e.target.closest("button[data-fsm]"); if(b){FS.m=b.getAttribute("data-fsm");FS.all=false;renderFhStats();return;}
