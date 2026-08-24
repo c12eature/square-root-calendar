@@ -156,6 +156,11 @@
   /* partner swap (even trade with your regular partner — ledger-neutral) = amber */
   .seg button[data-st="pmxin"],.seg button[data-st="pmxout"]{color:var(--amber);}
   .seg button[data-st="pmxin"].on,.seg button[data-st="pmxout"].on{background:var(--amber);color:#3a2600;border-color:var(--amber);}
+  /* held = the mutual-out that keeps standing UNDER an OT state. Outlined rather than filled so the
+     two lit buttons rank themselves: OT is what you're doing, the mutual is what's still owed. */
+  .seg button.held{background:color-mix(in srgb,var(--red-fill) 13%,var(--panel2));color:var(--red);border-color:var(--red);box-shadow:inset 0 0 0 1px var(--red);}
+  .seg button[data-st="smxout"].held{background:color-mix(in srgb,#0e7490 13%,var(--panel2));color:var(--cyan);border-color:var(--cyan);box-shadow:inset 0 0 0 1px var(--cyan);}
+  .seg button[data-st="pmxout"].held{background:color-mix(in srgb,var(--amber) 15%,var(--panel2));color:var(--amber-soft-ink);border-color:var(--amber);box-shadow:inset 0 0 0 1px var(--amber);}
   .mxtag.pmx{background:var(--amber);color:#3a2600;}
   .tour.pmx{border-color:var(--amber);background:color-mix(in srgb,var(--amber) 8%, var(--panel2));}
   .tour.pmx .status{color:var(--amber-soft-ink);}
@@ -3030,7 +3035,13 @@
     if(b==="mine"){opts=[["base","Working"]];if((eg.pt&&inSharedSet(y,m,d,tour))||st==="pmxout")opts.push(["pmxout",pl]);opts.push(["mxout","Mutual out"],["smxout","Self MX out"],["comp","Comp time"]);if(vet)opts.push(["vcomp","Veteran comp"]);opts.push(["ot","MSOT"],["rsot","RSOT"],["oot","Other OT"]);}   // even swap only on a shared set (or if this tour already is one)
     else if(b==="partner"){opts=[["base","Off"]];if((eg.pt&&inSharedSet(y,m,d,tour))||st==="pmxin")opts.push(["pmxin",pl]);opts.push(["mxin","Mutual in"],["smxin","Self MX in"],["ot","MSOT"],["rsot","RSOT"],["oot","Other OT"]);}
     else opts=[["base","Off"],["mxin","Mutual in"],["smxin","Self MX in"],["ot","MSOT"],["rsot","RSOT"],["oot","Other OT"]];   // off tour → not your partner's set, no ↔ partner option
-    var seg=opts.map(function(o){var cap=(o[0]==="ot")?'<div class="segcap">Pick up as overtime</div>':'';return cap+'<button data-st="'+o[0]+'"'+(st===o[0]?' class="on"':'')+'>'+o[1]+'</button>';}).join("");
+    // A dormant mutual-out riding under an OT state keeps its button lit (held) — going white here
+    // is what made the OT look like it ATE the mutual. Tapping the held button peels the OT off
+    // and leaves the mutual standing alone, which is what the button says it is.
+    var subSt=mo?({out:"mxout",pout:"pmxout",sout:"smxout"})[mo]:null;
+    var seg=opts.map(function(o){var cap=(o[0]==="ot")?'<div class="segcap">Pick up as overtime</div>':'';
+      var cls=(st===o[0])?' class="on"':(subSt===o[0])?' class="held" title="Still recorded — the OT rides on top. Tap to drop the OT and keep just the mutual."':'';
+      return cap+'<button data-st="'+o[0]+'"'+cls+'>'+o[1]+'</button>';}).join("");
     var isNamedMx=(st==="mxin"||st==="mxout"||mo==="out");   // only regular (counting) mutuals get a name — partner swaps don't; a preserved out under OT keeps its field
     var nmRow=isNamedMx?('<div class="mxnamerow"><span class="lab">🤝 With</span><input class="mxname" type="text" list="mxNames" autocomplete="off" data-tour="'+tour+'" placeholder="Name — pick a saved one or type new" value="'+escA(nm)+'"></div>'):'';
     // You took this tour on, then it went to someone else. A name here = you are OFF it and they
