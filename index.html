@@ -614,6 +614,34 @@
   .fhyt td{text-align:right; padding:3.5px 6px; border-bottom:1px solid var(--line2); color:var(--ink2);}
   .fhyt tr.latest td{color:var(--ink); font-weight:800;}
   .fhcredit{margin-top:9px; font-size:10.5px; color:var(--mut);}
+  /* ---- 📊 Firehouse Stats sheet: citywide card, leaderboards, trends ---- */
+  .fhsopen{flex:none; margin:2px 0 10px; border:0; cursor:pointer; font-family:inherit; text-align:left; width:100%;}
+  .fhsopen .fhssub{font-weight:700; color:var(--ink2); font-size:11.5px;}
+  .fhsopen .dgedit{margin-left:auto;}
+  .fscity{border:1px solid var(--line); border-radius:12px; background:var(--panel2); padding:11px 13px; margin-bottom:12px;}
+  .fscityrow{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;}
+  .fsbig{font-size:22px; font-weight:900; line-height:1.1;}
+  .fscap{font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--mut); display:block;}
+  .fsdelta{font-size:11px; font-weight:800;}
+  .fsdelta.up{color:var(--pay);} .fsdelta.dn{color:var(--mut);}
+  .fscity .spark{width:100%; height:38px; display:block; margin-top:8px;}
+  .fsseg{display:flex; gap:6px; margin-bottom:8px;}
+  .fsseg button{flex:1; min-width:0; padding:9px 2px; border:1px solid var(--line); border-radius:10px; background:var(--panel2); color:var(--ink2); font-size:11.5px; font-weight:800; cursor:pointer; font-family:inherit;}
+  .fsseg button.on{background:var(--ink); color:var(--bg); border-color:var(--ink);}
+  .fslead{margin-top:4px;}
+  .fsrow{display:flex; align-items:center; gap:9px; padding:7px 2px; border-bottom:1px solid var(--line2); cursor:pointer;}
+  .fsrk{min-width:30px; text-align:right; font-weight:900; color:var(--mut); font-size:12px; flex:none; font-variant-numeric:tabular-nums;}
+  .fsrow.top .fsrk{color:var(--red);}
+  .fsnm{flex:1; min-width:0;}
+  .fsnm b{font-size:13px;}
+  .fsnm .fssub2{display:block; font-size:10.5px; color:var(--mut); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .fsbar{display:block; height:3px; border-radius:2px; background:var(--red); margin-top:3px; min-width:2px;}
+  .fslead[data-m="f"] .fsbar{background:var(--orange);} .fslead[data-m="ah"] .fsbar{background:var(--violet);} .fslead[data-m="em"] .fsbar{background:var(--cyan);}
+  .fsval{font-weight:900; font-size:13px; font-variant-numeric:tabular-nums; flex:none;}
+  .fsd{min-width:58px; text-align:right; flex:none; font-variant-numeric:tabular-nums;}
+  .fsmore{width:100%; margin:10px 0 2px; padding:11px; border:1px solid var(--line); border-radius:10px; background:var(--panel2); color:var(--ink2); font-weight:800; font-size:12.5px; cursor:pointer; font-family:inherit;}
+  .fstrhd{margin:16px 0 2px; font-size:13px; font-weight:900;}
+  .fstrsub{font-size:11px; color:var(--mut); font-weight:600; margin-bottom:4px;}
   .fhrow{display:flex; align-items:center; gap:9px; margin-top:11px;}
   .fhrow label{font-size:11px; font-weight:800; color:var(--ink2); width:82px; flex:none;}
   .fhrow input{flex:1; min-width:0; padding:9px 11px; border:1px solid var(--line); border-radius:10px; background:var(--panel); color:var(--ink); font-size:14px; font-family:inherit;}
@@ -1660,6 +1688,7 @@
 
 <div class="sheet set house" id="houseSheet">
   <div class="grip"></div>
+  <button class="b24row fhsopen" id="openFhStats" type="button">📊 Firehouse Stats <span class="fhssub">rankings &amp; trends, 2016–2025</span><span class="dgedit">Open ›</span></button>
   <div id="houseBody"></div>
   <button class="done" id="houseDone">Done</button>
 </div>
@@ -1686,6 +1715,13 @@
   </div>
   <div class="dlist" id="dList"></div>
   <button class="done" id="dDone">Done</button>
+</div>
+
+<div class="sheet set dir" id="fhStatsSheet">
+  <div class="grip"></div>
+  <h3>📊 Firehouse Stats <span class="dcount" id="fsYear"></span></h3>
+  <div class="dlist" id="fsBody"></div>
+  <button class="done" id="fsDone">Done</button>
 </div>
 
 <div class="sheet set" id="groupSheet">
@@ -4960,8 +4996,8 @@
   function fhsIndex(){ if(FHS_UNIT||!FHS)return; FHS_UNIT={}; FHS.houses.forEach(function(h){ (h.cos||[]).forEach(function(c){ FHS_UNIT[c.u.toLowerCase()]=h; }); }); }
   function fhsOf(i){ if(!FHS)return null; fhsIndex(); var parts=FH[i][0].split("/"); for(var j=0;j<parts.length;j++){ var h=FHS_UNIT[parts[j].trim().toLowerCase()]; if(h)return h; } return null; }
   function fmtN(n){ return (n===0||n)?String(n).replace(/\B(?=(\d{3})+(?!\d))/g,","):"—"; }
-  function fhsSpark(yrs){ var vals=yrs.map(function(r){return r[1]||0;}); if(vals.length<2)return "";
-    var mx=Math.max.apply(null,vals),mn=Math.min.apply(null,vals),span=(mx-mn)||1,W=86,H=26,P=3;
+  function fhsSpark(yrs,W,H){ var vals=yrs.map(function(r){return r[1]||0;}); if(vals.length<2)return "";
+    var mx=Math.max.apply(null,vals),mn=Math.min.apply(null,vals),span=(mx-mn)||1,P=3; W=W||86; H=H||26;
     var pts=vals.map(function(v,j){ return (P+j*(W-2*P)/(vals.length-1)).toFixed(1)+","+(H-P-(v-mn)*(H-2*P)/span).toFixed(1); });
     var last=pts[pts.length-1].split(",");
     return '<svg class="spark" viewBox="0 0 '+W+' '+H+'" aria-hidden="true"><polyline points="'+pts.join(" ")+'"/><circle cx="'+last[0]+'" cy="'+last[1]+'" r="2.2"/></svg>'; }
@@ -5068,6 +5104,80 @@
     if(open&&!body.innerHTML)body.innerHTML=fhsYears(i);
   });
   document.getElementById("dDone").onclick=closeSheets;
+
+  // ---- 📊 Firehouse Stats: the whole job ranked — leaderboards by metric and type, plus trends ----
+  var FS={m:"r",sc:"line",all:false};
+  var FS_COS=null, FS_CITY=null;
+  var FS_METRICS=[["r","🏃 Runs"],["f","🔥 Fires"],["ah","🚨 All-hands"],["em","🚑 EMS"]];
+  var FS_SCOPES=[["line","All"],["engine","Engines"],["ladder","Ladders"],["special","Sq/Rescue"],["house","Houses"]];
+  function fsInit(){ if(FS_COS||!FHS)return;
+    FS_COS=[]; FHS.houses.forEach(function(h){ (h.cos||[]).forEach(function(c){ FS_COS.push({u:c.u,t:c.t,l:c.l||{},yrs:c.yrs||[],hood:h.hood}); }); });
+    FS_CITY=FHS.meta.years.map(function(y){ var r=0,f=0,ah=0;   // citywide = sum of house totals (chiefs excluded upstream, so nothing double-counts)
+      FHS.houses.forEach(function(h){ (h.yrs||[]).forEach(function(row){ if(row[0]===y){r+=row[1]||0;f+=row[2]||0;ah+=row[3]||0;} }); });
+      return [y,r,f,ah]; }); }
+  function fsPrev(yrs,m){ var L=FHS.meta.latest,idx={r:1,f:2,ah:3}[m]; if(idx==null)return null;
+    for(var i=0;i<yrs.length;i++)if(yrs[i][0]===L-1)return yrs[i][idx]; return null; }
+  function fsItems(){ var m=FS.m;
+    if(FS.sc==="house") return FHS.houses.map(function(h){ var v={r:h.tot.r,f:h.tot.f,ah:h.tot.ah}[m];
+        return v==null?null:{nm:h.n,sub:h.hood,v:v,pv:fsPrev(h.yrs,m),q:h.n}; }).filter(Boolean);
+    return FS_COS.filter(function(c){ if(FS.sc==="line")return c.l.rk!=null; return c.t===FS.sc; })
+      .map(function(c){ var v={r:c.l.r,f:c.l.f,ah:c.l.ah,em:c.l.em}[m];
+        return v==null?null:{nm:c.u,sub:c.hood,v:v,pv:fsPrev(c.yrs,m),q:c.u}; }).filter(Boolean); }
+  function fsDelta(it,pct){ if(it.pv==null)return ""; var d=it.v-it.pv; if(!d)return '<span class="fsdelta">·</span>';
+    var s=(d>0?"▲ +":"▼ ")+fmtN(Math.abs(d)*(d>0?1:-1)).replace("-","")+(pct?(" ("+(d>0?"+":"")+(100*d/it.pv).toFixed(1)+"%)"):"");
+    return '<span class="fsdelta '+(d>0?"up":"dn")+'">'+s+'</span>'; }
+  function fsRow(it,i,mx){ return '<div class="fsrow'+(i<10?' top':'')+'" data-q="'+escA(it.q)+'">'+
+      '<span class="fsrk">'+(i+1)+'</span>'+
+      '<span class="fsnm"><b>'+esc(it.nm)+'</b><span class="fssub2">'+esc(it.sub||"")+'</span><i class="fsbar" style="width:'+Math.max(2,100*it.v/mx).toFixed(1)+'%"></i></span>'+
+      '<span class="fsd">'+fsDelta(it)+'</span><span class="fsval">'+fmtN(it.v)+'</span></div>'; }
+  function renderFhStats(){ fsInit(); var body=document.getElementById("fsBody");
+    document.getElementById("fsYear").textContent=FHS?String(FHS.meta.latest):"";
+    if(!FHS){ body.innerHTML='<div class="dempty">Stats didn’t load — update the app and try again.</div>'; return; }
+    if(FS.sc==="house"&&FS.m==="em")FS.m="r";   // no EMS column on house totals
+    var L=FHS.meta.latest, cur=FS_CITY[FS_CITY.length-1], prv=FS_CITY[FS_CITY.length-2];
+    var city='<div class="fscity"><div class="fscityrow">'+
+      '<span><span class="fscap">Citywide runs · '+L+'</span><span class="fsbig">'+fmtN(cur[1])+'</span> '+fsDelta({v:cur[1],pv:prv[1]},true)+'</span>'+
+      '<span><span class="fscap">Fires</span><span class="fsbig">'+fmtN(cur[2])+'</span> '+fsDelta({v:cur[2],pv:prv[2]})+'</span>'+
+      '<span><span class="fscap">All-hands</span><span class="fsbig">'+fmtN(cur[3])+'</span> '+fsDelta({v:cur[3],pv:prv[3]})+'</span>'+
+      '</div>'+fhsSpark(FS_CITY,320,38)+'</div>';
+    var mseg='<div class="fsseg">'+FS_METRICS.map(function(x){ var dis=(FS.sc==="house"&&x[0]==="em");
+      return dis?'':'<button data-fsm="'+x[0]+'"'+(FS.m===x[0]?' class="on"':'')+'>'+x[1]+'</button>'; }).join("")+'</div>';
+    var sseg='<div class="fsseg">'+FS_SCOPES.map(function(x){ return '<button data-fssc="'+x[0]+'"'+(FS.sc===x[0]?' class="on"':'')+'>'+x[1]+'</button>'; }).join("")+'</div>';
+    var items=fsItems().sort(function(a,b){return b.v-a.v;});
+    var mx=items.length?items[0].v:1, cut=FS.all?items:items.slice(0,25);
+    var lead='<div class="fslead" data-m="'+FS.m+'">'+cut.map(function(it,i){return fsRow(it,i,mx);}).join("")+'</div>'+
+      (items.length>cut.length?'<button class="fsmore" type="button">Show all '+items.length+'</button>':'');
+    var trends="";
+    var movers=items.filter(function(it){return it.pv!=null&&it.pv>0;});
+    if(movers.length>3){ var up=movers.slice().sort(function(a,b){return (b.v-b.pv)-(a.v-a.pv);}).slice(0,8),
+        dn=movers.slice().sort(function(a,b){return (a.v-a.pv)-(b.v-b.pv);}).slice(0,8);
+      trends='<div class="fstrhd">📈 Biggest risers</div><div class="fstrsub">'+(L-1)+' → '+L+', by '+({r:"runs",f:"fires",ah:"all-hands",em:"EMS runs"})[FS.m]+'</div><div class="fslead" data-m="'+FS.m+'">'+
+        up.map(function(it,i){return fsRow(it,i,mx);}).join("")+'</div>'+
+        '<div class="fstrhd">📉 Biggest fallers</div><div class="fslead" data-m="'+FS.m+'">'+dn.map(function(it,i){return fsRow(it,i,mx);}).join("")+'</div>'; }
+    body.innerHTML=city+mseg+sseg+lead+trends+'<div class="fhcredit">'+esc(FHS.meta.credit)+' · ranks recomputed per metric; official Runs &amp; Workers rank shown on each firehouse card in the Directory.</div>';
+  }
+  document.getElementById("fsBody").addEventListener("click",function(e){
+    var b=e.target.closest&&e.target.closest("button[data-fsm]"); if(b){FS.m=b.getAttribute("data-fsm");FS.all=false;renderFhStats();return;}
+    var s=e.target.closest&&e.target.closest("button[data-fssc]"); if(s){FS.sc=s.getAttribute("data-fssc");FS.all=false;renderFhStats();return;}
+    if(e.target.closest&&e.target.closest(".fsmore")){FS.all=true;renderFhStats();return;}
+    var row=e.target.closest&&e.target.closest(".fsrow[data-q]");
+    if(row){ var q=row.getAttribute("data-q");   // leaderboard row → that house's card in the Directory, stats open
+      hideSheet(document.getElementById("fhStatsSheet"));
+      dq=q.toLowerCase(); dboro=""; document.getElementById("dSearch").value=q;
+      Array.prototype.forEach.call(document.querySelectorAll("#dBoros .dboro"),function(bb){bb.classList.toggle("on",!bb.getAttribute("data-b"));});
+      renderDir(); openSheet(dirSheet);
+      // "290" is a substring of other cards' phone numbers and zips, so don't trust result order —
+      // open the card whose NAME carries the exact unit (house rows are "Engine 290/Ladder 103")
+      var strip=null;
+      Array.prototype.forEach.call(document.querySelectorAll("#dList .fh"),function(card){
+        if(strip)return; var nm=card.querySelector(".fhname");
+        if(nm&&nm.textContent.split("/").some(function(p){return p.trim().toLowerCase()===q.toLowerCase();}))
+          strip=card.querySelector(".fhstat"); });
+      if(!strip)strip=document.querySelector('#dList .fhstat');
+      if(strip){ strip.click(); strip.closest(".fh").scrollIntoView({block:"start"}); } }
+  });
+  document.getElementById("openFhStats").onclick=function(){ if(!requireUnlock())return; renderFhStats(); openSheet(document.getElementById("fhStatsSheet")); };
+  document.getElementById("fsDone").onclick=closeSheets;
 
   var REF=[{c:"⚡ Quick & emergency",e:[["Fire Department General Info","718-999-2000"],["Fire Operations Center (24 hr)","718-999-7900"],["Teleprinter — job-wide message","718-999-2068"],["Poison Control","212-764-7667"],["Burn Center (NY-Presbyterian)","212-746-0328"],["City non-emergency (311)","311"]]},
 {c:"🚒 Borough commands & dispatchers",e:[["Manhattan Borough Command","212-570-1517"],["Manhattan Dispatcher","212-570-4300"],["Bronx Borough Command","718-430-0210"],["Bronx Dispatcher","718-430-0200"],["Brooklyn Borough Command","718-965-0434"],["Brooklyn Dispatcher","718-965-8300"],["Queens Borough Command","718-476-8420"],["Queens Dispatcher","718-476-6200"],["Staten Island Borough Command","718-494-7370"],["Staten Island Dispatcher","718-494-4296"]]},
