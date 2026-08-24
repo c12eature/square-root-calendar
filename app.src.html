@@ -1658,7 +1658,6 @@
 
 <div class="sheet set house" id="houseSheet">
   <div class="grip"></div>
-  <button class="b24row fhsopen" id="openFhStats" type="button">📊 Firehouse Stats <span class="fhssub">rankings &amp; trends, 2016–2025</span><span class="dgedit">Open ›</span></button>
   <div id="houseBody"></div>
   <button class="done" id="houseDone">Done</button>
 </div>
@@ -1683,6 +1682,7 @@
     <button class="dboro" data-b="Q">Qns</button>
     <button class="dboro" data-b="SI">SI</button>
   </div>
+  <button class="b24row fhsopen" id="openFhStats" type="button">📊 Firehouse Stats <span class="fhssub">rankings &amp; trends, 2016–2025</span><span class="dgedit">Open ›</span></button>
   <div class="dlist" id="dList"></div>
   <button class="done" id="dDone">Done</button>
 </div>
@@ -5146,7 +5146,7 @@
       if(!strip)strip=document.querySelector('#dList .fhstat');
       if(strip){ strip.click(); strip.closest(".fh").scrollIntoView({block:"start"}); } }
   });
-  document.getElementById("openFhStats").onclick=function(){ if(!requireUnlock())return; renderFhStats(); openSheet(document.getElementById("fhStatsSheet")); };
+  document.getElementById("openFhStats").onclick=function(){ if(!requireUnlock())return; hideSheet(dirSheet); renderFhStats(); openSheet(document.getElementById("fhStatsSheet")); };   // lives inside the Firehouses directory — swap sheets, don't stack them
   document.getElementById("fsDone").onclick=closeSheets;
 
   var REF=[{c:"⚡ Quick & emergency",e:[["Fire Department General Info","718-999-2000"],["Fire Operations Center (24 hr)","718-999-7900"],["Teleprinter — job-wide message","718-999-2068"],["Poison Control","212-764-7667"],["Burn Center (NY-Presbyterian)","212-746-0328"],["City non-emergency (311)","311"]]},
